@@ -2128,6 +2128,48 @@ nmap --script vuln -p<ports> $IP     # broad "any known vulns?" — NOISY, gives
 
 > For each service: **what it is** (plain English) → **commands** (every line commented) → **what to check, what can go wrong, and where it leads.** Jump straight to the port you found open using the decision table at the bottom (`[ENUM-DECISION]`).
 
+## [PORT-PLAYBOOK]  the ports to recognise on sight + your FIRST move
+When nmap comes back, don't panic at the list — recognise each port and reach for its first move. **Attack priority: web (80/443) → SMB (445) → AD (88/389) → databases → the rest.**
+
+| Port(s) | Protocol / service | What it is (plain English) | Your FIRST move | Jump |
+|---|---|---|---|---|
+| 21 | FTP | file transfer, often **anonymous** | try `anonymous`/any-pass; download everything; can you upload? | `[ENUM-FTP]` |
+| 22 | SSH | remote login shell | note the version; only useful with a **found** password/key (don't brute) | `[ENUM-SSH]` |
+| 23 | Telnet | ancient cleartext login | grab banner; try creds you have | `[ENUM-UNUSUAL-PORTS]` |
+| 25/465/587 | SMTP | mail | enumerate **usernames** (`VRFY`, `RCPT`) → feed AD attacks | `[ENUM-SMTP]` |
+| 53 | DNS | name lookups | attempt a **zone transfer**; on AD it reveals DCs | `[ENUM-DNS]` |
+| 80/443/8080/8000 | HTTP(S) | ⭐ a **website** — #1 foothold | enumerate FULLY: `whatweb`, dir-brute, **version→exploit** | `[WEB-QUICK]` |
+| 88 | Kerberos | AD authentication | 🚨 **it's a DOMAIN CONTROLLER** — switch to AD mode | `[ENUM-KERBEROS]` / `[AD-QUICK]` |
+| 110/143 | POP3/IMAP | mailboxes | test found creds; read mail for secrets | `[ENUM-UNUSUAL-PORTS]` |
+| 111 | RPCbind | Unix RPC → points to NFS | `showmount -e` to find NFS exports | `[ENUM-NFS]` |
+| 135 | MSRPC | Windows RPC | `rpcclient -U '' -N` null session → users | `[ENUM-RPC]` |
+| 139/445 | SMB | ⭐ Windows file sharing | `nxc smb`; try **null session** shares/users | `[ENUM-SMB]` |
+| 161 (UDP) | SNMP | device monitoring | `snmpwalk -c public` → **creds in process args** (easy win) | `[ENUM-SNMP]` |
+| 389/636/3268 | LDAP | the AD directory | anonymous bind dump; passwords hide in `description` | `[ENUM-LDAP]` |
+| 623 (UDP) | IPMI | server management | dump the **pre-auth hash** → crack it | `[ENUM-IPMI]` |
+| 1433 | MSSQL | MS SQL Server database | creds → `xp_cmdshell` **RCE** | `[ENUM-MSSQL]` |
+| 1521 | Oracle | Oracle database | SID-guess → default creds (`scott/tiger`) → RCE | `[ENUM-ORACLE]` |
+| 2049 | NFS | Unix file shares | mount it; **`no_root_squash`** → root | `[ENUM-NFS]` |
+| 3306 | MySQL | database | try `root`/blank; `FILE` priv → read/write files | `[ENUM-MYSQL]` |
+| 3389 | RDP | remote desktop (GUI) | test creds → `xfreerdp` login | `[ENUM-RDP]` |
+| 5432 | PostgreSQL | database | try `postgres`/blank; `COPY ... PROGRAM` → RCE | `[ENUM-POSTGRES]` |
+| 5900 | VNC | remote desktop | auth-bypass / crack the VNC password / connect | `[ENUM-VNC]` |
+| 5985/5986 | WinRM | remote PowerShell | `nxc winrm` creds → `evil-winrm` **shell** | `[ENUM-WINRM]` |
+| 6379 | Redis | in-memory DB, **often no auth** | connect; write a webshell / SSH key | `[ENUM-REDIS]` |
+| 27017 | MongoDB | NoSQL DB, often no auth | dump collections → creds/tokens | `[ENUM-MONGODB]` |
+| 2375/2376 | Docker API | container engine | unauth API → **host root** | `[ENUM-DOCKER]` |
+
+**The instant "tells" — train these gut reactions:**
+- **Port 88 open → it's a Domain Controller → go AD** (BloodHound, roasting, spraying).
+- **445 with `signing:False` → NTLM relay is possible** (lab only; poisoning is banned on the exam).
+- **Anonymous FTP / null SMB / world-readable NFS → free files — loot them first.**
+- **A database port (1433/3306/5432) + a credential → usually the fastest RCE.**
+- **A version number on ANY service → `searchsploit` / CVE it immediately** (`[EXPLOIT-RESEARCH]`).
+- **161 SNMP → `snmpwalk` is a low-effort credential jackpot** (passwords in process arguments).
+- **Lots of high ports 49152+ on Windows → normal RPC plumbing, ignore them.**
+
+**Golden habit:** the open ports are a **menu, not a checklist in order** — enumerate them all, then attack the *easiest* win first (web, SMB, or a known-version exploit).
+
 ## [ENUM-FTP]  Port 21 — FTP (file transfer)
 **What it is:** an old way to upload/download files. It's a goldmine when it allows **anonymous** login (username `anonymous`, any password) — you might read config files, backups, or even the website's files. If FTP shares the same folder as the web server, you can sometimes **upload a "webshell"** (a small script that lets you run commands via the browser).
 ```bash
