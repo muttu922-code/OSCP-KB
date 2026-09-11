@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSCP Study Tracker</title>
+<style>
+:root{
+  --bg:#0d1117; --panel:#11161d; --panel2:#161c24; --hover:#1b2531;
+  --text:#c9d3de; --head:#e8eef5; --muted:#7d8794; --faint:#5a6472;
+  --accent:#4f9cf9; --accent-soft:#1a2942; --good:#56d364; --warn:#e3a008; --bad:#f2645a;
+  --border:#20262e; --border2:#2a323c; --code-bg:#0a0e13;
+}
+html[data-theme="light"]{
+  --bg:#f6f8fa; --panel:#fff; --panel2:#eef1f4; --hover:#e7ecf1;
+  --text:#24292f; --head:#0f1419; --muted:#57606a; --faint:#8b949e;
+  --accent:#0969da; --accent-soft:#ddf0ff; --good:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+  --border:#d8dee4; --border2:#cdd5dd; --code-bg:#f2f4f7;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:22px 20px 90px}
+h1{font-size:22px;color:var(--head);margin:0 0 2px}
+.sub{color:var(--faint);font-size:12.5px;margin-bottom:14px}
+.howto{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:var(--muted);margin-bottom:18px}
+.howto b{color:var(--head)}
+a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+/* dashboard */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:13px 15px}
+.card .n{font-size:26px;font-weight:700;color:var(--head);line-height:1.1}
+.card .l{font-size:11.5px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
+.card .n.good{color:var(--good)} .card .n.warn{color:var(--warn)}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:18px}
+.panel h2{font-size:15px;color:var(--head);margin:0 0 12px;display:flex;align-items:center;gap:8px}
+/* weak-area bars */
+.bar{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:13px}
+.bar .name{width:150px;flex:0 0 150px;color:var(--muted)}
+.bar .track{flex:1;background:var(--panel2);border-radius:6px;height:20px;overflow:hidden;position:relative}
+.bar .fill{height:100%;background:var(--accent);border-radius:6px;min-width:2px;transition:width .3s}
+.bar .fill.hot{background:var(--bad)}
+.bar .v{width:34px;text-align:right;color:var(--faint);font-variant-numeric:tabular-nums}
+.reco{margin-top:12px;padding:10px 12px;background:var(--accent-soft);border-radius:8px;font-size:13px;color:var(--head)}
+.reco.empty{background:var(--panel2);color:var(--muted)}
+/* form */
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+label{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted)}
+input,select,textarea{background:var(--panel2);border:1px solid var(--border2);color:var(--text);
+  border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:38px}
+.full{grid-column:1/-1}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 16px;cursor:pointer;font-size:13px;font-weight:600}
+.btn:hover{filter:brightness(1.1)}
+.btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--border2)}
+.row-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+/* table */
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{border-bottom:1px solid var(--border);padding:7px 9px;text-align:left;vertical-align:top;white-space:nowrap}
+th{color:var(--head);font-weight:600;position:sticky;top:0;background:var(--panel)}
+td.wrap{white-space:normal;min-width:150px;color:var(--muted)}
+.tag{font-size:11px;padding:1px 7px;border-radius:20px;font-weight:600}
+.os-Linux{background:#0f2a3a;color:#6cc7ff} .os-Windows{background:#2a1f3a;color:#c9a3ff} .os-AD{background:#3a2a0f;color:#ffcf6c}
+.res-Rooted{color:var(--good);font-weight:600} .res-Foothold{color:var(--warn)} .res-Failed{color:var(--bad)}
+.del{background:none;border:none;color:var(--faint);cursor:pointer;font-size:15px}
+.del:hover{color:var(--bad)}
+.topbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.topbar .grow{flex:1}
+.empty-msg{color:var(--faint);font-size:13px;padding:14px 0}
+@media(max-width:600px){.bar .name{width:110px;flex-basis:110px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <h1>🎯 OSCP Study Tracker</h1>
+      <div class="sub">Log every practice box · saved in this browser · finds your weakest stage</div>
+    </div>
+    <div class="grow"></div>
+    <button class="btn ghost" onclick="toggleTheme()">◐ theme</button>
+    <button class="btn ghost" onclick="exportJSON()">⭳ export</button>
+    <button class="btn ghost" onclick="document.getElementById('imp').click()">⭱ import</button>
+    <input id="imp" type="file" accept="application/json" style="display:none" onchange="importJSON(this)">
+  </div>
+
+  <div class="howto">
+    <b>How to use:</b> after every practice box, add a row below — but the field that matters most is
+    <b>“Where I got stuck”</b>. That drives the weak-area chart. After ~15 boxes, your tallest red bar is
+    exactly what to drill next. Aim for <b>~40–60 boxes, AD-weighted</b>. Export regularly to back up
+    (data lives only in this browser). Pairs with your <b>OSCP-KB.html</b>.
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="cards" id="cards"></div>
+
+  <!-- WEAK AREAS -->
+  <div class="panel">
+    <h2>📉 Weak-area radar — where you get stuck most</h2>
+    <div id="weakbars"></div>
+    <div id="reco" class="reco empty">Log a few boxes to see your weakest stage and what to drill.</div>
+  </div>
+
+  <!-- ADD FORM -->
+  <div class="panel">
+    <h2>➕ Log a box</h2>
+    <form id="f" onsubmit="addEntry(event)">
+      <label>Box name<input name="name" required placeholder="e.g. Meridian"></label>
+      <label>Source
+        <select name="source"><option>PG Practice</option><option>HTB</option><option>OffSec Labs</option><option>PG Play</option><option>TryHackMe</option><option>Other</option></select>
+      </label>
+      <label>OS / Type
+        <select name="os"><option>Linux</option><option>Windows</option><option>AD</option></select>
+      </label>
+      <label>Difficulty
+        <select name="diff"><option>Easy</option><option>Medium</option><option>Hard</option></select>
+      </label>
+      <label>Result
+        <select name="result"><option>Rooted</option><option>Foothold only</option><option>Failed</option></select>
+      </label>
+      <label>Time to foothold (min)<input name="ttf" type="number" min="0" placeholder="45"></label>
+      <label>Foothold vector
+        <select name="foothold"><option>Default/weak creds</option><option>Cred reuse</option><option>Web - SQLi</option><option>Web - LFI/RFI</option><option>Web - upload</option><option>Web - cmd injection</option><option>Web - other</option><option>Known exploit (CVE)</option><option>SMB/anon</option><option>Service misconfig</option><option>Other</option></select>
+      </label>
+      <label>Privesc vector
+        <select name="privesc"><option>—</option><option>sudo/GTFOBins</option><option>SUID</option><option>cron/writable script</option><option>capabilities</option><option>kernel exploit</option><option>SeImpersonate/Potato</option><option>service/unquoted path</option><option>AlwaysInstallElevated</option><option>stored creds</option><option>AD - Kerberoast</option><option>AD - ACL abuse</option><option>AD - DCSync</option><option>Other</option></select>
+      </label>
+      <label>Hints/writeup used
+        <select name="hints"><option>None</option><option>A little</option><option>Heavy</option></select>
+      </label>
+      <label>⭐ Where I got STUCK (drives the radar)
+        <select name="stuck"><option>Nowhere - smooth</option><option>Enumeration</option><option>Web exploitation</option><option>Foothold/initial access</option><option>Linux privesc</option><option>Windows privesc</option><option>Active Directory</option><option>Pivoting</option><option>Reporting</option></select>
+      </label>
+      <label class="full">What I missed / what the writeup did differently<textarea name="missed" placeholder="e.g. didn't check /dev shares; forgot to spray the cracked pw on other hosts"></textarea></label>
+      <label class="full">Lesson / command to remember<textarea name="lesson" placeholder="e.g. always run sudo -l AND check writable cron before kernel exploits"></textarea></label>
+      <div class="full row-actions">
+        <button class="btn" type="submit">Add box</button>
+        <button class="btn ghost" type="reset">Clear form</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- TABLE -->
+  <div class="panel">
+    <h2>📋 Logged boxes (<span id="count">0</span>) <span class="grow"></span></h2>
+    <div class="tablewrap">
+      <table id="tbl">
+        <thead><tr>
+          <th>Date</th><th>Box</th><th>OS</th><th>Diff</th><th>Result</th><th>TTF</th>
+          <th>Foothold</th><th>Privesc</th><th>Hints</th><th>Stuck</th><th>Notes</th><th></th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div id="empty" class="empty-msg">No boxes logged yet. Add your first one above ☝️</div>
+    <div class="row-actions" style="margin-top:12px">
+      <button class="btn ghost" onclick="clearAll()">🗑 clear all</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY='oscp-tracker-v1';
+const STAGES=['Enumeration','Web exploitation','Foothold/initial access','Linux privesc','Windows privesc','Active Directory','Pivoting','Reporting'];
+const RECO={
+  'Enumeration':'[NMAP-QUICK] + [ENUM-DECISION] — you are missing services/ports. Slow down, scan all ports, read output.',
+  'Web exploitation':'[WEB-QUICK] + [SQLI] — drill LFI/upload/SQLi manually on web-heavy boxes.',
+  'Foothold/initial access':'[FOOTHOLD-CHECKLIST] + [EXPLOIT-RESEARCH] — practice cheapest-first + verifying exploits.',
+  'Linux privesc':'[LINUX-PRIVESC-QUICK] — do 5 Linux boxes back-to-back focusing only on privesc.',
+  'Windows privesc':'[WINDOWS-PRIVESC-QUICK] — drill whoami /priv → Potato, service perms, stored creds.',
+  'Active Directory':'[AD-QUICK] + [AD-ATTACK-PATH] — run full AD chains: BloodHound + roast + spray + lateral.',
+  'Pivoting':'[PIVOT-QUICK] — repeat Ligolo/Chisel + proxychains until boring.',
+  'Reporting':'[REPORTING] — practice screenshots + repro notes as you go, not after.'
+};
+let data=load();
+
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||[]}catch(e){return[]}}
+function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
+
+function addEntry(e){
+  e.preventDefault();
+  const fd=new FormData(e.target); const o={};
+  fd.forEach((v,k)=>o[k]=v);
+  o.date=new Date().toISOString().slice(0,10);
+  o.id=Date.now();
+  data.unshift(o); save(); e.target.reset();
+}
+function del(id){data=data.filter(x=>x.id!=id);save()}
+function clearAll(){if(confirm('Delete ALL logged boxes? Export first if you want a backup.')){data=[];save()}}
+
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+function render(){
+  // cards
+  const n=data.length;
+  const rooted=data.filter(x=>x.result==='Rooted').length;
+  const ad=data.filter(x=>x.os==='AD').length;
+  const win=data.filter(x=>x.os==='Windows').length;
+  const lin=data.filter(x=>x.os==='Linux').length;
+  const ttfs=data.map(x=>+x.ttf).filter(x=>x>0);
+  const avg=ttfs.length?Math.round(ttfs.reduce((a,b)=>a+b,0)/ttfs.length):'—';
+  const noHint=data.filter(x=>x.hints==='None'&&x.result==='Rooted').length;
+  document.getElementById('cards').innerHTML=`
+    ${card(n,'boxes logged')}
+    ${card(n?Math.round(rooted/n*100)+'%':'—','rooted',rooted/Math.max(n,1)>=.6?'good':'warn')}
+    ${card(avg,'avg min to foothold')}
+    ${card(noHint,'rooted w/o hints',noHint>=n*0.4&&n>0?'good':'')}
+    ${card(lin+' / '+win+' / '+ad,'Linux / Win / AD',ad>=Math.max(1,Math.round(n*0.3))?'good':'warn')}
+  `;
+  // weak bars (count of "stuck" per stage; heavy hints add half weight to that stage too)
+  const tally={}; STAGES.forEach(s=>tally[s]=0);
+  data.forEach(x=>{ if(tally[x.stuck]!=null) tally[x.stuck]++; });
+  const max=Math.max(1,...Object.values(tally));
+  document.getElementById('weakbars').innerHTML=STAGES.map(s=>{
+    const v=tally[s]; const pct=Math.round(v/max*100);
+    const hot=v===max&&v>0;
+    return `<div class="bar"><div class="name">${s}</div><div class="track"><div class="fill ${hot?'hot':''}" style="width:${pct}%"></div></div><div class="v">${v}</div></div>`;
+  }).join('');
+  // recommendation
+  const worst=STAGES.filter(s=>tally[s]>0).sort((a,b)=>tally[b]-tally[a])[0];
+  const reco=document.getElementById('reco');
+  if(!worst){reco.className='reco empty';reco.textContent='Log a few boxes to see your weakest stage and what to drill.';}
+  else{reco.className='reco';reco.innerHTML=`<b>Your weakest stage: ${worst}</b> (${tally[worst]} boxes). Drill it → <b>${RECO[worst]}</b>`;}
+  // table
+  document.getElementById('count').textContent=n;
+  document.getElementById('empty').style.display=n?'none':'block';
+  document.getElementById('rows').innerHTML=data.map(x=>`
+    <tr>
+      <td>${x.date}</td>
+      <td><b>${esc(x.name)}</b><br><span style="color:var(--faint);font-size:11px">${esc(x.source)}</span></td>
+      <td><span class="tag os-${x.os}">${x.os}</span></td>
+      <td>${x.diff}</td>
+      <td class="res-${(x.result||'').split(' ')[0]}">${x.result}</td>
+      <td>${x.ttf||'—'}</td>
+      <td>${esc(x.foothold)}</td>
+      <td>${esc(x.privesc)}</td>
+      <td>${x.hints}</td>
+      <td>${x.stuck==='Nowhere - smooth'?'✅':'⚠️ '+esc(x.stuck)}</td>
+      <td class="wrap">${x.missed?'<b>missed:</b> '+esc(x.missed)+'<br>':''}${x.lesson?'<b>lesson:</b> '+esc(x.lesson):''}</td>
+      <td><button class="del" onclick="del(${x.id})" title="delete">✕</button></td>
+    </tr>`).join('');
+}
+function card(n,l,cls=''){return `<div class="card"><div class="n ${cls}">${n}</div><div class="l">${l}</div></div>`}
+
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='oscp-tracker-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+}
+function importJSON(inp){
+  const file=inp.files[0]; if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(Array.isArray(d)){if(confirm('Import '+d.length+' boxes? This REPLACES current data.')){data=d;save()}}}catch(e){alert('Invalid file')}};
+  r.readAsText(file); inp.value='';
+}
+function toggleTheme(){const h=document.documentElement;const t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);try{localStorage.setItem('oscp-tracker-theme',t)}catch(e){}}
+try{const t=localStorage.getItem('oscp-tracker-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}
+render();
+</script>
+</body>
+</html>

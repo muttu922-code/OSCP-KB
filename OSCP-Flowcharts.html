@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSCP Attack Flowcharts</title>
+<style>
+:root{
+  --bg:#0d1117; --panel:#11161d; --panel2:#161c24; --hover:#1b2531;
+  --text:#c9d3de; --head:#e8eef5; --muted:#7d8794; --faint:#5a6472;
+  --accent:#4f9cf9; --accent-soft:#1a2942; --border:#20262e; --border2:#2a323c;
+  --start:#1f6feb; --step:#21262d; --decision:#3a2d0a; --decision-bd:#8a6d1f;
+  --goal:#123a1e; --goal-bd:#2ea043; --note:#3a1520; --note-bd:#b34; --loop:#241a3a; --loop-bd:#8957e5;
+  --tag-bg:#0f2a1c; --tag-text:#56d364; --tag-bd:#1c3f2a; --line:#3a444f;
+}
+html[data-theme="light"]{
+  --bg:#f6f8fa; --panel:#fff; --panel2:#eef1f4; --hover:#e7ecf1;
+  --text:#24292f; --head:#0f1419; --muted:#57606a; --faint:#8b949e;
+  --accent:#0969da; --accent-soft:#ddf0ff; --border:#d8dee4; --border2:#cdd5dd;
+  --start:#0969da; --step:#eef1f4; --decision:#fff8e1; --decision-bd:#d4a72c;
+  --goal:#e6f7ec; --goal-bd:#2ea043; --note:#ffebe9; --note-bd:#cf222e; --loop:#f3eefc; --loop-bd:#8957e5;
+  --tag-bg:#e6f7ec; --tag-text:#1a7f37; --tag-bd:#c3ead0; --line:#c8d0d8;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+#layout{display:flex;min-height:100vh}
+/* sidebar */
+#side{width:250px;flex:0 0 250px;background:var(--panel);border-right:1px solid var(--border);
+  height:100vh;position:sticky;top:0;display:flex;flex-direction:column}
+#brand{padding:16px 16px 10px;border-bottom:1px solid var(--border)}
+#brand h1{font-size:14px;margin:0;color:var(--head)}
+#brand .s{font-size:11px;color:var(--faint);margin-top:3px}
+#nav{overflow:auto;padding:8px 8px 40px;flex:1}
+.navlink{display:block;padding:9px 11px;border-radius:8px;color:var(--muted);cursor:pointer;
+  font-size:13px;font-weight:600;border-left:2px solid transparent}
+.navlink:hover{background:var(--hover);color:var(--text)}
+.navlink.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
+.navlink .n{color:var(--faint);font-weight:400;margin-right:6px}
+/* main */
+#main{flex:1;min-width:0}
+#top{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--border);
+  padding:10px 20px;display:flex;gap:10px;align-items:center}
+#top h2{font-size:16px;margin:0;color:var(--head);flex:1}
+#top .sub{font-size:12px;color:var(--muted);font-weight:400}
+button.b{background:var(--panel2);color:var(--text);border:1px solid var(--border2);border-radius:8px;
+  padding:7px 11px;cursor:pointer;font-size:12px}
+button.b:hover{border-color:var(--accent)}
+#menuBtn{display:none}
+#flow{padding:26px 24px 120px;max-width:760px;margin:0 auto}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-bottom:20px;
+  padding:10px 12px;background:var(--panel);border:1px solid var(--border);border-radius:9px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+/* nodes */
+.node{border-radius:10px;padding:11px 15px;position:relative;margin:0 auto;max-width:620px;
+  border:1px solid var(--border2);background:var(--step)}
+.node .k{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--faint);margin-bottom:3px;font-weight:700}
+.node .x{font-size:14px;color:var(--head);font-weight:600;line-height:1.4}
+.node.start{background:var(--start);border-color:var(--start);text-align:center;max-width:380px;color:#fff}
+.node.start .x{color:#fff}.node.start .k{color:#cfe3ff}
+.node.goal{background:var(--goal);border:2px solid var(--goal-bd);text-align:center;max-width:440px}
+.node.decision{background:var(--decision);border:1px solid var(--decision-bd)}
+.node.note{background:var(--note);border:1px solid var(--note-bd);max-width:620px}
+.node.loop{background:var(--loop);border:1px solid var(--loop-bd)}
+.opts{margin-top:9px;display:flex;flex-direction:column;gap:6px}
+.opt{display:flex;gap:9px;align-items:flex-start;font-size:13px;background:rgba(127,127,127,.08);
+  border-radius:7px;padding:6px 9px;border:1px solid var(--border)}
+.opt .kk{color:var(--accent);font-weight:700;white-space:nowrap;flex:0 0 auto}
+.opt .vv{color:var(--text)}
+.tag{display:inline-block;background:var(--tag-bg);color:var(--tag-text);border:1px solid var(--tag-bd);
+  border-radius:20px;padding:0 7px;font-size:11.5px;font-weight:600;font-family:"SFMono-Regular",Consolas,monospace;
+  white-space:nowrap;margin-left:4px}
+/* connector */
+.conn{height:26px;display:flex;align-items:center;justify-content:center;position:relative}
+.conn::before{content:"";position:absolute;top:0;bottom:0;width:2px;background:var(--line)}
+.conn .lbl{background:var(--bg);border:1px solid var(--border2);border-radius:20px;padding:1px 9px;
+  font-size:11px;color:var(--muted);z-index:1}
+.conn.arrow::after{content:"▼";position:absolute;bottom:-2px;color:var(--line);font-size:11px}
+.pts{color:var(--goal-bd);font-weight:700;font-size:12px}
+
+@media print{
+  #side,#top{display:none} #flow{max-width:100%;padding:0}
+  .node{break-inside:avoid} body{background:#fff}
+}
+@media(max-width:820px){
+  #side{position:fixed;z-index:50;left:-260px;transition:left .2s} #side.open{left:0}
+  #menuBtn{display:inline-block} #flow{padding:18px 14px 100px}
+}
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside id="side">
+    <div id="brand"><h1>🗺️ OSCP Attack Flowcharts</h1><div class="s">Offline · visual companion to OSCP-KB.html</div></div>
+    <nav id="nav"></nav>
+  </aside>
+  <div id="main">
+    <div id="top">
+      <button id="menuBtn" class="b" onclick="document.getElementById('side').classList.toggle('open')">☰</button>
+      <h2 id="ftitle"></h2>
+      <button class="b" onclick="window.print()">🖨 print</button>
+      <button class="b" onclick="toggleTheme()">◐</button>
+    </div>
+    <main id="flow"></main>
+  </div>
+</div>
+
+<script>
+// ---- flow data: node types = start, step, decision(opts), goal, note, loop ----
+// opt = {k:'branch label', v:'action', tag:'[KB-TAG]'}
+const FLOWS = {
+ method:{title:"① Master Methodology — any unknown box", sub:"scan → enumerate → foothold → shell → privesc → loot",
+  nodes:[
+   {t:"start",x:"New target IP ($T)"},
+   {t:"step",x:"Set up: folders + $T, start logger",tag:"[PRE-EXAM-SETUP]"},
+   {t:"step",x:"Full TCP scan (all ports) → then -sCV on open + top UDP",tag:"[NMAP-QUICK]"},
+   {t:"decision",x:"For EACH open port → enumerate it (map everything before attacking)",tag:"[ENUM-DECISION]",opts:[
+     {k:"80/443/8080",v:"web app",tag:"[WEB-QUICK]"},
+     {k:"445/139",v:"SMB",tag:"[SMB-QUICK]"},
+     {k:"88 / 389",v:"it's AD — pivot approach",tag:"[AD-QUICK]"},
+     {k:"21/22/25/161/…",v:"per-service enum",tag:"[ENUM-DECISION]"}]},
+   {t:"step",x:"Note versions, creds, misconfigs → form a hypothesis"},
+   {t:"decision",x:"Foothold — cheapest first",opts:[
+     {k:"1",v:"default / weak creds"},
+     {k:"2",v:"creds you already found (reuse!)"},
+     {k:"3",v:"known-version exploit",tag:"[CVE-HITS]"},
+     {k:"4",v:"web vuln (upload>cmdinj>SQLi>LFI)",tag:"[FOOTHOLD-CHECKLIST]"}]},
+   {t:"goal",x:"🎯 SHELL — stabilize it first",tag:"[SHELL-QUICK]"},
+   {t:"step",x:"Grab + SCREENSHOT local.txt NOW",tag:"[REPORTING]",pts:"+10"},
+   {t:"step",x:"Local enum (users, privs, services, creds, net)",tag:"[WIN-LOCAL-ENUM]"},
+   {t:"decision",x:"Privilege escalation vector?",opts:[
+     {k:"Linux",v:"sudo/SUID/cron/caps/creds",tag:"[LINUX-PRIVESC-QUICK]"},
+     {k:"Windows",v:"SeImpersonate/service/creds",tag:"[WINDOWS-PRIVESC-QUICK]"}]},
+   {t:"goal",x:"🏆 ROOT / SYSTEM — SCREENSHOT proof.txt",tag:"[REPORTING]",pts:"+10"},
+   {t:"step",x:"Loot creds/keys/hashes → use on the NEXT box",tag:"[CREDENTIALS-SOURCES]"},
+   {t:"note",x:"Stuck 15–30 min at any step? → run the STUCK PROTOCOL",tag:"[STUCK-PROTOCOL]"}
+  ]},
+
+ enum:{title:"② Enumeration Decision — port → what to do", sub:"route every open port to its play",
+  nodes:[
+   {t:"start",x:"nmap gave you open ports"},
+   {t:"decision",x:"Route each port",opts:[
+     {k:"21 FTP",v:"anon login? upload? version exploit",tag:"[ENUM-FTP]"},
+     {k:"22 SSH",v:"payoff only — need creds/keys",tag:"[ENUM-SSH]"},
+     {k:"25 SMTP",v:"user enumeration",tag:"[ENUM-SMTP]"},
+     {k:"53 DNS",v:"zone transfer, AD SRV",tag:"[ENUM-DNS]"},
+     {k:"80/443",v:"full web methodology",tag:"[WEB-QUICK]"},
+     {k:"88 Kerb",v:"it's a DC → AD",tag:"[AD-QUICK]"},
+     {k:"111/2049",v:"NFS showmount+mount",tag:"[ENUM-NFS]"},
+     {k:"135/139/445",v:"SMB null/shares/users",tag:"[SMB-QUICK]"},
+     {k:"161 SNMP",v:"snmpwalk (creds in procs)",tag:"[ENUM-SNMP]"},
+     {k:"389/636",v:"LDAP anon bind / dump",tag:"[ENUM-LDAP]"},
+     {k:"1433/3306/5432",v:"DB default creds → RCE",tag:"[ENUM-MSSQL]"},
+     {k:"3389 RDP",v:"validate creds / GUI",tag:"[ENUM-RDP]"},
+     {k:"5985 WinRM",v:"creds → evil-winrm shell",tag:"[ENUM-WINRM]"},
+     {k:"6379 Redis",v:"unauth → file write",tag:"[ENUM-REDIS]"},
+     {k:"weird port",v:"nc banner → search version",tag:"[ENUM-UNUSUAL-PORTS]"}]},
+   {t:"note",x:"Always: try found creds on EVERY service; searchsploit every version"}
+  ]},
+
+ web:{title:"③ Web Attack — HTTP(S) foothold", sub:"fingerprint → pick vuln class → RCE",
+  nodes:[
+   {t:"start",x:"HTTP(S) port open"},
+   {t:"step",x:"Fingerprint: whatweb, view-source, /robots.txt, TLS cert",tag:"[WEB-FINGERPRINT]"},
+   {t:"step",x:"Dir brute (recursive) + vhost brute + note params",tag:"[WEB-CONTENT]"},
+   {t:"decision",x:"What did you find? → pick the play",opts:[
+     {k:"login page",v:"default/weak creds → SQLi bypass",tag:"[WEB-AUTHBYPASS]"},
+     {k:"versioned CMS",v:"wpscan / searchsploit the version",tag:"[EXPLOIT-RESEARCH]"},
+     {k:"upload form",v:"webshell (bypass filters)",tag:"[WEB-UPLOAD]"},
+     {k:"?page=/file=",v:"LFI → RCE (log/filter chain)",tag:"[WEB-LFI]"},
+     {k:"?param → OS",v:"command injection",tag:"[WEB-CMDINJ]"},
+     {k:"?param → DB",v:"SQL injection",tag:"[SQLI-DECISION-TREE]"},
+     {k:"param reflected",v:"SSTI ({{7*7}})",tag:"[WEB-SSTI]"},
+     {k:"?url= fetch",v:"SSRF (internal / metadata)",tag:"[WEB-SSRF]"},
+     {k:"403/401 wall",v:"path/header/method bypass",tag:"[WEB-403-BYPASS]"}]},
+   {t:"goal",x:"🎯 RCE → catch a reverse shell",tag:"[SHELL-QUICK]"}
+  ]},
+
+ linpe:{title:"④ Linux Privilege Escalation", sub:"quick wins first, kernel last",
+  nodes:[
+   {t:"start",x:"low-priv Linux shell"},
+   {t:"step",x:"Stabilize TTY (python pty; stty raw -echo; fg)",tag:"[SHELL-STABILIZE]"},
+   {t:"step",x:"First 4: id ; sudo -l ; SUID find ; getcap",tag:"[LINUX-PRIVESC-QUICK]"},
+   {t:"decision",x:"Check quick wins IN ORDER (stop at first hit)",opts:[
+     {k:"sudo -l",v:"allowed binary → GTFOBins escape",tag:"[LINUX-SUDO]"},
+     {k:"SUID",v:"unusual SUID → GTFOBins / PwnKit",tag:"[LINUX-SUID]"},
+     {k:"cron",v:"writable script/wildcard run by root",tag:"[LINUX-CRON]"},
+     {k:"capability",v:"cap_setuid on python = root",tag:"[LINUX-CAP]"},
+     {k:"creds",v:"configs/history/DB → su / reuse",tag:"[LINUX-CREDS]"},
+     {k:"nothing?",v:"run linpeas → kernel exploit LAST",tag:"[LINUX-KERNEL]"}]},
+   {t:"goal",x:"🏆 root → screenshot proof.txt + loot /etc/shadow, keys",tag:"[CREDENTIALS-SOURCES]"}
+  ]},
+
+ winpe:{title:"⑤ Windows Privilege Escalation", sub:"whoami /priv is the fork in the road",
+  nodes:[
+   {t:"start",x:"low-priv Windows shell"},
+   {t:"step",x:"whoami /all ; whoami /priv ; systeminfo",tag:"[WINDOWS-PRIVESC-QUICK]"},
+   {t:"decision",x:"Privilege present? (instant wins first)",opts:[
+     {k:"SeImpersonate",v:"Potato → SYSTEM (instant)",tag:"[WINDOWS-TOKENS]"},
+     {k:"SeBackup/Restore",v:"read SAM+SYSTEM → hashes",tag:"[WINDOWS-TOKENS]"},
+     {k:"SeDebug",v:"dump LSASS → creds",tag:"[PARITY2-CRED-DUMP]"}]},
+   {t:"decision",x:"No magic priv? → winPEAS / PowerUp, then:",opts:[
+     {k:"service",v:"unquoted path / weak perms / DLL",tag:"[WINDOWS-SERVICES]"},
+     {k:"AlwaysInstall",v:"HKLM+HKCU =1 → .msi as SYSTEM",tag:"[WINDOWS-REGISTRY]"},
+     {k:"saved creds",v:"cmdkey → runas /savecred",tag:"[WINDOWS-CREDS]"},
+     {k:"autologon",v:"reg Winlogon DefaultPassword",tag:"[WINDOWS-CREDS]"},
+     {k:"group",v:"Backup/Server/DnsAdmins ops",tag:"[WIN-PRIV-GROUPS]"},
+     {k:"nothing?",v:"systeminfo → wesng → kernel LAST",tag:"[WINDOWS-KERNEL]"}]},
+   {t:"goal",x:"🏆 SYSTEM → proof.txt + secretsdump/mimikatz loot",tag:"[PARITY2-CRED-DUMP]"}
+  ]},
+
+ ad:{title:"⑥ Active Directory — foothold → Domain Admin ⭐", sub:"the 40-point set — the exam's center of gravity",
+  nodes:[
+   {t:"start",x:"AD foothold OR a starting domain credential"},
+   {t:"step",x:"FIX CLOCK SKEW first: sudo ntpdate $DC",tag:"[KERBEROS-QUICK]"},
+   {t:"step",x:"Collect BloodHound (do this EARLY)",tag:"[AD-BLOODHOUND]"},
+   {t:"step",x:"Two FREE roasts: Kerberoast + AS-REP → crack",tag:"[AD-KERBEROAST]"},
+   {t:"step",x:"SPRAY every found cred on EVERY host",tag:"[CREDENTIALS-QUICK]"},
+   {t:"decision",x:"What did that unlock? (follow BloodHound shortest path)",opts:[
+     {k:"cracked svc pw",v:"reuse everywhere + check its groups"},
+     {k:"local admin",v:"secretsdump host → more hashes",tag:"[AD-LATERAL]"},
+     {k:"ACL edge",v:"GenericAll/WriteDACL/Shadow-cred",tag:"[AD-ACL]"},
+     {k:"LAPS/gMSA",v:"read the managed password",tag:"[AD-LAPS-GMSA]"},
+     {k:"ADCS",v:"vuln cert template (ESC1/8)",tag:"[AD-ADCS]"}]},
+   {t:"loop",x:"↻ Move laterally → dump creds on new host → re-run BloodHound 'from owned' → repeat UP the graph",tag:"[AD-LATERAL]"},
+   {t:"decision",x:"Reached DCSync rights / Domain Admin?",opts:[
+     {k:"yes",v:"secretsdump the domain (krbtgt + admin)",tag:"[AD-DCSYNC]"}]},
+   {t:"goal",x:"👑 OWN THE DC → PtH Administrator to DC + member + workstation → read ALL proof.txt",tag:"[AD-DCSYNC]",pts:"40 pts"},
+   {t:"note",x:"Double-hop error moving to a 3rd host? → [AD-DOUBLEHOP]. Clock skew masquerades as bad creds → ntpdate.",tag:"[AD-DOUBLEHOP]"}
+  ]},
+
+ pivot:{title:"⑦ Pivoting — reach a hidden subnet", sub:"YOU → pivot host → internal target",
+  nodes:[
+   {t:"start",x:"You rooted a dual-homed host (it sees an internal subnet)"},
+   {t:"step",x:"Find the subnet: ip a / ipconfig ; netstat -ano (127.0.0.1 svcs)",tag:"[WIN-LOCAL-ENUM]"},
+   {t:"decision",x:"Pick a tunnel",opts:[
+     {k:"Ligolo-ng",v:"cleanest — routed interface, native tools",tag:"[PIVOT-LIGOLO]"},
+     {k:"Chisel",v:"reverse SOCKS + proxychains",tag:"[PIVOT-CHISEL]"},
+     {k:"SSH",v:"-D dynamic / -L / -R (have SSH creds)",tag:"[PIVOT-SSH]"}]},
+   {t:"step",x:"Scan the new subnet (TCP-connect thru proxy, or native via ligolo)",tag:"[PIVOT-ENUM]"},
+   {t:"step",x:"Spray your creds/hashes across the new hosts",tag:"[CREDENTIALS-QUICK]"},
+   {t:"goal",x:"🎯 New internal host reachable → run the Master Methodology on it",tag:"[MASTER-METHODOLOGY]"}
+  ]},
+
+ exam:{title:"⑧ Exam-Day Timeline (23h45m)", sub:"the phase-by-phase plan",
+  nodes:[
+   {t:"start",x:"Clock starts"},
+   {t:"step",x:"PHASE 0 (0–0.5h): read brief, folders + logger, confirm targets",tag:"[PRE-EXAM-SETUP]"},
+   {t:"step",x:"PHASE 1 (0.5h): launch nmap on ALL targets in parallel",tag:"[NMAP-QUICK]"},
+   {t:"step",x:"PHASE 2 (0.5–8h): AD SET FIRST — fresh brain on the 40 pts",tag:"[AD-ATTACK-PATH]"},
+   {t:"step",x:"PHASE 3 (8–16h): standalones, 30-min rotation, spray every cred",tag:"[EXAM-WAR-ROOM]"},
+   {t:"step",x:"PHASE 4 (10–15h): SLEEP 4–6h (fatigue = tunnel vision)"},
+   {t:"step",x:"PHASE 5 (20–23h): STOP hacking — verify every proof screenshot",tag:"[REPORTING-CHECKLIST]"},
+   {t:"goal",x:"PHASE 6 (+24h): write & upload the report (single PDF in .7z)",tag:"[REPORTING-SUBMISSION]"},
+   {t:"note",x:"Winning math: AD 40 + two full standalones 40 = 80 ✅  ·  Two schools on order → [EXAM-ORDER-DEBATE]",tag:"[EXAM-ORDER-DEBATE]"}
+  ]},
+
+ stuck:{title:"⑨ Stuck Protocol — 15–30 min no progress", sub:"break the loop, don't retry the same attack",
+  nodes:[
+   {t:"start",x:"Stuck / retrying variants of one idea"},
+   {t:"loop",x:"1. RE-READ your nmap/tool output — what did I NOT try?",tag:"[STUCK-PROTOCOL]"},
+   {t:"loop",x:"2. RE-ENUMERATE: full -p- again + top UDP (new port? new service?)"},
+   {t:"loop",x:"3. RE-MAP WEB: every port, recursive dirs + vhosts + params + JS"},
+   {t:"loop",x:"4. CHECK ASSUMPTIONS: is the version/OS/DB really what I think?"},
+   {t:"loop",x:"5. CREDS: sprayed EVERY cred on EVERY service/user/host? variations?"},
+   {t:"loop",x:"6. DIFFERENT SERVICE: attack one you dismissed (SNMP/RPC/NFS/redis)"},
+   {t:"loop",x:"7. VERSION RESEARCH: searchsploit + read the CVE technique, try manual"},
+   {t:"loop",x:"8. LOCAL (if shell): re-run peas, sudo -l / whoami /priv, loot again"},
+   {t:"loop",x:"9. AD: re-check roasts, BloodHound 'from owned', un-sprayed hosts, ACLs"},
+   {t:"loop",x:"10. REVERT the box (crashed service / stale state)"},
+   {t:"goal",x:"➡ Still stuck? SWITCH TARGET — note exactly where you stopped, return fresh",tag:"[WHEN-TO-MOVE-ON]"}
+  ]}
+};
+
+const ORDER=[["method","Methodology"],["enum","Enum decision"],["web","Web attack"],["linpe","Linux privesc"],
+ ["winpe","Windows privesc"],["ad","Active Directory ⭐"],["pivot","Pivoting"],["exam","Exam-day timeline"],["stuck","Stuck protocol"]];
+
+function tagHTML(t){return t?`<span class="tag">${t}</span>`:'';}
+function render(key){
+  const f=FLOWS[key];
+  document.getElementById('ftitle').innerHTML=f.title+' <span class="sub">— '+f.sub+'</span>';
+  document.querySelectorAll('.navlink').forEach(a=>a.classList.toggle('active',a.dataset.k===key));
+  let h='<div class="legend">'
+    +'<span><i class="dot" style="background:var(--start)"></i>start</span>'
+    +'<span><i class="dot" style="background:var(--step);border:1px solid var(--border2)"></i>step</span>'
+    +'<span><i class="dot" style="background:var(--decision);border:1px solid var(--decision-bd)"></i>decision</span>'
+    +'<span><i class="dot" style="background:var(--loop);border:1px solid var(--loop-bd)"></i>loop/repeat</span>'
+    +'<span><i class="dot" style="background:var(--goal);border:1px solid var(--goal-bd)"></i>goal</span>'
+    +'<span><i class="dot" style="background:var(--note);border:1px solid var(--note-bd)"></i>watch-out</span>'
+    +'<span style="color:var(--faint)">tags → search them in OSCP-KB.html</span></div>';
+  f.nodes.forEach((n,i)=>{
+    if(i>0){const lbl=n.t==='goal'?'':''; h+=`<div class="conn arrow"></div>`;}
+    const kmap={start:'START',step:'STEP',decision:'DECISION',goal:'GOAL',note:'⚠ WATCH OUT',loop:'↻ LOOP'};
+    h+=`<div class="node ${n.t}">`;
+    if(n.t!=='start') h+=`<div class="k">${kmap[n.t]||''}${n.pts?` · <span class="pts">${n.pts}</span>`:''}</div>`;
+    h+=`<div class="x">${n.x} ${tagHTML(n.tag)}</div>`;
+    if(n.opts){h+='<div class="opts">';
+      n.opts.forEach(o=>{h+=`<div class="opt"><span class="kk">${o.k} ▸</span><span class="vv">${o.v} ${tagHTML(o.tag)}</span></div>`;});
+      h+='</div>';}
+    h+='</div>';
+  });
+  document.getElementById('flow').innerHTML=h;
+  window.scrollTo(0,0);
+  if(window.innerWidth<=820) document.getElementById('side').classList.remove('open');
+}
+// build nav
+const nav=document.getElementById('nav');
+ORDER.forEach(([k,label],i)=>{
+  const a=document.createElement('a');a.className='navlink';a.dataset.k=k;
+  a.innerHTML=`<span class="n">${i+1}</span>${label}`;a.onclick=()=>render(k);nav.appendChild(a);
+});
+function toggleTheme(){const h=document.documentElement;const t=h.getAttribute('data-theme')==='dark'?'light':'dark';
+  h.setAttribute('data-theme',t);try{localStorage.setItem('oscp-fc-theme',t)}catch(e){}}
+try{const t=localStorage.getItem('oscp-fc-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}
+render('method');
+</script>
+</body>
+</html>
