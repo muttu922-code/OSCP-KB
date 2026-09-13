@@ -62,7 +62,9 @@ html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 -apple-s
    <input id="v_domain" placeholder="DOMAIN">
    <input id="v_dc" placeholder="DC ip">
   </div>
+  <div style="padding:9px 12px 4px"><input id="search" placeholder="🔎 search flows & commands…" style="width:100%;background:var(--code);border:1px solid var(--border2);color:var(--text);border-radius:7px;padding:7px 9px;font-size:12.5px;outline:none"></div>
   <nav id="nav"></nav>
+  <div id="noresult" style="display:none;padding:14px 16px;color:var(--faint);font-size:12.5px">No flow matches — try a broader term (e.g. <b>hash</b>, <b>upload</b>, <b>sudo</b>).</div>
  </aside>
  <div id="main">
   <div id="top"><div id="ftitle">Pick a service on the left</div><div id="fsub">Your IPs up top auto-fill into every command.</div></div>
@@ -232,13 +234,36 @@ var FLOWS=DATA.flows;
 function buildNav(){
  var nav=document.getElementById('nav'),h='';
  DATA.groups.forEach(function(g){
-  h+='<div class="grp">'+esc(g.name)+'</div>';
+  var items='';
   g.items.forEach(function(k){var f=FLOWS[k];if(!f)return;
    var port=(f.t.match(/—\s*(port[s]?\s*)?([\d/]+)/i)||[])[2]||'';
-   h+='<div class="item" data-k="'+k+'" onclick="showFlow(\''+k+'\')"><span>'+esc(f.t.split(' — ')[0].split(' · ').slice(-1)[0])+'</span>'+(port?'<span class="port">'+esc(port)+'</span>':'')+'</div>';
+   items+='<div class="item" data-k="'+k+'" onclick="showFlow(\''+k+'\')"><span>'+esc(f.t.split(' — ')[0].split(' · ').slice(-1)[0])+'</span>'+(port?'<span class="port">'+esc(port)+'</span>':'')+'</div>';
   });
+  h+='<div class="navgroup"><div class="grp">'+esc(g.name)+'</div>'+items+'</div>';
  });
  nav.innerHTML=h;
+}
+// searchable text per flow (title + subtitle + every step goal/note/command/branch/tag)
+var FLOWTXT={};
+Object.keys(FLOWS).forEach(function(k){
+ var f=FLOWS[k],t=f.t+' '+f.s;
+ (f.steps||[]).forEach(function(s){ t+=' '+s.g+' '+(s.note||'')+' '+((s.c||[]).join(' '))+' '+(s.ok||'')+' '+(s.no||'')+' '+(s.kb||''); });
+ FLOWTXT[k]=t.toLowerCase();
+});
+function filterNav(q){
+ q=(q||'').toLowerCase().trim();
+ var shown=0;
+ document.querySelectorAll('#nav .navgroup').forEach(function(grp){
+  var any=false;
+  grp.querySelectorAll('.item').forEach(function(el){
+   var k=el.getAttribute('data-k');
+   var hit=!q || FLOWTXT[k].indexOf(q)>=0;
+   el.style.display=hit?'':'none'; if(hit){any=true;shown++;}
+  });
+  grp.style.display=any?'':'none';
+ });
+ var no=document.getElementById('noresult');
+ if(no) no.style.display=(q&&shown===0)?'':'none';
 }
 function showFlow(k){
  readVars();
@@ -278,6 +303,11 @@ function cp(btn){
  document.getElementById(id).addEventListener('input',function(){
   var a=document.querySelector('.item.active');if(a)showFlow(a.getAttribute('data-k'));
  });
+});
+document.getElementById('search').addEventListener('input',function(){ filterNav(this.value); });
+document.getElementById('search').addEventListener('keydown',function(e){
+ if(e.key==='Enter'){ var first=document.querySelector('#nav .item:not([style*="none"])'); if(first)showFlow(first.getAttribute('data-k')); }
+ if(e.key==='Escape'){ this.value=''; filterNav(''); }
 });
 buildNav();
 </script>
