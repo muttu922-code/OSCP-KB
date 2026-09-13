@@ -9,9 +9,11 @@ A complete, offline toolkit for solving OSCP+ machines: a searchable knowledge b
 ### Open these in a browser (offline, no internet needed)
 | File | What it is | When you use it |
 |---|---|---|
-| **OSCP-KB.html** | The knowledge base — 10 volumes, ~370 tagged sections. Sidebar nav + full-text search + tag pills. | The reference: *what do I run, and why?* |
+| **OSCP-KB.html** | The knowledge base — 10 volumes, ~430 tagged sections. Sidebar nav + full-text search + tag pills. | The reference: *what do I run, and why?* |
+| **OSCP-Mindmap.html** | ⭐ Interactive attack map: click a service/port (or a phase) → the step-by-step flow to hack it, with commands (IPs auto-filled) + "if it works / if it fails" branches. 23 flows. | *I have port X open — what's the whole plan + commands?* |
+| **OSCP-Copilot.html** | Paste raw command output (or a CVE id) → matched playbooks + the real KB sections + exact next commands. The whole KB is embedded + searchable. | *Here's my output — what do I do next?* |
 | **OSCP-Flowcharts.html** | 9 visual attack-flow diagrams (methodology, enum, web, Linux/Win privesc, AD, pivoting, exam-day, stuck). | *Where do I go next?* |
-| **OSCP-CommandGen.html** | Click-to-generate: set your IP → pick a category → **Copy** the ready-to-run command (reverse shells, transfer, enum, msfvenom, privesc downloads). | *Give me the exact command, IP already filled in.* |
+| **OSCP-CommandGen.html** | Click-to-generate: set your IP → pick a category → **Copy** the ready-to-run command (reverse shells, transfer, enum, SQLi/MSSQL, msfvenom, privesc downloads). | *Give me the exact command, IP already filled in.* |
 | **OSCP-Study-Tracker.html** | Log each practice box → auto-charts your weakest stage. | Prep: *what should I drill next?* |
 
 ### Run these on Kali (exam-safe automation — enumeration/setup only, NOT exploitation)
