@@ -1700,10 +1700,30 @@ A hypothesis has: a **claim**, a **test**, and a **timebox**. No timebox = rabbi
 - **Try the obvious passwords first:** the username itself, the **service name**, the **box/company name**, `<Season><Year>!`, product defaults.
 - **AD spraying discipline:** check `--pass-pol` **first**; hitting an **account lockout means this isn't the intended path.** And always run a **second spray round with `--local-auth`** (local accounts, not just domain).
 
-## Practice that builds the reflex
-- **Drill TJ_Null's HTB "OSCP-like" list**, and use the matching **IppSec video as the answer key** only when you're truly stuck — study the *why*, don't copy the steps. This is how you build the "4 checks per service" muscle memory that makes the exam feel routine.
+## Tools the pros lean on (that you might not be)
+- **AutoRecon** (by **Tib3rius**) — fires many enumeration tools at all your targets at once and drops organised results into folders. Run it on every target *up front*, then read the output while you work other things. ⚠️ Understand what it runs; keep **manual** enum as the backup for what it misses.
+- **Privesc scripts** — winPEAS / linpeas / **lse.sh** / **Tib3rius' privesc-checker scripts** / windows-exploit-suggester. Read the RED, then **confirm manually** (they miss + false-positive).
+- **Note-taking** — one file per target in **Obsidian / CherryTree / OneNote / Notion**: log command + output + screenshot *as you go*, plus a running **"tried / done"** list so you never repeat work or lose a cred you saw an hour ago.
 
-**Sources:** IppSec (YouTube, methodology as summarised across community OSCP guides) · community OSCP methodology writeups (hackwithmike OSCP methodology; various OSCP-prep guides). Curated + cross-checked against this KB — verify commands against your installed tools.
+## Who to learn from — and their distinct edge
+| Creator | Go to them for |
+|---|---|
+| **IppSec** | video walkthrough of (almost) every retired HTB box — enum-first methodology; the TJ_Null answer key |
+| **0xdf** | *written* HTB walkthroughs — great for **unintended paths** and comparing your approach |
+| **Tib3rius** | **the** Linux & Windows **privilege-escalation** courses; AutoRecon; privesc-checker scripts |
+| **TCM / Heath Adams** | **AD & internal** methodology (Practical Ethical Hacking), pivoting — the parts OSCP historically skipped |
+| **Rana Khalil** | methodical, structured HTB/web writeups |
+| **NTH Security** | short OSCP methodology videos (3-tools checklist, AD steps, `nxcspray`) |
+| **John Hammond** | tooling tricks, CTF technique, malware/analysis |
+| **NahamSec** | recon & content discovery (bug-bounty crossover) |
+
+## The practice loop that actually builds skill
+1. Drill **TJ_Null's HTB "OSCP-like" list** (+ Proving Grounds Practice).
+2. **Solve the box yourself first.** Stuck → *re-enumerate*, don't peek.
+3. Only when truly stuck, use **IppSec (video)** or **0xdf (written)** as the answer key — study the *why*, don't copy the steps.
+4. **After every box, compare your path to 0xdf/IppSec** — note what you missed and where you over-complicated. That comparison is where the methodology actually forms (and builds the "4 checks per service" reflex that makes the exam feel routine).
+
+**Sources:** [awesome-oscp resource list](https://github.com/0x4d31/awesome-oscp) · [Tib3rius — 59 Hosts to Glory / AutoRecon](https://medium.com/@Tib3rius/59-hosts-to-glory-passing-the-oscp-acf0fd384371) · [0xdf — OffSec / HTB lists](https://0xdf.gitlab.io/cheatsheets/offsec) · [hackwithmike OSCP methodology](https://hackwithmike.gitbook.io/oscp/methodology/oscp-methodology) · community OSCP-prep guides. Curated + cross-checked against this KB — not transcribed per-video; verify commands against your installed tools.
 
 ---
 
