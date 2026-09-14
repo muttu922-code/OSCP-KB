@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mindset &amp; Methodology · OSCP+ KB</title>
+<style>
+:root{
+  --bg:#0d1117; --bg2:#0a0d12; --panel:#11161d; --panel2:#161c24; --hover:#1b2531;
+  --text:#c9d3de; --head:#e8eef5; --muted:#7d8794; --faint:#5a6472;
+  --accent:#4f9cf9; --accent-soft:#1a2942; --accent2:#e3a008;
+  --border:#20262e; --border2:#2a323c;
+  --code-bg:#0a0e13; --code-text:#c9d3de;
+  --tag-bg:#0f2a1c; --tag-text:#56d364; --tag-bd:#1c3f2a;
+  --hl:#7a5c00; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+html[data-theme="light"]{
+  --bg:#ffffff; --bg2:#f6f8fa; --panel:#f6f8fa; --panel2:#eef1f4; --hover:#e7ecf1;
+  --text:#24292f; --head:#0f1419; --muted:#57606a; --faint:#8b949e;
+  --accent:#0969da; --accent-soft:#ddf0ff; --accent2:#9a6700;
+  --border:#d8dee4; --border2:#cdd5dd;
+  --code-bg:#f2f4f7; --code-text:#24292f;
+  --tag-bg:#e6f7ec; --tag-text:#1a7f37; --tag-bd:#c3ead0;
+  --hl:#fff3b0; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(140,149,159,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font:15.5px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--accent-soft)}
+
+#layout{display:flex;min-height:100vh}
+
+/* ---------- Sidebar ---------- */
+#sidebar{width:300px;flex:0 0 300px;background:var(--panel);border-right:1px solid var(--border);
+  height:100vh;position:sticky;top:0;display:flex;flex-direction:column}
+#brand{padding:18px 18px 12px}
+#brand .logo{font-size:15px;font-weight:700;color:var(--head);letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+#brand .tagline{color:var(--faint);font-size:11.5px;margin-top:3px;letter-spacing:.3px}
+#navfilterwrap{padding:0 14px 12px;border-bottom:1px solid var(--border)}
+#navfilter{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:13px;outline:none}
+#navfilter:focus{border-color:var(--accent)}
+#navtools{display:flex;gap:6px;padding:10px 14px 4px}
+#navtools button{flex:1;background:none;border:1px solid var(--border2);color:var(--muted);
+  border-radius:7px;padding:5px 6px;cursor:pointer;font-size:11px}
+#navtools button:hover{color:var(--text);border-color:var(--accent)}
+#nav{overflow-y:auto;padding:6px 8px 60px;flex:1}
+#nav::-webkit-scrollbar{width:9px}#nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+.navgroup{margin-bottom:1px}
+.navvol{width:100%;text-align:left;background:none;border:none;color:var(--head);
+  font-weight:600;font-size:12.5px;padding:8px 8px;cursor:pointer;border-radius:7px;
+  display:flex;gap:7px;align-items:center;line-height:1.35}
+.navvol:hover{background:var(--hover)}
+.navvol .tw{color:var(--faint);font-size:10px;transition:transform .15s;flex:0 0 10px}
+.navgroup.collapsed .tw{transform:rotate(-90deg)}
+.navgroup.collapsed .navitems{display:none}
+.navitems{display:flex;flex-direction:column;padding:1px 0 8px 3px;margin-left:8px;
+  border-left:1px solid var(--border)}
+.navlink{color:var(--muted);font-size:12px;padding:4px 10px;border-radius:6px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;border-left:2px solid transparent;margin-left:-1px}
+.navlink:hover{background:var(--hover);color:var(--text);text-decoration:none}
+.navlink.lvl1{color:var(--head);font-weight:700;margin-top:11px;font-size:12.5px}
+.navlink.lvl1:first-child{margin-top:2px}
+.navlink.lvl2{padding-left:22px;font-size:11.5px;color:var(--muted);border-left:1px solid var(--border)}
+.navlink.lvl2:hover,.navlink.lvl2.active{border-left-color:var(--accent)}
+.navlink.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
+
+/* ---------- Main ---------- */
+#main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+#topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--border);
+  padding:11px 26px;display:flex;gap:12px;align-items:center}
+#searchwrap{position:relative;flex:1;max-width:620px}
+#searchwrap .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px}
+#search{width:100%;padding:9px 12px 9px 34px;background:var(--panel2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:14px;outline:none}
+#search:focus{border-color:var(--accent);background:var(--bg2)}
+#count{color:var(--muted);font-size:12px;min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.iconbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--border2);
+  border-radius:9px;width:38px;height:38px;cursor:pointer;font-size:15px;display:inline-flex;
+  align-items:center;justify-content:center}
+.iconbtn:hover{color:var(--text);border-color:var(--accent)}
+
+#content{padding:34px 44px 140px;max-width:860px;margin:0 auto;width:100%}
+#content h1{font-size:23px;font-weight:700;color:var(--head);letter-spacing:-.2px;
+  margin:8px 0 18px;padding-bottom:12px;border-bottom:1px solid var(--border);line-height:1.3}
+.vol + .vol h1, #content h1.volstart{margin-top:56px}
+.volkicker{font-size:10.5px;font-weight:700;letter-spacing:1.4px;color:var(--faint);text-transform:uppercase;
+  margin:58px 0 4px;padding-top:22px;border-top:1px solid var(--border)}
+.vol:first-child .volkicker{margin-top:4px;border-top:none;padding-top:0}
+#content h2{font-size:18px;font-weight:650;color:var(--head);margin:34px 0 10px;
+  padding-left:11px;border-left:3px solid var(--accent);line-height:1.35}
+#content h3{font-size:15px;font-weight:650;color:var(--accent2);margin:24px 0 8px}
+#content h4{font-size:13.5px;font-weight:650;color:var(--head);margin:16px 0 6px;
+  text-transform:uppercase;letter-spacing:.4px}
+.vol{scroll-margin-top:66px}
+#content h1,#content h2,#content h3,#content h4{scroll-margin-top:70px;position:relative}
+.anchor{opacity:0;margin-left:8px;color:var(--faint);font-weight:400;font-size:.75em}
+h1:hover .anchor,h2:hover .anchor,h3:hover .anchor{opacity:1}
+#content p{margin:9px 0}
+#content ul,#content ol{margin:9px 0;padding-left:24px}
+#content li{margin:4px 0}
+#content li::marker{color:var(--faint)}
+
+/* inline code + tag pills */
+code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:5px;
+  font:12.5px/1.45 "SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  border:1px solid var(--border);white-space:nowrap}
+code.tag{background:var(--tag-bg);color:var(--tag-text);border:1px solid var(--tag-bd);
+  font-weight:600;letter-spacing:.2px;cursor:pointer}
+code.tag:hover{filter:brightness(1.15)}
+
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:11px;padding:14px 16px;
+  overflow:auto;margin:14px 0;box-shadow:var(--shadow)}
+pre code{background:none;border:none;padding:0;color:var(--code-text);white-space:pre;
+  font-size:12.5px;line-height:1.55}
+pre::-webkit-scrollbar{height:9px}pre::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+
+blockquote{border-left:3px solid var(--accent2);background:var(--panel);margin:14px 0;
+  padding:11px 16px;border-radius:0 9px 9px 0;color:var(--muted);font-size:14.5px}
+blockquote strong{color:var(--head)}
+
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 12px;text-align:left;vertical-align:top}
+tr td:last-child,tr th:last-child{border-right:none}
+tbody tr:last-child td{border-bottom:none}
+th{background:var(--panel2);font-weight:650;color:var(--head)}
+tbody tr:nth-child(even){background:var(--bg2)}
+tbody tr:hover{background:var(--hover)}
+
+hr{border:none;border-top:1px solid var(--border);margin:30px 0}
+mark{background:var(--hl);color:var(--head);padding:0 1px;border-radius:2px}
+mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-cur)}
+
+#totop{position:fixed;right:26px;bottom:26px;z-index:30;background:var(--accent);color:#fff;border:none;
+  width:42px;height:42px;border-radius:11px;font-size:17px;cursor:pointer;display:none;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+#menuBtn{display:none}
+
+@media(max-width:900px){
+  #sidebar{position:fixed;z-index:50;left:-320px;transition:left .2s;box-shadow:6px 0 24px rgba(0,0,0,.5)}
+  #sidebar.open{left:0}
+  #menuBtn{display:inline-flex}
+  #content{padding:20px 18px 120px}
+  #topbar{padding:10px 14px}
+}
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside id="sidebar">
+    <div id="brand">
+      <a href="index.html" style="text-decoration:none"><div class="logo">🧭 Mindset &amp; Methodology</div></a>
+      <a href="index.html" class="tagline" style="display:inline-block;margin-top:4px">← all sections</a>
+    </div>
+    <div id="navfilterwrap"><input id="navfilter" placeholder="Filter this section…"></div>
+    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v2-[noob-primer]-read-this-first-if-youre-new">[NOOB-PRIMER]  👶 READ THIS FIRST if you&#x27;re new</a><a class="navlink lvl2" href="#v2-2-[file-conventions]-two-kinds-of-files-ones-kali-gives-you-vs-ones-you-create">2) [FILE-CONVENTIONS] TWO kinds of files: ones Kali gives you vs ones YOU create</a><a class="navlink lvl1" href="#v2-[master-index]">[MASTER-INDEX]</a><a class="navlink lvl1" href="#v2-part-0-[current-oscp]-the-exam-as-of-august-2026">PART 0 — [CURRENT-OSCP+] THE EXAM AS OF AUGUST 2026</a><a class="navlink lvl1" href="#v2-part-1-[oscp-mindset]-how-to-think">PART 1 — [OSCP-MINDSET] HOW TO THINK</a><a class="navlink lvl2" href="#v2-[quick]-what-the-exam-actually-tests">[QUICK] What the exam actually tests</a><a class="navlink lvl2" href="#v2-[pentester-mindset]-how-experienced-testers-think">[PENTESTER-MINDSET] How experienced testers think</a><a class="navlink lvl2" href="#v2-[hypothesis-loop]-the-core-loop">[HYPOTHESIS-LOOP] The core loop</a><a class="navlink lvl2" href="#v2-[rabbithole-detection]-signs-youre-in-one">[RABBITHOLE-DETECTION] Signs you&#x27;re in one</a><a class="navlink lvl1" href="#v2-[oscp-golden-rules]-pin-these">[OSCP-GOLDEN-RULES]  (pin these)</a><a class="navlink lvl1" href="#v2-[community-wisdom]-pro-habits-from-ippsec-the-oscp-community">[COMMUNITY-WISDOM]  🧠 pro habits from IppSec &amp; the OSCP community</a><a class="navlink lvl2" href="#v2-exploit-research-[exploit-research]">Exploit research  → [EXPLOIT-RESEARCH]</a><a class="navlink lvl2" href="#v2-credentials-spraying-[password-attacks]">Credentials &amp; spraying  → [PASSWORD-ATTACKS]</a><a class="navlink lvl1" href="#v2-part-23-[master-methodology]-attacking-an-unknown-machine">PART 2/3 — [MASTER-METHODOLOGY] ATTACKING AN UNKNOWN MACHINE</a><a class="navlink lvl2" href="#v2-[method-0]-stage-0-target-triage">[METHOD-0] STAGE 0 — TARGET TRIAGE</a><a class="navlink lvl2" href="#v2-[method-1]-stage-1-host-discovery">[METHOD-1] STAGE 1 — HOST DISCOVERY</a><a class="navlink lvl2" href="#v2-[method-2]-stage-2-tcp-enumeration-see-[nmap-tcp]">[METHOD-2] STAGE 2 — TCP ENUMERATION  → see [NMAP-TCP]</a><a class="navlink lvl2" href="#v2-[method-3]-stage-3-udp-enumeration-[nmap-udp]">[METHOD-3] STAGE 3 — UDP ENUMERATION → [NMAP-UDP]</a><a class="navlink lvl2" href="#v2-[method-4]-stage-4-service-enumeration-volume-1">[METHOD-4] STAGE 4 — SERVICE ENUMERATION → Volume 1</a><a class="navlink lvl2" href="#v2-[method-5]-stage-5-web-enumeration-volume-2-[web-]">[METHOD-5] STAGE 5 — WEB ENUMERATION → Volume 2 [WEB-*]</a><a class="navlink lvl2" href="#v2-[method-6]-stage-6-credential-discovery-[credentials-quick]">[METHOD-6] STAGE 6 — CREDENTIAL DISCOVERY → [CREDENTIALS-QUICK]</a><a class="navlink lvl2" href="#v2-[method-7]-stage-7-vulnerability-identification-[exploit-research]">[METHOD-7] STAGE 7 — VULNERABILITY IDENTIFICATION → [EXPLOIT-RESEARCH]</a><a class="navlink lvl2" href="#v2-[method-8]-stage-8-initial-access-[foothold-checklist]">[METHOD-8] STAGE 8 — INITIAL ACCESS → [FOOTHOLD-CHECKLIST]</a><a class="navlink lvl2" href="#v2-[method-9]-stage-9-shell-stabilization-[shell-quick]">[METHOD-9] STAGE 9 — SHELL STABILIZATION → [SHELL-QUICK]</a><a class="navlink lvl2" href="#v2-[method-10]-stage-10-local-enumeration-vol-4-[linux-privesc]-[windows-privesc]">[METHOD-10] STAGE 10 — LOCAL ENUMERATION → Vol 4 [LINUX-PRIVESC] / [WINDOWS-PRIVESC]</a><a class="navlink lvl2" href="#v2-[method-11]-stage-11-privilege-escalation-vol-4">[METHOD-11] STAGE 11 — PRIVILEGE ESCALATION → Vol 4</a><a class="navlink lvl2" href="#v2-[method-12]-stage-12-credential-harvesting-post-root-[credentials-quick]">[METHOD-12] STAGE 12 — CREDENTIAL HARVESTING (post-root) → [CREDENTIALS-QUICK]</a><a class="navlink lvl2" href="#v2-[method-13]-stage-13-lateral-movement-[ad-lateral]">[METHOD-13] STAGE 13 — LATERAL MOVEMENT → [AD-LATERAL]</a><a class="navlink lvl2" href="#v2-[method-14]-stage-14-pivoting-volume-5-[pivot-]">[METHOD-14] STAGE 14 — PIVOTING → Volume 5 [PIVOT-*]</a><a class="navlink lvl2" href="#v2-[method-15]-stage-15-ad-enumeration-[ad-enum]-[ad-bloodhound]">[METHOD-15] STAGE 15 — AD ENUMERATION → [AD-ENUM], [AD-BLOODHOUND]</a><a class="navlink lvl2" href="#v2-[method-16]-stage-16-ad-attack-paths-[ad-attack-path]">[METHOD-16] STAGE 16 — AD ATTACK PATHS → [AD-ATTACK-PATH]</a><a class="navlink lvl2" href="#v2-[method-17]-stage-17-objective-proof">[METHOD-17] STAGE 17 — OBJECTIVE / PROOF</a><a class="navlink lvl2" href="#v2-[method-18]-stage-18-documentation-[reporting]">[METHOD-18] STAGE 18 — DOCUMENTATION → [REPORTING]</a><a class="navlink lvl1" href="#v2-part-4-[pentester-thought-process]-decision-templates">PART 4 — [PENTESTER-THOUGHT-PROCESS] DECISION TEMPLATES</a><a class="navlink lvl1" href="#v2-part-26-[time-management]">PART 26 — [TIME-MANAGEMENT]</a><a class="navlink lvl2" href="#v2-[quick]-exam-clock-plan-23h45m">[QUICK] Exam clock plan (23h45m)</a><a class="navlink lvl2" href="#v2-[when-to-move-on]-the-rules">[WHEN-TO-MOVE-ON] The rules</a><a class="navlink lvl2" href="#v2-[fatigue]">[FATIGUE]</a><a class="navlink lvl1" href="#v2-part-27-[reporting]">PART 27 — [REPORTING]</a><a class="navlink lvl1" href="#v2-part-31-[minimum-viable-prep]-max-machine-time-min-passive-study">PART 31 — [MINIMUM-VIABLE-PREP]  (max machine time, min passive study)</a><a class="navlink lvl1" href="#v2-part-32-[7-day-plan]-final-week-assumes-youve-practised-for-weeks-already">PART 32 — [7-DAY-PLAN]  (final week; assumes you&#x27;ve practised for weeks already)</a><a class="navlink lvl1" href="#v2-part-33-[readiness-test]-score-yourself-on-methodology-not-trivia">PART 33 — [READINESS-TEST]  (score yourself on *methodology*, not trivia)</a><a class="navlink lvl1" href="#v2-part-35-[navigation-sim]-using-this-kb-with-ctrlf">PART 35 — [NAVIGATION-SIM] Using this KB with Ctrl+F</a><a class="navlink lvl1" href="#v2-[current-offsec-rules-summary]-verify-on-the-live-exam-guide-before-your-exam">[CURRENT-OFFSEC-RULES-SUMMARY]  (verify on the live exam guide before your exam)</a></div></nav>
+  </aside>
+  <div id="main">
+    <div id="topbar">
+      <button id="menuBtn" class="iconbtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <a class="iconbtn" href="index.html" title="All sections">≡</a>
+      <div id="searchwrap"><span class="ic">🔎</span><input id="search" placeholder="Search this section…   Enter ↵ next"></div>
+      <span id="count"></span>
+      <button class="iconbtn" onclick="clearSearch()" title="Clear">✕</button>
+      <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
+    </div>
+    <main id="content"><section class="vol"><div class="volkicker" id="v2-oscp-knowledge-base-volume-0">OSCP+ KNOWLEDGE BASE — VOLUME 0</div>
+<h2 id="v2-master-index-mindset-master-methodology-time-reporting-prep">MASTER INDEX · MINDSET · MASTER METHODOLOGY · TIME · REPORTING · PREP<a class="anchor" href="#v2-master-index-mindset-master-methodology-time-reporting-prep">#</a></h2>
+<blockquote><strong>How to use this KB:</strong> Everything is tagged like <code class="tag">[SMB-ENUM]</code>. To find something, <code>Ctrl+F</code> the tag or the plain word. Tags are stable across all volumes so you can merge them into one file later (<code>cat VOL-*.md &gt; OSCP-KB-COMPLETE.md</code>).  <strong>Source labels used everywhere:</strong> <code>[OFFICIAL OFFSEC]</code> = from OffSec&#x27;s own docs/exam guide. <code class="tag">[COMMUNITY]</code> = repeatedly reported by recent candidates. <code class="tag">[GENERAL]</code> = standard pentest knowledge/tool docs.  <strong>Info levels:</strong> every big topic has <code class="tag">[QUICK]</code> (first 30–60s), <code class="tag">[PRACTICAL]</code> (the actual methodology — most of the value), <code class="tag">[DEEP]</code> (theory/edge cases — never blocks action).  <strong>Command labels:</strong> <code class="tag">[MUST-MEMORIZE]</code> (you type it constantly), <code class="tag">[MUST-RECOGNIZE]</code> (know what it does, look up exact syntax), <code class="tag">[LOOK-UP]</code> (never memorize, just know it exists).  <strong>📦 Companion files (same folder):</strong> <code>OSCP-Flowcharts.html</code> (9 visual attack-flow diagrams — see the next move), <code>OSCP-CommandGen.html</code> (click-to-generate any command with your IP filled in), <code>OSCP-Study-Tracker.html</code> (log practice boxes → your weakest stage), <code>oscp.sh</code> / <code>oscp.py</code> (exam-safe automation helper — <code class="tag">[EXAM-SCRIPTS]</code>). Use the <strong>flowchart/generator for the move &amp; command</strong>, this KB for the <strong>why &amp; detail</strong>.</blockquote>
+<hr>
+<h1 id="v2-[noob-primer]-read-this-first-if-youre-new">[NOOB-PRIMER]  👶 READ THIS FIRST if you&#x27;re new<a class="anchor" href="#v2-[noob-primer]-read-this-first-if-youre-new">#</a></h1>
+<p>New to this? These 6 things confuse *everyone* at the start. Learn them once and every command in this guide makes sense.</p>
+<h2 id="v2-1-ip-t-u-p-are-placeholders-you-replace-them">1) <code>$IP</code>, <code>$T</code>, <code>$U</code>, <code>$P</code> are PLACEHOLDERS — you replace them<a class="anchor" href="#v2-1-ip-t-u-p-are-placeholders-you-replace-them">#</a></h2>
+<p>When you see <code>nmap -p- $T</code> or <code>ssh $U@$IP</code>, you don&#x27;t type the dollar-sign words literally. You swap in real values:</p>
+<pre><code>$IP  = YOUR Kali VPN address (see #4)      $T = the TARGET&#x27;s IP (e.g. 192.168.1.50)
+$U   = a username           $P = a password            $DC = domain controller IP
+$DOMAIN = domain name (e.g. corp.local)    $H = an NTLM hash</code></pre>
+<p>So <code>evil-winrm -i $T -u $U -p $P</code> becomes <code>evil-winrm -i 192.168.1.50 -u bob -p Summer2025!</code>.</p>
+<p>*(Tip: set them as shell variables so copy-paste works: <code>T=192.168.1.50</code>, then <code>nmap -p- $T</code> runs for real.)*</p>
+<ul>
+<li><strong>Change a value:</strong> just assign again — <code>T=192.168.1.77</code> overwrites the old one. <code>export IP=10.10.14.8</code> updates your Kali IP.</li>
+<li><strong>Check a value:</strong> <code>echo $T</code> / <code>echo $IP</code> (blank line = not set in this terminal).</li>
+<li><strong>⚠️ Per-terminal:</strong> variables only exist in the tab you set them in. New tab → they&#x27;re empty → set again. Best practice: <strong>one box per terminal tab</strong>, set <code>T</code> at the top of each tab. Clear one with <code>unset T</code>.</li>
+</ul>
+<h2 id="v2-2-[file-conventions]-two-kinds-of-files-ones-kali-gives-you-vs-ones-you-create">2) <code class="tag">[FILE-CONVENTIONS]</code> TWO kinds of files: ones Kali gives you vs ones YOU create<a class="anchor" href="#v2-2-[file-conventions]-two-kinds-of-files-ones-kali-gives-you-vs-ones-you-create">#</a></h2>
+<p>This is the <code>hashcat -m 5600 netntlmv2.txt rockyou.txt</code> confusion. The two files are totally different:</p>
+<div class="tablewrap"><table><thead><tr><th><strong>Ships WITH Kali</strong> (already there, use it)</th><th><strong>YOU create</strong> (save it from the target)</th></tr></thead><tbody>
+<tr><td><code>rockyou.txt</code> → <code>/usr/share/wordlists/rockyou.txt</code></td><td>hash files: <code>netntlmv2.txt</code>, <code>tgs.txt</code>, <code>asrep.txt</code></td></tr>
+<tr><td>SecLists → <code>/usr/share/seclists/…</code></td><td>user lists you found: <code>users.txt</code></td></tr>
+<tr><td>dir wordlists → <code>/usr/share/wordlists/dirb/</code>, <code>dirbuster/</code></td><td>anything holding loot from the box</td></tr>
+</tbody></table></div>
+<p><strong>Rule of thumb:</strong> in <code>hashcat -m &lt;mode&gt; &lt;A&gt; &lt;B&gt;</code> and similar, <strong>the left file (A) is something you made from the target (a hash), the right file (B) is a wordlist Kali provides.</strong> Same for <code>GetNPUsers -usersfile users.txt</code> (users.txt = YOUR list) and <code>hydra -P rockyou.txt</code> (Kali&#x27;s list).</p>
+<p><strong>To create a file</strong> you just save text into it:</p>
+<pre><code>nano netntlmv2.txt                 # opens editor → paste the hash → Ctrl+O save, Ctrl+X exit
+echo &#x27;the-hash-here&#x27; &gt; hash.txt    # or write it directly</code></pre>
+<p><strong>A THIRD kind — OUTPUT files (tools create them for you).</strong> In <code>nmap ... -oN scans/all-tcp.txt</code>, that <code>.txt</code> is an <strong>output</strong> file — nmap *writes* it when it runs; you don&#x27;t have it beforehand. Same for any <code>-o</code>/<code>--output</code>/<code>&gt;</code> redirect. So there are three file types total:</p>
+<pre><code>INPUT, Kali provides   → /usr/share/wordlists/rockyou.txt , SecLists   (you point tools at these)
+INPUT, you create      → users.txt , hash.txt                          (you save target loot into these)
+OUTPUT, tool creates   → scans/all-tcp.txt (nmap -oN) , loot dumps      (appear AFTER the tool runs)</code></pre>
+<p>⚠️ <strong>Gotcha:</strong> an output path like <code>scans/all-tcp.txt</code> needs the **<code>scans/</code> folder to already exist**, or you get <code>Failed to open ... No such file or directory</code>. Make it first: <code>mkdir -p scans</code> (that&#x27;s why <code class="tag">[KALI-SETUP]</code> pre-creates <code>~/oscp/&lt;box&gt;/{scans,loot,...}</code>). Or just write to the current dir: <code>-oN all-tcp.txt</code>.</p>
+<h2 id="v2-3-rockyoutxt-is-gzipped-on-a-fresh-kali-unzip-it-once">3) <code>rockyou.txt</code> is GZIPPED on a fresh Kali — unzip it once<a class="anchor" href="#v2-3-rockyoutxt-is-gzipped-on-a-fresh-kali-unzip-it-once">#</a></h2>
+<pre><code>sudo gunzip /usr/share/wordlists/rockyou.txt.gz      # do this one time, ever
+# folder empty? install them:  sudo apt install wordlists seclists</code></pre>
+<p>After that, always point to the full path: <code>/usr/share/wordlists/rockyou.txt</code> (writing just <code>rockyou.txt</code> only works if you&#x27;re in that folder).</p>
+<h2 id="v2-4-lhost-your-ip-your-vpn-address-not-your-home-ip">4) <code>LHOST</code> / your <code>$IP</code> = your VPN address, NOT your home IP<a class="anchor" href="#v2-4-lhost-your-ip-your-vpn-address-not-your-home-ip">#</a></h2>
+<p>In reverse shells and exploits, &quot;your IP&quot; means your <strong>tun0</strong> (the exam/lab VPN interface), e.g. <code>10.10.14.x</code>. Find it:</p>
+<pre><code>ip addr show tun0        # look for the &quot;inet&quot; line  → that&#x27;s your $IP / LHOST</code></pre>
+<p>Using the wrong IP (like eth0) is the #1 reason reverse shells never connect (<code class="tag">[REVERSE-SHELL-NOT-CONNECTING]</code>).</p>
+<h2 id="v2-5-sudo-run-as-admin-on-your-kali--pn--p--etc-are-flags">5) <code>sudo</code> = run as admin on YOUR Kali; <code>-Pn</code>, <code>-p-</code> etc. are FLAGS<a class="anchor" href="#v2-5-sudo-run-as-admin-on-your-kali--pn--p--etc-are-flags">#</a></h2>
+<ul>
+<li><code>sudo &lt;cmd&gt;</code> runs a command with root on <strong>your own</strong> Kali (needed for nmap SYN scans, binding low ports). It has nothing to do with the target.</li>
+<li>Words starting with <code>-</code> (like <code>-p-</code>, <code>-sCV</code>, <code>-u</code>) are <strong>flags/options</strong> that change how a tool behaves. <code class="tag">[NMAP-QUICK]</code> explains the ones you need.</li>
+</ul>
+<h2 id="v2-6-how-to-read-any-command-in-this-guide">6) How to read any command in this guide<a class="anchor" href="#v2-6-how-to-read-any-command-in-this-guide">#</a></h2>
+<pre><code>tool      -flag value      $PLACEHOLDER      file
+  │           │                 │              │
+which     options you       you replace    a wordlist (Kali&#x27;s)
+program   rarely change     with real IP   or a file you made</code></pre>
+<p>Example: <code>nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $T</code></p>
+<p>= run <strong>nmap</strong>, scan <strong>all ports</strong> (<code>-p-</code>), fast (<code>--min-rate 2000</code>), skip ping (<code>-Pn</code>), <strong>save output</strong> to <code>scans/all-tcp.txt</code> (<code>-oN</code>), against <strong>the target</strong> (<code>$T</code>).</p>
+<blockquote><strong>You don&#x27;t need to memorize commands.</strong> You need to (a) recognize what a command *does*, (b) know where to find it here, and (c) swap in your real values. Do boxes, keep this open, and it becomes automatic. Now go to <code class="tag">[BEGINNER-START-HERE]</code> (Vol 7) for the learning order.</blockquote>
+<hr>
+<h1 id="v2-[master-index]">[MASTER-INDEX]<a class="anchor" href="#v2-[master-index]">#</a></h1>
+<blockquote><strong>Reading order vs. IDs:</strong> The sidebar/steps ①–⑩ below are the order to *use* this KB. The &quot;Volume N&quot; in each title is a <strong>stable ID</strong> that cross-references point to (they don&#x27;t change when the order does). Follow the ① ② ③ steps; ignore the raw numbers unless you&#x27;re chasing a <code>(Vol N)</code> pointer.</blockquote>
+<p><strong>① ⭐ EXAM WAR ROOM</strong> *(Volume 8 — open FIRST on exam day)*: <code class="tag">[EXAM-WAR-ROOM]</code> single pane of glass (scoreboard, 3 machine playbooks, hour checkpoints, quick-wins), <code class="tag">[CVE-HITS]</code>, <code class="tag">[COMMUNITY-ADDENDUM]</code>, <code class="tag">[BOF-DEPRECATED]</code>.</p>
+<p><strong>② 👶 FOUNDATIONS</strong> *(Volume 9 — start here if new)*: <code class="tag">[KALI-SETUP]</code>, <code class="tag">[GLOSSARY]</code>, <code class="tag">[FIRST-BOX-WALKTHROUGH]</code> (full Linux + Windows boxes narrated).</p>
+<p><strong>③ 🧭 MINDSET &amp; METHODOLOGY</strong> *(Volume 0 — this file)*: <code class="tag">[NOOB-PRIMER]</code>, <code class="tag">[OSCP-GOLDEN-RULES]</code>, <code class="tag">[MASTER-METHODOLOGY]</code> (stages 0–18), <code class="tag">[PENTESTER-THOUGHT-PROCESS]</code>, <code class="tag">[TIME-MANAGEMENT]</code>, <code class="tag">[REPORTING]</code>, <code class="tag">[MINIMUM-VIABLE-PREP]</code>, <code class="tag">[7-DAY-PLAN]</code>, <code class="tag">[READINESS-TEST]</code>, <code class="tag">[CURRENT-OSCP+]</code>.</p>
+<p><strong>④ 🔎 ENUMERATION &amp; NMAP</strong> *(Volume 1)*: <code>[NMAP-*]</code>, <code>[ENUM-*]</code> per service (FTP, SSH, SMTP, DNS, HTTP, SMB, RPC, LDAP, KERBEROS, WINRM, RDP, SNMP, NFS, MSSQL, MYSQL, POSTGRES, REDIS, MONGODB, GIT, unusual ports), <code class="tag">[ENUM-DECISION]</code>.</p>
+<p><strong>⑤ 🌐 WEB &amp; SQLi</strong> *(Volume 2)*: <code>[WEB-*]</code> full methodology + every web vuln; <code>[SQLI-*]</code> mini-course (MySQL/MSSQL/Postgres/SQLite).</p>
+<p><strong>⑥ 💥 ACCESS · SHELLS · TRANSFER · CREDS</strong> *(Volume 3)*: <code>[FOOTHOLD-*]</code>, <code>[SHELL-*]</code>, <code>[FILETRANSFER-*]</code>, <code>[CREDENTIALS-*]</code>, <code>[HASH-*]</code>, <code class="tag">[EXPLOIT-RESEARCH]</code>.</p>
+<p><strong>⑦ ⬆️ PRIVILEGE ESCALATION</strong> *(Volume 4)*: <code>[LINUX-PRIVESC-*]</code>, <code>[WINDOWS-PRIVESC-*]</code>.</p>
+<p><strong>⑧ 🏰 ACTIVE DIRECTORY &amp; PIVOTING</strong> *(Volume 5)*: <code>[AD-*]</code>, <code>[PIVOT-*]</code>.</p>
+<p><strong>⑨ 🧰 FOUND-X · TROUBLESHOOTING · TOOLBOX</strong> *(Volume 6)*: <code>[FOUND-*]</code> (&quot;I found X, what now&quot;), <code>[RABBITHOLE-*]</code>, <code class="tag">[STUCK-PROTOCOL]</code>, <code>[TROUBLESHOOTING-*]</code>, <code>[CHAIN-*]</code>, <code>[TECH-*]</code> encyclopedia, <code>[TOOL-*]</code> toolbox, <code class="tag">[MACHINE-JOURNAL]</code>, Top-100s / final-day reference.</p>
+<p><strong>⑩ 📚 SYLLABUS EXTRAS &amp; EXAM FLOW</strong> *(Volume 7)*: <code class="tag">[EXAM-DAY-FLOW]</code>, <code class="tag">[BEGINNER-START-HERE]</code>, <code class="tag">[SYLLABUS-MAP]</code>, <code>[CLIENTSIDE-*]</code>, <code class="tag">[PHISHING]</code>, <code class="tag">[FIXING-EXPLOITS]</code>, <code class="tag">[AV-EVASION]</code>, <code class="tag">[TOOL-MSF]</code>, <code class="tag">[DPI-TUNNELING]</code>, <code class="tag">[CLOUD-AWS]</code>.</p>
+<h3 id="v2-predictable-tag-families-search-any-of-these">Predictable tag families (search any of these)<a class="anchor" href="#v2-predictable-tag-families-search-any-of-these">#</a></h3>
+<pre><code>[NMAP] [NMAP-QUICK] [NMAP-TCP] [NMAP-UDP] [NMAP-SCRIPTS] [NMAP-TROUBLESHOOTING]
+[ENUM-FTP] [ENUM-SSH] [ENUM-SMTP] [ENUM-DNS] [ENUM-HTTP] [ENUM-SMB] [ENUM-RPC]
+[ENUM-LDAP] [ENUM-KERBEROS] [ENUM-WINRM] [ENUM-RDP] [ENUM-SNMP] [ENUM-NFS]
+[ENUM-MSSQL] [ENUM-MYSQL] [ENUM-POSTGRES] [ENUM-REDIS] [ENUM-MONGODB] [ENUM-GIT]
+[SMB-QUICK] [SMB-ENUM] [SMB-ATTACK] [SMB-TROUBLESHOOTING]
+[WEB-QUICK] [WEB-FINGERPRINT] [WEB-CONTENT] [WEB-LFI] [WEB-RFI] [WEB-SSRF]
+[WEB-CMDINJ] [WEB-SSTI] [WEB-XXE] [WEB-UPLOAD] [WEB-DESERIALIZE] [WEB-IDOR] [WEB-JWT] [WEB-AUTHBYPASS]
+[SQLI] [SQLI-QUICK] [SQLI-DECISION-TREE] [SQLI-MYSQL] [SQLI-MSSQL] [SQLI-POSTGRES] [SQLI-SQLITE] [SQLI-SQLMAP] [SQLI-TROUBLESHOOTING]
+[FOOTHOLD-CHECKLIST] [SHELL-QUICK] [REVERSE-SHELL-NOT-CONNECTING] [FILETRANSFER-QUICK]
+[LINUX-PRIVESC-QUICK] [LINUX-SUDO] [LINUX-SUID] [LINUX-CRON] [LINUX-CAP] [LINUX-PATH] [LINPEAS-WORKFLOW] [GTFOBINS-WORKFLOW]
+[WINDOWS-PRIVESC-QUICK] [WINDOWS-SERVICES] [WINDOWS-TOKENS] [WINDOWS-CREDS] [WINPEAS-WORKFLOW]
+[AD-QUICK] [AD-ENUM] [AD-USER] [AD-CREDENTIALS] [KERBEROS-QUICK] [AD-KERBEROAST] [AD-ASREP]
+[AD-ACL] [AD-LATERAL] [AD-BLOODHOUND] [AD-ATTACK-PATH]
+[PIVOT-QUICK] [PIVOT-CHISEL] [PIVOT-LIGOLO] [PIVOT-SSH] [PIVOT-TROUBLESHOOTING]
+[CREDENTIALS-QUICK] [HASH-IDENTIFICATION]
+[FOUND-CREDS] [FOUND-SSHKEY] [FOUND-SUID] [FOUND-SUDO] [FOUND-SMB] ... [FOUND-PIVOT]
+[STUCK-PROTOCOL] [WHEN-TO-MOVE-ON] [TROUBLESHOOTING-QUICK]</code></pre>
+<hr>
+<h1 id="v2-part-0-[current-oscp]-the-exam-as-of-august-2026">PART 0 — [CURRENT-OSCP+] THE EXAM AS OF AUGUST 2026<a class="anchor" href="#v2-part-0-[current-oscp]-the-exam-as-of-august-2026">#</a></h1>
+<h3 id="v2-[official-offsec]-what-oscp-is">[OFFICIAL OFFSEC] What OSCP+ is<a class="anchor" href="#v2-[official-offsec]-what-oscp-is">#</a></h3>
+<ul>
+<li><strong>OSCP+</strong> is what you earn by passing the current PEN-200 exam (structure in place since <strong>Nov 1, 2024</strong>). Passing grants <strong>both</strong> the lifetime <strong>OSCP</strong> and the <strong>OSCP+</strong> designation.</li>
+<li><strong>OSCP+ expires 3 years</strong> after issuance. The underlying <strong>OSCP never expires</strong>. If you let the &quot;+&quot; lapse you keep OSCP for life. Renew the &quot;+&quot; by: passing a recert exam within 6 months of expiry, passing another qualifying OffSec cert (OSEP/OSWA/OSED/OSEE), or completing OffSec&#x27;s CPE/PEN-200 continuing-education program.</li>
+</ul>
+<h3 id="v2-[official-offsec]-exam-format">[OFFICIAL OFFSEC] Exam format<a class="anchor" href="#v2-[official-offsec]-exam-format">#</a></h3>
+<ul>
+<li><strong>Duration:</strong> 23 hours 45 minutes hands-on, then <strong>24 hours</strong> to write and upload the report.</li>
+<li><strong>Total 100 points. Pass = 70.</strong></li>
+<li><strong>1 Active Directory set = 40 points.</strong> Three chained Windows hosts modelling a small enterprise (typically a domain-joined workstation → member server → domain controller). <strong>You must fully compromise the chain to get the 40</strong> — it is effectively all-or-nothing; a partial AD compromise does not net partial exam-passing value in practice. <strong>Treat AD as the exam.</strong></li>
+<li><strong>3 standalone machines = 20 points each (60 total).</strong> Each machine: **10 points for the low-priv flag (<code>local.txt</code>)<strong> and </strong>10 points for root/SYSTEM (<code>proof.txt</code>)**.</li>
+<li><strong>Bonus points are GONE.</strong> [OFFICIAL OFFSEC] There is no longer a lab/exercise bonus safety net. <strong>You need a clean 70 on the day.</strong> Practically: AD (40) + two full standalones (40) = 80 → pass. Or AD (40) + one full standalone (20) + two low-priv (20) = 80. <strong>Losing the AD set means you must root all three standalones AND get extra — very hard. Prioritize AD.</strong></li>
+</ul>
+<h3 id="v2-[official-offsec]-tool-rules-the-ones-people-fail-on">[OFFICIAL OFFSEC] Tool rules (the ones people fail on)<a class="anchor" href="#v2-[official-offsec]-tool-rules-the-ones-people-fail-on">#</a></h3>
+<ul>
+<li><strong>Metasploit / Meterpreter: ONE target only.</strong> You may use MSF exploit/post modules or a Meterpreter payload against a <strong>single machine of your choice</strong> for the whole exam. <strong>Not</strong> on the AD set for pivoting. Auxiliary modules (scanners) are treated more leniently but <strong>don&#x27;t gamble</strong> — assume MSF = one box, use manual methods everywhere else.</li>
+<li><strong>Allowed freely:</strong> nmap, nikto, gobuster/feroxbuster/ffuf, Burp Community, netexec/CrackMapExec, impacket, evil-winrm, sqlmap (with restrictions — see below), Chisel/Ligolo/proxychains, hashcat/john, manual exploits, public exploit code you understand.</li>
+<li>**<code>sqlmap</code>:<strong> allowed in some contexts but the exam guide restricts automated exploitation tools; </strong>do SQLi manually for the exam** and only lean on sqlmap where explicitly permitted. Confirm on the current exam guide.</li>
+<li><strong>Banned:</strong> commercial/automated exploitation frameworks beyond the MSF single-target rule, automated AD-exploitation &quot;one-click&quot; tools, spoofing attacks not in scope, and <strong>any AI tools that solve the box for you</strong> (allowed for reference, not for auto-exploitation — check current guide).</li>
+</ul>
+<h3 id="v2-[official-offsec]-proof-requirements-people-lose-points-here">[OFFICIAL OFFSEC] Proof requirements (people LOSE points here)<a class="anchor" href="#v2-[official-offsec]-proof-requirements-people-lose-points-here">#</a></h3>
+<ul>
+<li>Submit the <strong>contents</strong> of <code>local.txt</code> and <code>proof.txt</code> AND a <strong>screenshot</strong> on each machine showing **the flag + <code>ipconfig</code>/<code>ip a</code> + <code>whoami</code>/<code>id</code> in the same shot**. A bare flag string is rejected — it doesn&#x27;t prove *which host* and *what privilege*.</li>
+<li>Screenshot must be a real screenshot (not copy-paste of text). Show the exploit working.</li>
+<li>The <strong>report is graded.</strong> No report = no pass even if you got 70 points of flags. See <code class="tag">[REPORTING]</code>.</li>
+</ul>
+<h3 id="v2-[community]-what-changed-vs-old-oscp-advice-dont-reuse-stale-guides">[COMMUNITY] What changed vs old OSCP advice (don&#x27;t reuse stale guides)<a class="anchor" href="#v2-[community]-what-changed-vs-old-oscp-advice-dont-reuse-stale-guides">#</a></h3>
+<ul>
+<li><strong>AD is now the centre of gravity</strong>, not an afterthought. Old &quot;just root 3 boxes + buffer overflow + bonus&quot; advice is dead.</li>
+<li><strong>No buffer-overflow box</strong> in the current exam focus. Classic 25-point custom-stack-BOF grind is <strong>not</strong> where to spend prep time. (Know basic BOF concept; don&#x27;t over-drill it.)</li>
+<li><strong>No bonus points</strong> → margin for error is smaller. <strong>Enumeration discipline &gt; exploit collection.</strong></li>
+<li>Assumed-breach style AD (you&#x27;re often given a starting credential/foothold into AD) is the common pattern — <strong>practice from a domain user forward.</strong></li>
+</ul>
+<hr>
+<h1 id="v2-part-1-[oscp-mindset]-how-to-think">PART 1 — [OSCP-MINDSET] HOW TO THINK<a class="anchor" href="#v2-part-1-[oscp-mindset]-how-to-think">#</a></h1>
+<h2 id="v2-[quick]-what-the-exam-actually-tests">[QUICK] What the exam actually tests<a class="anchor" href="#v2-[quick]-what-the-exam-actually-tests">#</a></h2>
+<p>Not &quot;do you know exploit X.&quot; It tests: <strong>can you enumerate thoroughly, notice the one detail that matters, form a hypothesis, test it cheaply, and move on when it fails — for 24 hours without tunnel-visioning.</strong> It&#x27;s an *enumeration and decision-making* exam wearing an exploitation costume.</p>
+<h2 id="v2-[memorize-vs-lookup]">[MEMORIZE vs LOOKUP]<a class="anchor" href="#v2-[memorize-vs-lookup]">#</a></h2>
+<p><strong>Make muscle memory (type without thinking):</strong></p>
+<ul>
+<li>Your nmap two-step (fast all-ports → targeted <code>-sCV</code>).</li>
+<li>SMB/AD triage: <code>nxc smb &lt;ip&gt;</code>, <code>nxc smb &lt;ip&gt; -u &#x27;&#x27; -p &#x27;&#x27;</code>, <code>enum4linux-ng</code>.</li>
+<li>Reverse shell one-liner + <code>nc -lvnp</code>, TTY upgrade (<code>python3 -c &#x27;import pty...&#x27;</code> + <code>stty</code>).</li>
+<li><code>sudo -l</code>, <code>id</code>, <code>find / -perm -4000</code>, <code>linpeas</code>, <code>winpeas</code>, <code>whoami /priv</code>.</li>
+<li>File transfer: <code>python3 -m http.server 80</code> + <code>wget</code>/<code>curl</code>/<code>certutil</code>.</li>
+<li>Kerberoast / AS-REP one-liners, <code>secretsdump</code>, <code>evil-winrm -i ip -u u -p p</code>.</li>
+</ul>
+<p><strong>Recognize, don&#x27;t memorize (look up exact flags):</strong> ffuf/feroxbuster syntax, Chisel/Ligolo command chains, hashcat modes, impacket sub-tool flags, ldapsearch filters, sqlmap flags.</p>
+<p><strong>Never memorize:</strong> every GTFOBins entry, every CVE, long exploit payloads. Keep a searchable notes file (this KB) and GTFOBins/HackTricks bookmarks.</p>
+<h2 id="v2-[pentester-mindset]-how-experienced-testers-think">[PENTESTER-MINDSET] How experienced testers think<a class="anchor" href="#v2-[pentester-mindset]-how-experienced-testers-think">#</a></h2>
+<ol>
+<li><strong>Enumerate to a hypothesis, not to a list.</strong> Every finding should end with &quot;so I can try ___.&quot; If a finding doesn&#x27;t suggest an action, log it and move on.</li>
+<li><strong>Breadth before depth.</strong> Get *all* services and *all* web content mapped before deeply attacking any one thing. The answer is usually in something you haven&#x27;t looked at yet, not deeper in what you&#x27;re staring at.</li>
+<li><strong>Cheapest test first.</strong> Anonymous login, default creds, known-CVE check — 2 minutes — before writing custom exploits.</li>
+<li><strong>Credentials are the universal key.</strong> Every cred you find → try it *everywhere* (SMB, SSH, WinRM, web login, MSSQL, AD, database). Password reuse solves a huge fraction of boxes.</li>
+<li><strong>The box was built to be solved with a designed path.</strong> If something feels absurdly hard or needs 0-day skill, you&#x27;re in a rabbit hole — the intended path is simpler and you missed enumeration.</li>
+<li><strong>Write everything down as you go</strong> (see <code class="tag">[MACHINE-JOURNAL]</code>). Half of &quot;stuck&quot; is &quot;forgot what I already found.&quot;</li>
+</ol>
+<h2 id="v2-[hypothesis-loop]-the-core-loop">[HYPOTHESIS-LOOP] The core loop<a class="anchor" href="#v2-[hypothesis-loop]-the-core-loop">#</a></h2>
+<pre><code>ENUMERATE → NOTICE anomaly/version/misconfig → HYPOTHESIS (&quot;this looks like X, X is exploitable by Y&quot;)
+→ CHEAP TEST → if works: EXPLOIT; if not: log why, NEXT hypothesis</code></pre>
+<p>A hypothesis has: a <strong>claim</strong>, a <strong>test</strong>, and a <strong>timebox</strong>. No timebox = rabbit hole.</p>
+<h2 id="v2-[rabbithole-detection]-signs-youre-in-one">[RABBITHOLE-DETECTION] Signs you&#x27;re in one<a class="anchor" href="#v2-[rabbithole-detection]-signs-youre-in-one">#</a></h2>
+<ul>
+<li>You&#x27;ve spent &gt;30 min and haven&#x27;t formed a *new* hypothesis, just retried variants of the same one.</li>
+<li>You&#x27;re editing a public exploit you don&#x27;t understand, hoping.</li>
+<li>You&#x27;re brute-forcing something with no evidence it&#x27;s the path.</li>
+<li>You found something &quot;interesting&quot; and are chasing it because it&#x27;s interesting, not because evidence points there.</li>
+<li><strong>Fix:</strong> <code class="tag">[STUCK-PROTOCOL]</code> (Volume 6 has full version; core: re-enumerate, list untried surfaces, switch target).</li>
+</ul>
+<hr>
+<h1 id="v2-[oscp-golden-rules]-pin-these">[OSCP-GOLDEN-RULES]  (pin these)<a class="anchor" href="#v2-[oscp-golden-rules]-pin-these">#</a></h1>
+<ol>
+<li><strong>AD first, AD hardest — protect the 40 points.</strong> Budget your biggest block of fresh-brain time for the AD set.</li>
+<li><strong>Enumerate all ports and all web content before exploiting anything.</strong> Depth-first is the #1 cause of failure.</li>
+<li><strong>Every credential gets sprayed everywhere.</strong> New password → SMB, WinRM, SSH, web, MSSQL, RDP, and as other users.</li>
+<li><strong>Cheapest test first:</strong> anonymous → default creds → known CVE → manual exploit → custom.</li>
+<li><strong>If it needs a 0-day or a miracle, you missed enumeration.</strong> Go back and re-scan / re-read output.</li>
+<li><strong>Timebox every hypothesis (15/30 rule).</strong> 15 min no progress → re-read output. 30 min no progress → switch surface or target, note where you were.</li>
+<li><strong>Screenshot proof the moment you get a flag</strong> (flag + <code>id</code>/<code>whoami</code> + <code>ip</code>). Do it *now*, not &quot;later.&quot;</li>
+<li><strong>Take notes continuously.</strong> If it&#x27;s not written down, it didn&#x27;t happen. One file per target.</li>
+<li><strong>Re-run enumeration after every privilege change</strong> (new user, new host, new network). New access = new attack surface.</li>
+<li><strong>Read tool output — actually read it.</strong> The answer is usually already on your screen (a version, a share, a username, a path).</li>
+<li><strong>Full TCP port scan always</strong> (<code>-p-</code>). The intended service is often on a weird high port.</li>
+<li><strong>UDP matters sometimes</strong> (SNMP 161, DNS 53, TFTP 69) — do a quick top-UDP scan, don&#x27;t obsess.</li>
+<li><strong>Manual first for the exam</strong> — Metasploit is one box only. Build manual muscle memory in prep.</li>
+<li><strong>Password reuse and weak creds beat exploits</strong> more often than you&#x27;d think. Always try the obvious.</li>
+<li><strong>When you get a shell, stabilize it before doing anything</strong> (TTY / <code>stty</code>). Unstable shells lose you work.</li>
+<li><strong>Kerberoast + AS-REP roast every AD engagement</strong> — cheap, high value, no special privileges needed.</li>
+<li><strong>BloodHound early in AD.</strong> Collect data as soon as you have any domain creds; let the graph find the path.</li>
+<li><strong>Don&#x27;t over-trust automated scanners.</strong> linpeas/winpeas/nmap scripts miss things and produce false positives — verify manually.</li>
+<li><strong>One target&#x27;s loot unlocks others.</strong> Hashes/keys/passwords from box A are your first move on box B.</li>
+<li><strong>Rotate targets to break tunnel vision.</strong> Stuck on standalone #2? Go work AD, come back with fresh eyes.</li>
+<li><strong>Verify you understand a public exploit before running it</strong> — wrong target/arch/version can crash the box (costs you a revert and time).</li>
+<li><strong>Save every artifact</strong> (scan outputs, hashes, screenshots, exploit code you used) into the target folder immediately.</li>
+<li>**<code>whoami /priv</code> and <code>sudo -l</code> are the first thing on any shell.** Free wins live there.</li>
+<li>**Check for creds in: config files, history, backups, DB, memory, <code>.git</code>, home dirs.** Loot is everywhere.</li>
+<li><strong>Reverts are free — use them</strong> if a box behaves weirdly (crashed service, prior tester&#x27;s shell). Don&#x27;t debug a broken box for an hour.</li>
+<li><strong>The report is part of the exam.</strong> Screenshot and command-log as you go; writing it after with no notes is how people fail after passing.</li>
+<li><strong>Don&#x27;t install/one-click auto-exploit AD tools on the exam.</strong> Manual impacket/nxc/BloodHound only.</li>
+<li><strong>Sleep and eat.</strong> A 20-minute break at hour 8 beats grinding a rabbit hole for 2 hours. Fatigue = tunnel vision.</li>
+<li><strong>If two readings of the evidence differ, do the cheaper test first</strong> rather than debating.</li>
+<li><strong>Momentum beats perfection.</strong> A working ugly path &gt; an elegant one you can&#x27;t finish. Get the flag, clean up in the report.</li>
+</ol>
+<hr>
+<h1 id="v2-[community-wisdom]-pro-habits-from-ippsec-the-oscp-community">[COMMUNITY-WISDOM]  🧠 pro habits from IppSec &amp; the OSCP community<a class="anchor" href="#v2-[community-wisdom]-pro-habits-from-ippsec-the-oscp-community">#</a></h1>
+<blockquote>Distilled from IppSec&#x27;s teaching and widely-shared community OSCP methodology (sources at the end). These are the <strong>durable habits</strong> — not box spoilers — that the top prep resources agree on. They *add to* the Golden Rules above; cross-links point to the KB&#x27;s how-to. (Not transcribed from every video — curated from the methodology these creators are known for + the guides cited below.)</blockquote>
+<h2 id="v2-the-mindset-that-passes">The mindset that passes<a class="anchor" href="#v2-the-mindset-that-passes">#</a></h2>
+<ul>
+<li><strong>OSCP is an ENUMERATION exam, not an exploit-dev exam.</strong> 🔑 The sharpest heuristic in the game: *if you find yourself writing a complex exploit, fixing kernel-driver dependencies, or reading assembly — you are on the wrong path.* Stop, step back, re-enumerate. You missed a port, a service, a parameter, or a simpler public exploit. (~IppSec)</li>
+<li><strong>&quot;Always have a form of recon running in the background.&quot;</strong> (~IppSec) While you work one service, keep a scan/fuzz running against another. An idle terminal is wasted exam time.</li>
+<li><strong>Three attack vectors, cycled on every host</strong> — when one&#x27;s dry, rotate to the next: ① <strong>vulnerable version</strong> → public exploit · ② <strong>misconfiguration</strong> · ③ <strong>leaked sensitive info</strong> (creds in files/DB/history/.git).</li>
+</ul>
+<h2 id="v2-enumeration-habits-where-boxes-are-actually-won">Enumeration habits (where boxes are actually won)<a class="anchor" href="#v2-enumeration-habits-where-boxes-are-actually-won">#</a></h2>
+<ul>
+<li><strong>Four checks per service, then CROSS IT OFF.</strong> Do the handful of things that matter for a service; if none land, mark it <strong>dead</strong> and don&#x27;t return — *unless* something on another service points back to it. This kills the biggest time-sink: re-poking a service you already cleared.</li>
+<li><strong>Leave HTTP for a committed block.</strong> Web has the largest attack surface, so first sweep the *quick* services (FTP/SMB/NFS/SNMP anon + versions), <strong>then</strong> sit down and enumerate web properly. Don&#x27;t half-do web early and tunnel-vision on it. (~IppSec)</li>
+<li>**Dir-bust with ≥2 tools + *different* wordlists, on EVERY endpoint** (and every discovered subdomain/vhost). One tool/list misses things a second catches.</li>
+<li><strong>Don&#x27;t forget UDP SNMP (161)</strong> — <code>snmpwalk -c public</code> is a low-effort credential jackpot people skip.</li>
+<li><strong>Read ALL the source and EVERY parameter</strong> — HTML comments, JS files, hidden fields, each <code>?param=</code>. The thing everyone scrolled past is usually the way in.</li>
+</ul>
+<h2 id="v2-exploit-research-[exploit-research]">Exploit research  → <code class="tag">[EXPLOIT-RESEARCH]</code><a class="anchor" href="#v2-exploit-research-[exploit-research]">#</a></h2>
+<ul>
+<li><strong>Prefer GitHub PoCs over raw Exploit-DB</strong> — usually better-maintained. Search <code>&lt;product/CVE&gt; github poc</code>.</li>
+<li><strong>Pre-stage your common weapons BEFORE the exam</strong> in <code>~/tools</code>: PrintSpoofer/GodPotato, reverse-shell one-liners, linpeas/winpeas, chisel/ligolo, nc.exe. Never download these on the clock. (Also pre-compile anything that needs it.)</li>
+</ul>
+<h2 id="v2-credentials-spraying-[password-attacks]">Credentials &amp; spraying  → <code class="tag">[PASSWORD-ATTACKS]</code><a class="anchor" href="#v2-credentials-spraying-[password-attacks]">#</a></h2>
+<ul>
+<li><strong>rockyou has a ~10–20 minute window.</strong> If a hash hasn&#x27;t fallen in that time, <strong>move on</strong> — it&#x27;s likely not the path (or needs a *targeted/mutated* list from the box, not brute force).</li>
+<li><strong>Try the obvious passwords first:</strong> the username itself, the <strong>service name</strong>, the <strong>box/company name</strong>, <code>&lt;Season&gt;&lt;Year&gt;!</code>, product defaults.</li>
+<li><strong>AD spraying discipline:</strong> check <code>--pass-pol</code> <strong>first</strong>; hitting an <strong>account lockout means this isn&#x27;t the intended path.</strong> And always run a **second spray round with <code>--local-auth</code>** (local accounts, not just domain).</li>
+</ul>
+<h2 id="v2-tools-the-pros-lean-on-that-you-might-not-be">Tools the pros lean on (that you might not be)<a class="anchor" href="#v2-tools-the-pros-lean-on-that-you-might-not-be">#</a></h2>
+<ul>
+<li><strong>AutoRecon</strong> (by <strong>Tib3rius</strong>) — fires many enumeration tools at all your targets at once and drops organised results into folders. Run it on every target *up front*, then read the output while you work other things. ⚠️ Understand what it runs; keep <strong>manual</strong> enum as the backup for what it misses.</li>
+<li><strong>Privesc scripts</strong> — winPEAS / linpeas / <strong>lse.sh</strong> / <strong>Tib3rius&#x27; privesc-checker scripts</strong> / windows-exploit-suggester. Read the RED, then <strong>confirm manually</strong> (they miss + false-positive).</li>
+<li><strong>Note-taking</strong> — one file per target in <strong>Obsidian / CherryTree / OneNote / Notion</strong>: log command + output + screenshot *as you go*, plus a running <strong>&quot;tried / done&quot;</strong> list so you never repeat work or lose a cred you saw an hour ago.</li>
+</ul>
+<h2 id="v2-who-to-learn-from-and-their-distinct-edge">Who to learn from — and their distinct edge<a class="anchor" href="#v2-who-to-learn-from-and-their-distinct-edge">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Creator</th><th>Go to them for</th></tr></thead><tbody>
+<tr><td><strong>IppSec</strong></td><td>video walkthrough of (almost) every retired HTB box — enum-first methodology; the TJ_Null answer key</td></tr>
+<tr><td><strong>0xdf</strong></td><td>*written* HTB walkthroughs — great for <strong>unintended paths</strong> and comparing your approach</td></tr>
+<tr><td><strong>Tib3rius</strong></td><td><strong>the</strong> Linux &amp; Windows <strong>privilege-escalation</strong> courses; AutoRecon; privesc-checker scripts</td></tr>
+<tr><td><strong>TCM / Heath Adams</strong></td><td><strong>AD &amp; internal</strong> methodology (Practical Ethical Hacking), pivoting — the parts OSCP historically skipped</td></tr>
+<tr><td><strong>Rana Khalil</strong></td><td>methodical, structured HTB/web writeups</td></tr>
+<tr><td><strong>NTH Security</strong></td><td>short OSCP methodology videos (3-tools checklist, AD steps, <code>nxcspray</code>)</td></tr>
+<tr><td><strong>John Hammond</strong></td><td>tooling tricks, CTF technique, malware/analysis</td></tr>
+<tr><td><strong>NahamSec</strong></td><td>recon &amp; content discovery (bug-bounty crossover)</td></tr>
+</tbody></table></div>
+<h2 id="v2-the-practice-loop-that-actually-builds-skill">The practice loop that actually builds skill<a class="anchor" href="#v2-the-practice-loop-that-actually-builds-skill">#</a></h2>
+<ol>
+<li>Drill <strong>TJ_Null&#x27;s HTB &quot;OSCP-like&quot; list</strong> (+ Proving Grounds Practice).</li>
+<li><strong>Solve the box yourself first.</strong> Stuck → *re-enumerate*, don&#x27;t peek.</li>
+<li>Only when truly stuck, use <strong>IppSec (video)</strong> or <strong>0xdf (written)</strong> as the answer key — study the *why*, don&#x27;t copy the steps.</li>
+<li><strong>After every box, compare your path to 0xdf/IppSec</strong> — note what you missed and where you over-complicated. That comparison is where the methodology actually forms (and builds the &quot;4 checks per service&quot; reflex that makes the exam feel routine).</li>
+</ol>
+<p><strong>Sources:</strong> <a href="https://github.com/0x4d31/awesome-oscp" target="_blank" rel="noopener">awesome-oscp resource list</a> · <a href="https://medium.com/@Tib3rius/59-hosts-to-glory-passing-the-oscp-acf0fd384371" target="_blank" rel="noopener">Tib3rius — 59 Hosts to Glory / AutoRecon</a> · <a href="https://0xdf.gitlab.io/cheatsheets/offsec" target="_blank" rel="noopener">0xdf — OffSec / HTB lists</a> · <a href="https://hackwithmike.gitbook.io/oscp/methodology/oscp-methodology" target="_blank" rel="noopener">hackwithmike OSCP methodology</a> · community OSCP-prep guides. Curated + cross-checked against this KB — not transcribed per-video; verify commands against your installed tools.</p>
+<hr>
+<h1 id="v2-part-23-[master-methodology]-attacking-an-unknown-machine">PART 2/3 — [MASTER-METHODOLOGY] ATTACKING AN UNKNOWN MACHINE<a class="anchor" href="#v2-part-23-[master-methodology]-attacking-an-unknown-machine">#</a></h1>
+<blockquote>Each stage: <strong>OBJECTIVE / ASK / FIRST CMDS / DEEPER / OUTPUT THAT MATTERS / NEXT / MISTAKES / RABBIT HOLES / STOP / RETURN / EVIDENCE.</strong> Commands are examples — service-specific detail lives in Volumes 1–5. <code>$IP</code> = target.</blockquote>
+<h2 id="v2-[method-0]-stage-0-target-triage">[METHOD-0] STAGE 0 — TARGET TRIAGE<a class="anchor" href="#v2-[method-0]-stage-0-target-triage">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> decide *what kind* of target and where it sits (standalone vs AD, Windows vs Linux, web-heavy vs service-heavy).</li>
+<li><strong>ASK:</strong> Is this in the AD set or standalone? Windows or Linux? Is it likely the DC / a pivot? What did the exam brief give me (starting creds, scope, hostnames)?</li>
+<li><strong>FIRST:</strong> read the exam control panel notes; set up <code>~/oscp/&lt;target&gt;/</code> with <code>scans/ loot/ exploits/ www/ notes.md</code>.</li>
+<li><strong>OUTPUT THAT MATTERS:</strong> any provided credential, hostname, domain name.</li>
+<li><strong>NEXT:</strong> host discovery / port scan.</li>
+<li><strong>MISTAKES:</strong> starting nmap before reading the brief; not making a folder → losing artifacts.</li>
+<li><strong>EVIDENCE:</strong> save the brief text into <code>notes.md</code>.</li>
+</ul>
+<h2 id="v2-[method-1]-stage-1-host-discovery">[METHOD-1] STAGE 1 — HOST DISCOVERY<a class="anchor" href="#v2-[method-1]-stage-1-host-discovery">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> confirm host is up and reachable.</li>
+<li><strong>FIRST:</strong> <code>ping -c2 $IP</code> (TTL≈64 Linux, ≈128 Windows — a hint, not proof). In exam each target IP is given, so mostly skip sweeps.</li>
+<li><strong>DEEPER (internal/pivot subnet):</strong> <code>nxc smb 10.10.10.0/24</code>, <code>fping -a -g 10.10.10.0/24 2&gt;/dev/null</code>, nmap <code>-sn</code>.</li>
+<li><strong>OUTPUT:</strong> TTL for OS guess; which hosts alive in a pivoted subnet.</li>
+<li><strong>RABBIT HOLE:</strong> obsessing over ping when ICMP is filtered — just scan ports (<code>-Pn</code>).</li>
+<li><strong>NEXT:</strong> TCP enumeration.</li>
+</ul>
+<h2 id="v2-[method-2]-stage-2-tcp-enumeration-see-[nmap-tcp]">[METHOD-2] STAGE 2 — TCP ENUMERATION  → see <code class="tag">[NMAP-TCP]</code><a class="anchor" href="#v2-[method-2]-stage-2-tcp-enumeration-see-[nmap-tcp]">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> every open TCP port + service/version.</li>
+<li><strong>FIRST (two-step, memorize):</strong></li>
+</ul>
+<p>  <code></code>`</p>
+<p>  nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $IP</p>
+<p>  nmap -p&lt;csv&gt; -sCV -Pn -oN scans/tcp-scv.txt $IP</p>
+<p>  <code></code>`</p>
+<ul>
+<li><strong>OUTPUT THAT MATTERS:</strong> exact versions (→ CVE search), unusual high ports, web ports (80/443/8080/8000/8443…), 445/139 (SMB), 88/389/636/3268 (AD/DC), 5985 (WinRM), 3306/1433/5432 (DBs).</li>
+<li><strong>NEXT:</strong> per-service enum (Vol 1); web ports → Vol 2.</li>
+<li><strong>MISTAKES:</strong> scanning only top-1000; trusting <code>-sV</code> guess over manual probing.</li>
+<li><strong>STOP:</strong> once you have all ports + versions. Don&#x27;t re-scan repeatedly.</li>
+<li><strong>EVIDENCE:</strong> keep <code>all-tcp.txt</code> and <code>tcp-scv.txt</code>.</li>
+</ul>
+<h2 id="v2-[method-3]-stage-3-udp-enumeration-[nmap-udp]">[METHOD-3] STAGE 3 — UDP ENUMERATION → <code class="tag">[NMAP-UDP]</code><a class="anchor" href="#v2-[method-3]-stage-3-udp-enumeration-[nmap-udp]">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> catch SNMP/DNS/TFTP/Sip/IKE that TCP misses.</li>
+<li><strong>FIRST:</strong> <code>nmap -sU --top-ports 100 --min-rate 1000 -Pn -oN scans/udp.txt $IP</code></li>
+<li><strong>OUTPUT:</strong> 161 SNMP (→ <code>snmpwalk</code>, huge loot), 69 TFTP, 53 DNS, 500 IKE.</li>
+<li><strong>RABBIT HOLE:</strong> full UDP <code>-p-</code> scan (slow, rarely needed). Top-100/200 is enough.</li>
+<li><strong>NEXT:</strong> enumerate any UDP service found.</li>
+</ul>
+<h2 id="v2-[method-4]-stage-4-service-enumeration-volume-1">[METHOD-4] STAGE 4 — SERVICE ENUMERATION → Volume 1<a class="anchor" href="#v2-[method-4]-stage-4-service-enumeration-volume-1">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> for each open service: version, auth options, anonymous access, config, loot.</li>
+<li><strong>ASK per service:</strong> Can I access it anonymously? Are there default creds? Do I have creds that work here? What version → known exploit? What does it *lead to*?</li>
+<li><strong>NEXT:</strong> feed creds/paths into Initial Access.</li>
+</ul>
+<h2 id="v2-[method-5]-stage-5-web-enumeration-volume-2-[web-]">[METHOD-5] STAGE 5 — WEB ENUMERATION → Volume 2 <code>[WEB-*]</code><a class="anchor" href="#v2-[method-5]-stage-5-web-enumeration-volume-2-[web-]">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> map the whole app before attacking: tech stack, all content, all params, auth.</li>
+<li><strong>FIRST:</strong> <code>whatweb http://$IP</code>, view source, <code>/robots.txt</code>, feroxbuster/ffuf dir brute, vhost brute if a hostname appears.</li>
+<li><strong>OUTPUT:</strong> CMS + version, login pages, upload forms, params, hidden dirs, vhosts, API endpoints, comments/keys in JS.</li>
+<li><strong>MISTAKES:</strong> attacking the first form you see before mapping; ignoring vhosts; not adding hostname to <code>/etc/hosts</code>.</li>
+<li><strong>RABBIT HOLE:</strong> brute-forcing dirs for an hour with a giant wordlist; over-fuzzing one param.</li>
+</ul>
+<h2 id="v2-[method-6]-stage-6-credential-discovery-[credentials-quick]">[METHOD-6] STAGE 6 — CREDENTIAL DISCOVERY → <code class="tag">[CREDENTIALS-QUICK]</code><a class="anchor" href="#v2-[method-6]-stage-6-credential-discovery-[credentials-quick]">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> collect every username/password/hash/key from all sources so far.</li>
+<li><strong>ASK:</strong> default creds? creds in configs/DB/git/SNMP/comments? usernames to spray?</li>
+<li><strong>NEXT:</strong> spray creds across every service (Golden Rule 3).</li>
+</ul>
+<h2 id="v2-[method-7]-stage-7-vulnerability-identification-[exploit-research]">[METHOD-7] STAGE 7 — VULNERABILITY IDENTIFICATION → <code class="tag">[EXPLOIT-RESEARCH]</code><a class="anchor" href="#v2-[method-7]-stage-7-vulnerability-identification-[exploit-research]">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> turn versions/misconfigs into a concrete exploit hypothesis.</li>
+<li><strong>FIRST:</strong> <code>searchsploit &lt;product&gt; &lt;version&gt;</code>, targeted web/GitHub search for <code>&lt;product&gt; &lt;version&gt; exploit/CVE</code>.</li>
+<li><strong>OUTPUT:</strong> a specific, matched exploit (right version + arch + auth requirement).</li>
+<li><strong>MISTAKES:</strong> running the first searchsploit hit blindly; ignoring auth prerequisites.</li>
+<li><strong>RABBIT HOLE:</strong> CVEs that need conditions you can&#x27;t meet; &quot;PoC&quot; repos that are fake/malware.</li>
+</ul>
+<h2 id="v2-[method-8]-stage-8-initial-access-[foothold-checklist]">[METHOD-8] STAGE 8 — INITIAL ACCESS → <code class="tag">[FOOTHOLD-CHECKLIST]</code><a class="anchor" href="#v2-[method-8]-stage-8-initial-access-[foothold-checklist]">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> first code execution / shell.</li>
+<li><strong>ASK:</strong> cheapest path? (creds+service login &gt; upload shell &gt; injection &gt; public exploit).</li>
+<li><strong>EVIDENCE:</strong> screenshot the moment of access; save the exploit/command used.</li>
+</ul>
+<h2 id="v2-[method-9]-stage-9-shell-stabilization-[shell-quick]">[METHOD-9] STAGE 9 — SHELL STABILIZATION → <code class="tag">[SHELL-QUICK]</code><a class="anchor" href="#v2-[method-9]-stage-9-shell-stabilization-[shell-quick]">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> a stable, interactive shell you won&#x27;t lose.</li>
+<li><strong>FIRST (Linux):</strong> <code>python3 -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;</code> → <code>Ctrl-Z</code> → <code>stty raw -echo; fg</code> → <code>export TERM=xterm</code>.</li>
+<li><strong>Windows:</strong> get to a better shell early (evil-winrm / RunasCs / a proper reverse shell); consider a Meterpreter here if this is your one MSF box.</li>
+<li><strong>MISTAKE:</strong> doing complex work in a dumb <code>nc</code> shell and losing it.</li>
+</ul>
+<h2 id="v2-[method-10]-stage-10-local-enumeration-vol-4-[linux-privesc]-[windows-privesc]">[METHOD-10] STAGE 10 — LOCAL ENUMERATION → Vol 4 <code class="tag">[LINUX-PRIVESC]</code> / <code class="tag">[WINDOWS-PRIVESC]</code><a class="anchor" href="#v2-[method-10]-stage-10-local-enumeration-vol-4-[linux-privesc]-[windows-privesc]">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> everything the current user can see: who am I, privileges, other users, software, creds, network (pivot leads).</li>
+<li><strong>FIRST:</strong> <code>id</code>/<code>whoami /all</code>, <code>sudo -l</code>/<code>whoami /priv</code>, then linpeas/winpeas *plus* manual checks.</li>
+<li><strong>OUTPUT:</strong> privesc vectors, creds, other subnets/hosts (pivot), domain membership.</li>
+</ul>
+<h2 id="v2-[method-11]-stage-11-privilege-escalation-vol-4">[METHOD-11] STAGE 11 — PRIVILEGE ESCALATION → Vol 4<a class="anchor" href="#v2-[method-11]-stage-11-privilege-escalation-vol-4">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> root / SYSTEM (or the next required privilege).</li>
+<li><strong>ASK:</strong> quick wins first (sudo, SUID/GTFOBins, SeImpersonate, service perms) before kernel exploits.</li>
+<li><strong>EVIDENCE:</strong> proof screenshot (<code>proof.txt</code> + <code>id</code>/<code>whoami</code> + <code>ip</code>).</li>
+</ul>
+<h2 id="v2-[method-12]-stage-12-credential-harvesting-post-root-[credentials-quick]">[METHOD-12] STAGE 12 — CREDENTIAL HARVESTING (post-root) → <code class="tag">[CREDENTIALS-QUICK]</code><a class="anchor" href="#v2-[method-12]-stage-12-credential-harvesting-post-root-[credentials-quick]">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> loot for lateral movement / other boxes.</li>
+<li><strong>FIRST (Linux):</strong> <code>/etc/shadow</code>, SSH keys, history, <code>/var/www</code> configs, DB creds, <code>.env</code>.</li>
+<li><strong>Windows:</strong> <code>secretsdump</code>/SAM+SYSTEM, LSASS, DPAPI, <code>cmdkey /list</code>, saved creds, <code>runas</code> targets, PowerShell history.</li>
+<li><strong>NEXT:</strong> these creds → lateral movement / AD.</li>
+</ul>
+<h2 id="v2-[method-13]-stage-13-lateral-movement-[ad-lateral]">[METHOD-13] STAGE 13 — LATERAL MOVEMENT → <code class="tag">[AD-LATERAL]</code><a class="anchor" href="#v2-[method-13]-stage-13-lateral-movement-[ad-lateral]">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> use creds/hashes to reach another host.</li>
+<li><strong>FIRST:</strong> <code>nxc smb &lt;subnet&gt; -u u -p p</code> to find where creds work; then evil-winrm / wmiexec / psexec / RDP / SSH.</li>
+<li><strong>RABBIT HOLE:</strong> trying to privesc locally when the real path is &quot;these creds admin *another* box.&quot;</li>
+</ul>
+<h2 id="v2-[method-14]-stage-14-pivoting-volume-5-[pivot-]">[METHOD-14] STAGE 14 — PIVOTING → Volume 5 <code>[PIVOT-*]</code><a class="anchor" href="#v2-[method-14]-stage-14-pivoting-volume-5-[pivot-]">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> route your tools into a network only the compromised host can reach.</li>
+<li><strong>FIRST:</strong> Ligolo-ng (cleanest) or Chisel SOCKS + proxychains.</li>
+<li><strong>OUTPUT:</strong> new subnet enumerated from your box via the pivot.</li>
+</ul>
+<h2 id="v2-[method-15]-stage-15-ad-enumeration-[ad-enum]-[ad-bloodhound]">[METHOD-15] STAGE 15 — AD ENUMERATION → <code class="tag">[AD-ENUM]</code>, <code class="tag">[AD-BLOODHOUND]</code><a class="anchor" href="#v2-[method-15]-stage-15-ad-enumeration-[ad-enum]-[ad-bloodhound]">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> map users, groups, computers, ACLs, delegations, kerberoastable/AS-REP targets.</li>
+<li><strong>FIRST:</strong> with any domain cred → BloodHound collection (<code>bloodhound-python</code>/<code>nxc --bloodhound</code>), <code>nxc ldap</code>, <code>GetUserSPNs</code>, <code>GetNPUsers</code>.</li>
+<li><strong>NEXT:</strong> shortest path to Domain Admin / target.</li>
+</ul>
+<h2 id="v2-[method-16]-stage-16-ad-attack-paths-[ad-attack-path]">[METHOD-16] STAGE 16 — AD ATTACK PATHS → <code class="tag">[AD-ATTACK-PATH]</code><a class="anchor" href="#v2-[method-16]-stage-16-ad-attack-paths-[ad-attack-path]">#</a></h2>
+<ul>
+<li>Kerberoast → crack → reuse; AS-REP roast; ACL abuse (GenericAll/WriteDACL…); DCSync; delegation abuse. Follow BloodHound&#x27;s path.</li>
+</ul>
+<h2 id="v2-[method-17]-stage-17-objective-proof">[METHOD-17] STAGE 17 — OBJECTIVE / PROOF<a class="anchor" href="#v2-[method-17]-stage-17-objective-proof">#</a></h2>
+<ul>
+<li><strong>OBJECTIVE:</strong> grab <code>local.txt</code>/<code>proof.txt</code>; on AD, own the DC (DCSync/<code>secretsdump</code>, <code>administrator</code> hash, read proof on DC + member + workstation).</li>
+<li><strong>EVIDENCE:</strong> per-machine proof screenshots. Log which credential/technique got you there.</li>
+</ul>
+<h2 id="v2-[method-18]-stage-18-documentation-[reporting]">[METHOD-18] STAGE 18 — DOCUMENTATION → <code class="tag">[REPORTING]</code><a class="anchor" href="#v2-[method-18]-stage-18-documentation-[reporting]">#</a></h2>
+<ul>
+<li>Continuously: command + output + screenshot + which step it was. Never leave it all to the end.</li>
+</ul>
+<hr>
+<h1 id="v2-part-4-[pentester-thought-process]-decision-templates">PART 4 — [PENTESTER-THOUGHT-PROCESS] DECISION TEMPLATES<a class="anchor" href="#v2-part-4-[pentester-thought-process]-decision-templates">#</a></h1>
+<p><strong>Template shape:</strong> <code>FOUND → THINK (the questions) → NEXT (ordered actions)</code>.</p>
+<h3 id="v2-[think-smb]-found-tcp-445139-smb"><code class="tag">[THINK-SMB]</code> FOUND: TCP 445/139 SMB<a class="anchor" href="#v2-[think-smb]-found-tcp-445139-smb">#</a></h3>
+<p>THINK: What can I get anonymously? Can I list shares? Enumerate users (RID cycling)? Do I already have creds — do they work here? Is this box domain-joined (→ AD)? Any readable/writable share with configs/backups? Can these creds/hashes work on *other* hosts (lateral)?</p>
+<p>NEXT: 1) <code>nxc smb $IP -u &#x27;&#x27; -p &#x27;&#x27;</code> + <code>--shares</code> 2) <code>enum4linux-ng -A $IP</code> 3) <code>smbclient -N -L //$IP/</code> then read every readable share 4) if creds: <code>nxc smb $IP -u u -p p --shares --users --rid-brute</code> and spray on other hosts.</p>
+<h3 id="v2-[think-web]-found-https"><code class="tag">[THINK-WEB]</code> FOUND: HTTP(S)<a class="anchor" href="#v2-[think-web]-found-https">#</a></h3>
+<p>THINK: What stack/CMS/version (→ known exploit)? Any login/upload/admin? Params to inject? Hidden dirs/vhosts? Creds or keys in source/JS/comments? Does a version match a public RCE?</p>
+<p>NEXT: 1) <code>whatweb</code>+source+<code>/robots.txt</code> 2) dir+vhost brute 3) identify vuln class (SQLi/LFI/upload/SSTI/cmdinj) 4) searchsploit the CMS/version.</p>
+<h3 id="v2-[think-creds]-found-a-credential"><code class="tag">[THINK-CREDS]</code> FOUND: a credential<a class="anchor" href="#v2-[think-creds]-found-a-credential">#</a></h3>
+<p>THINK: Where does this work? Same user elsewhere? Is it a password pattern (spray variants)? Local or domain? Does it unlock a second cred (DB→config→SSH)?</p>
+<p>NEXT: 1) spray across SMB/WinRM/SSH/RDP/MSSQL/web/LDAP on this and other hosts 2) if domain → BloodHound as this user 3) log it in journal.</p>
+<h3 id="v2-[think-linshell]-found-low-priv-linux-shell-[linux-privesc-quick]"><code class="tag">[THINK-LINSHELL]</code> FOUND: low-priv Linux shell → <code class="tag">[LINUX-PRIVESC-QUICK]</code><a class="anchor" href="#v2-[think-linshell]-found-low-priv-linux-shell-[linux-privesc-quick]">#</a></h3>
+<p>THINK: <code>sudo -l</code> freebies? SUID/GTFOBins? cron/writable scripts? caps? creds in configs/history/DB? kernel old? am I in a container (escape)? other subnets (pivot)?</p>
+<p>NEXT: 1) stabilize TTY 2) <code>id;sudo -l;find / -perm -4000 2&gt;/dev/null</code> 3) linpeas 4) exploit quick win 5) loot creds.</p>
+<h3 id="v2-[think-winshell]-found-low-priv-windows-shell-[windows-privesc-quick]"><code class="tag">[THINK-WINSHELL]</code> FOUND: low-priv Windows shell → <code class="tag">[WINDOWS-PRIVESC-QUICK]</code><a class="anchor" href="#v2-[think-winshell]-found-low-priv-windows-shell-[windows-privesc-quick]">#</a></h3>
+<p>THINK: <code>whoami /priv</code> — SeImpersonate/SeAssignPrimaryToken (→ Potato)? service/registry/unquoted-path perms? AlwaysInstallElevated? saved creds/<code>cmdkey</code>? PowerShell history? domain-joined (→ AD)?</p>
+<p>NEXT: 1) <code>whoami /all</code> 2) winpeas 3) if SeImpersonate → PrintSpoofer/GodPotato 4) check service perms/unquoted paths 5) loot creds → lateral.</p>
+<h3 id="v2-[think-domainuser]-found-valid-domain-user-[ad-attack-path]"><code class="tag">[THINK-DOMAINUSER]</code> FOUND: valid domain user → <code class="tag">[AD-ATTACK-PATH]</code><a class="anchor" href="#v2-[think-domainuser]-found-valid-domain-user-[ad-attack-path]">#</a></h3>
+<p>THINK: Kerberoastable SPNs? AS-REP roastable users? What does BloodHound say this user can reach/abuse? Password reuse to other hosts? Any ACL edges (GenericAll/WriteDACL)? Readable shares (GPP/scripts/creds)?</p>
+<p>NEXT: 1) BloodHound collect 2) <code>GetUserSPNs</code>+<code>GetNPUsers</code> 3) <code>nxc smb &lt;hosts&gt; -u u -p p</code> spray 4) follow shortest BloodHound path.</p>
+<h3 id="v2-[think-spn]-found-a-kerberoastable-spn-[ad-kerberoast]"><code class="tag">[THINK-SPN]</code> FOUND: a Kerberoastable SPN → <code class="tag">[AD-KERBEROAST]</code><a class="anchor" href="#v2-[think-spn]-found-a-kerberoastable-spn-[ad-kerberoast]">#</a></h3>
+<p>THINK: Can I request the TGS (need any domain cred)? Is the account service/admin (high value)? Will the hash crack (weak password)?</p>
+<p>NEXT: 1) <code>GetUserSPNs -request</code> 2) <code>hashcat -m 13100</code> with rockyou+rules 3) reuse cracked pw everywhere 4) check that account&#x27;s privileges/BloodHound.</p>
+<h3 id="v2-[think-hash]-found-an-ntlmother-hash-[hash-identification]"><code class="tag">[THINK-HASH]</code> FOUND: an NTLM/other hash → <code class="tag">[HASH-IDENTIFICATION]</code><a class="anchor" href="#v2-[think-hash]-found-an-ntlmother-hash-[hash-identification]">#</a></h3>
+<p>THINK: What type (NTLM/NetNTLMv2/Kerberos/…)? Crackable or pass-the-hash directly? Which user/host?</p>
+<p>NEXT: 1) identify type 2) if NTLM → try PtH (<code>nxc smb -H</code>) before cracking 3) else crack with right hashcat mode 4) reuse.</p>
+<hr>
+<h1 id="v2-part-26-[time-management]">PART 26 — [TIME-MANAGEMENT]<a class="anchor" href="#v2-part-26-[time-management]">#</a></h1>
+<h2 id="v2-[quick]-exam-clock-plan-23h45m">[QUICK] Exam clock plan (23h45m)<a class="anchor" href="#v2-[quick]-exam-clock-plan-23h45m">#</a></h2>
+<ul>
+<li><strong>Hour 0–0.5:</strong> kick off nmap on *all* targets in parallel; read briefs; set up folders.</li>
+<li><strong>Hour 0.5–8:</strong> <strong>AD set first, freshest brain.</strong> Get the AD chain moving. If AD stalls hard at ~3–4h with zero progress, pivot to a standalone and return.</li>
+<li><strong>Hour 8–16:</strong> standalone machines. Rotate on the 30-min rule.</li>
+<li><strong>Hour 16–20:</strong> finish/clean up, re-attempt stuck boxes with fresh eyes, chase remaining 10-pointers.</li>
+<li><strong>Hour 20–23:</strong> <strong>stop hacking; verify you have all proofs + screenshots.</strong> Re-take any missing proof screenshot NOW.</li>
+<li><strong>+ next 24h:</strong> write report.</li>
+<li><strong>Sleep:</strong> most people should sleep ~4–6h somewhere (e.g., hour 10–15) — grinding tired loses more points than it gains.</li>
+</ul>
+<h2 id="v2-[when-to-move-on]-the-rules">[WHEN-TO-MOVE-ON] The rules<a class="anchor" href="#v2-[when-to-move-on]-the-rules">#</a></h2>
+<ul>
+<li><strong>15-min rule:</strong> 15 min on one vector with no new info → re-read your scan/tool output, you missed something.</li>
+<li><strong>30-min rule:</strong> 30 min, no new hypothesis → switch target/surface. Write down exactly where you stopped so return is instant.</li>
+<li><strong>Move on when:</strong> you&#x27;re retrying variants, editing an exploit you don&#x27;t understand, or brute-forcing on a hunch.</li>
+<li><strong>Return when:</strong> you&#x27;ve made progress elsewhere (new creds/fresh eyes), or you&#x27;ve exhausted other targets.</li>
+<li><strong>Revert a box</strong> if a service is crashed or acting inconsistent (possibly your failed exploit or a stale state).</li>
+</ul>
+<h2 id="v2-[fatigue]">[FATIGUE]<a class="anchor" href="#v2-[fatigue]">#</a></h2>
+<p>Eat, hydrate, 20-min walk every ~4h. Tunnel vision is a fatigue symptom. A break is faster than a rabbit hole.</p>
+<hr>
+<h1 id="v2-part-27-[reporting]">PART 27 — [REPORTING]<a class="anchor" href="#v2-part-27-[reporting]">#</a></h1>
+<h3 id="v2-[official-offsec]-whats-required">[OFFICIAL OFFSEC] What&#x27;s required<a class="anchor" href="#v2-[official-offsec]-whats-required">#</a></h3>
+<ul>
+<li>A professional report (OffSec provides a template; you may use your own) uploaded within <strong>24h</strong> of the hacking window ending.</li>
+<li><strong>Per compromised host:</strong> the vulnerability, step-by-step reproduction (commands + screenshots), the proof: **screenshot showing <code>local.txt</code>/<code>proof.txt</code> contents + <code>whoami</code>/<code>id</code> + <code>ip a</code>/<code>ipconfig</code> together**, and the flag string typed into the control panel.</li>
+<li>Enough detail that <strong>someone else could reproduce</strong> every step. Missing repro steps or missing proof screenshots lose the points for that host.</li>
+</ul>
+<h3 id="v2-[community]-how-to-not-lose-points-to-reporting">[COMMUNITY] How to not lose points to reporting<a class="anchor" href="#v2-[community]-how-to-not-lose-points-to-reporting">#</a></h3>
+<ul>
+<li><strong>Screenshot as you go, named clearly:</strong> <code>webserver_10.1.1.5_local.txt.png</code>, <code>webserver_root_proof.png</code>. Don&#x27;t rely on scrollback.</li>
+<li>Keep a <strong>command log</strong> per host (copy every command+key output into <code>notes.md</code> live). Reconstructing from memory after 24h fails.</li>
+<li>Take the <strong>proof screenshot the instant</strong> you land the flag — services get reverted, shells die.</li>
+<li>Include the exact <strong>exploit code/commands you used</strong> (if you modified a public exploit, include the diff).</li>
+<li><strong>Don&#x27;t</strong> include the KB/theory — the report is *what you did on these hosts*, reproducibly.</li>
+<li>Structure: Exec summary → methodology → per-host (enum → vuln → exploit → post-exploit/privesc → proof) → appendix (any extra).</li>
+</ul>
+<blockquote>📄 **Use the fillable <code>REPORT-TEMPLATE.md</code>** (same folder) — copy its per-host block for every machine, fill it in *as you go*, export to PDF.</blockquote>
+<h3 id="v2-[reporting-submission]-concrete-submission-specs-verify-on-the-current-guide">[REPORTING-SUBMISSION]  concrete submission specs (verify on the current guide)<a class="anchor" href="#v2-[reporting-submission]-concrete-submission-specs-verify-on-the-current-guide">#</a></h3>
+<pre><code>Format   : a single PDF, placed INSIDE a .7z archive (no password)
+Filename : OSCP-OS-XXXXX-Exam-Report.7z   (XXXXX = your OS-ID)
+Upload   : https://upload.offsec.com   within 24h of the hacking window ending
+Verify   : check the MD5 hash matches after upload (compute md5sum locally, compare)
+Template : use OffSec&#x27;s official OSCP+ .docx report template (export to PDF)
+Content  : if you modified a public exploit, include your changes + why</code></pre>
+<h3 id="v2-[reporting-checklist]">[REPORTING-CHECKLIST]<a class="anchor" href="#v2-[reporting-checklist]">#</a></h3>
+<pre><code>[ ] Every scored host has: repro steps, command evidence, proof screenshot (flag+id/whoami+ip)
+[ ] Proof screenshot is from an INTERACTIVE shell (not a blind one-liner)
+[ ] Flag strings entered in control panel AND shown in report
+[ ] Screenshots legible, un-cropped, show the whole terminal + target IP visible
+[ ] AD: show the full chain (each host owned) + how creds flowed
+[ ] Methodology explained (the &quot;why&quot;), not just pasted commands
+[ ] Single PDF → inside a no-password .7z, named OSCP-OS-XXXXX-Exam-Report.7z
+[ ] Uploaded to upload.offsec.com before the 24h deadline; MD5 verified</code></pre>
+<hr>
+<h1 id="v2-part-31-[minimum-viable-prep]-max-machine-time-min-passive-study">PART 31 — [MINIMUM-VIABLE-PREP]  (max machine time, min passive study)<a class="anchor" href="#v2-part-31-[minimum-viable-prep]-max-machine-time-min-passive-study">#</a></h1>
+<h3 id="v2-study-deeply-this-is-where-points-are">STUDY DEEPLY (this is where points are)<a class="anchor" href="#v2-study-deeply-this-is-where-points-are">#</a></h3>
+<ul>
+<li><strong>Active Directory</strong> end-to-end: enum → Kerberoast/AS-REP → ACL abuse → lateral → DCSync. <strong>Highest ROI. Do this most.</strong></li>
+<li><strong>Enumeration discipline</strong> across all common services (Vol 1) until it&#x27;s reflex.</li>
+<li><strong>Linux + Windows privesc</strong> common vectors (Vol 4) — the top ~15 each cover most boxes.</li>
+<li><strong>Web:</strong> SQLi, LFI/RFI, file upload, command injection, SSTI, auth bypass (Vol 2).</li>
+<li><strong>Pivoting</strong> with Ligolo-ng or Chisel (Vol 5) — practise until it&#x27;s boring.</li>
+<li><strong>Shell + file transfer + TTY</strong> until automatic.</li>
+</ul>
+<h3 id="v2-study-lightly-recognize-only">STUDY LIGHTLY / RECOGNIZE ONLY<a class="anchor" href="#v2-study-lightly-recognize-only">#</a></h3>
+<ul>
+<li>Buffer overflow (basic concept only — not an exam focus now).</li>
+<li>Exotic web vulns (XXE, deserialization) — recognize + basic exploit, don&#x27;t obsess.</li>
+<li>Obscure services — know how to enumerate anything unknown generically.</li>
+</ul>
+<h3 id="v2-memorize-muscle-memory">MEMORIZE (muscle memory)<a class="anchor" href="#v2-memorize-muscle-memory">#</a></h3>
+<p>nmap two-step, TTY upgrade, reverse shell + listener, <code>python3 -m http.server</code>, <code>sudo -l</code>/<code>whoami /priv</code>, SUID find, SMB triage, Kerberoast/AS-REP one-liners, <code>secretsdump</code>, <code>evil-winrm</code>, <code>nxc</code> spray.</p>
+<h3 id="v2-practice-the-actual-plan">PRACTICE (the actual plan)<a class="anchor" href="#v2-practice-the-actual-plan">#</a></h3>
+<ul>
+<li><strong>Do machines, not videos.</strong> Target: <strong>~40–60+ practice boxes</strong> before exam, heavily weighted to AD.</li>
+<li><strong>Best sources [COMMUNITY]:</strong> OffSec&#x27;s own <strong>Challenge Labs / PEN-200 labs</strong> (closest to exam), <strong>Proving Grounds Practice</strong> (OffSec-style, &quot;OSCP-like&quot; lists), <strong>HTB</strong> (use TJ Null&#x27;s OSCP-like list + HTB Pro Labs for AD), <strong>TryHackMe</strong> for fundamentals/AD basics.</li>
+<li>For <strong>every</strong> box: enumerate fully, write notes as if reporting, then read a writeup <strong>only after</strong> to see what you missed. The gap between your notes and the writeup is your study list.</li>
+<li>Do <strong>AD chains</strong> (multi-host) specifically — single boxes don&#x27;t train the 40-point set.</li>
+</ul>
+<h3 id="v2-skim-ignore-for-now">SKIM / IGNORE FOR NOW<a class="anchor" href="#v2-skim-ignore-for-now">#</a></h3>
+<ul>
+<li>Long theory courses, cert-guide reading marathons, memorizing CVE lists, advanced exploit dev, AV evasion (not needed for OSCP+), OSEP-level tradecraft.</li>
+</ul>
+<hr>
+<h1 id="v2-part-32-[7-day-plan]-final-week-assumes-youve-practised-for-weeks-already">PART 32 — [7-DAY-PLAN]  (final week; assumes you&#x27;ve practised for weeks already)<a class="anchor" href="#v2-part-32-[7-day-plan]-final-week-assumes-youve-practised-for-weeks-already">#</a></h1>
+<blockquote>Goal: sharpen reflexes + AD, not learn new theory. ~1 focused box/AD-chain per day + drills. Don&#x27;t cram.</blockquote>
+<p><strong>Day 1 — Enumeration reflexes.</strong> Drill: nmap two-step, per-service enum on 2 standalone boxes start-to-foothold. Rebuild <code class="tag">[NMAP-QUICK]</code>/<code class="tag">[SMB-QUICK]</code> from memory. *Ignore:* privesc depth today. <strong>Goal:</strong> foothold in &lt;45 min on a medium box.</p>
+<p><strong>Day 2 — Linux privesc.</strong> Do 2 Linux boxes focusing on privesc; drill <code>sudo -l</code>, SUID/GTFOBins, cron, caps, creds. Redo any <code class="tag">[LINUX-PRIVESC]</code> vector you fumble. <strong>Goal:</strong> root both, notes report-ready.</p>
+<p><strong>Day 3 — Windows privesc.</strong> 2 Windows boxes; drill SeImpersonate→Potato, service/unquoted-path, cred harvest. <strong>Goal:</strong> SYSTEM both.</p>
+<p><strong>Day 4 — AD chain #1.</strong> Full assumed-breach chain: enum→BloodHound→Kerberoast/AS-REP→lateral→DC. Time it. <strong>Goal:</strong> DC compromise + clean notes of cred flow.</p>
+<p><strong>Day 5 — AD chain #2 + pivoting.</strong> Another chain *through a pivot* (Ligolo/Chisel + proxychains). <strong>Goal:</strong> own an internal host only reachable via pivot.</p>
+<p><strong>Day 6 — Full mock exam (mini).</strong> AD set + 1–2 standalones under time pressure, screenshots + notes as if graded. Practice the proof-screenshot habit. <strong>Goal:</strong> find your weak stage.</p>
+<p><strong>Day 7 — Light.</strong> Review Day-6 weak spots, re-read your <code class="tag">[STUCK-PROTOCOL]</code> and Golden Rules, prep environment (VPN, tools, note template, screenshot tool, folder skeleton). <strong>Sleep early.</strong> *Ignore:* new topics. <strong>Goal:</strong> rested + tools ready.</p>
+<hr>
+<h1 id="v2-part-33-[readiness-test]-score-yourself-on-methodology-not-trivia">PART 33 — [READINESS-TEST]  (score yourself on *methodology*, not trivia)<a class="anchor" href="#v2-part-33-[readiness-test]-score-yourself-on-methodology-not-trivia">#</a></h1>
+<p>Answer out loud, then check against the KB. Score 0–2 each (0 blank, 1 partial, 2 solid). <strong>≥ 45/60 = ready.</strong></p>
+<p><strong>Enumeration</strong></p>
+<ol>
+<li>Ports 22, 80, 445 open. First 5 concrete actions, in order? *(nmap -sCV those ports; web map + dir/vhost brute; SMB anon <code>nxc</code>/<code>enum4linux-ng</code>/<code>smbclient -N -L</code>; try creds cross-service; searchsploit versions.)*</li>
+<li>nmap shows <code>Apache 2.4.49</code>. What now? *(That version → CVE-2021-41773 path traversal/RCE — verify version exactly, test traversal, confirm before exploit.)*</li>
+<li>UDP 161 open. Next command + why? *(<code>snmpwalk -v2c -c public $IP</code> → users, processes, creds, routes.)*</li>
+</ol>
+<p><strong>Web</strong></p>
+<ol>
+<li>You found a login + a version&#x27;d CMS. Order of attack? *(default/weak creds → searchsploit CMS version → SQLi on login → dir brute for admin/upload.)*</li>
+<li><code>?page=about</code> — hypothesis + test? *(LFI/RFI → <code>?page=../../../../etc/passwd</code> and php filter wrapper; if include → RCE via log/wrapper.)*</li>
+</ol>
+<p><strong>Initial access</strong></p>
+<ol>
+<li>searchsploit gives 3 hits for the version. How do you pick/verify before running? *(match exact version+arch+auth; read the code; check what it does; test non-destructively.)*</li>
+</ol>
+<p><strong>Linux privesc</strong></p>
+<ol>
+<li>Low-priv shell. First 4 commands? *(<code>id; sudo -l; find / -perm -4000 2&gt;/dev/null; </code> then linpeas.)*</li>
+<li><code>sudo -l</code> shows <code>(ALL) NOPASSWD: /usr/bin/find</code>. Exploit? *(GTFOBins: <code>sudo find . -exec /bin/sh \; -quit</code>.)*</li>
+</ol>
+<p><strong>Windows privesc</strong></p>
+<ol>
+<li><code>whoami /priv</code> shows <code>SeImpersonatePrivilege Enabled</code>. Path? *(PrintSpoofer / GodPotato → SYSTEM.)*</li>
+<li>You find a service with a writable binary path / unquoted path with a writable dir. Steps? *(place payload, restart service or wait, get SYSTEM shell.)*</li>
+</ol>
+<p><strong>AD</strong></p>
+<ol>
+<li>You have one domain user&#x27;s password. First 4 actions? *(BloodHound collect; Kerberoast <code>GetUserSPNs -request</code>; AS-REP <code>GetNPUsers</code>; spray creds on hosts with <code>nxc</code>.)*</li>
+<li>BloodHound shows your user has <code>GenericAll</code> on another user. What do you do? *(force-change their password or targeted Kerberoast/shadow-creds; then use them.)*</li>
+<li>You cracked a service account with an SPN. Next? *(reuse pw everywhere; check its group memberships/BloodHound; look for path to DA / DCSync.)*</li>
+</ol>
+<p><strong>Pivoting</strong></p>
+<ol>
+<li>You root a dual-homed host seeing <code>172.16.5.0/24</code>. How do you scan it from your box? *(Ligolo tunnel or Chisel SOCKS + proxychains; then <code>nxc</code>/nmap through proxy.)*</li>
+</ol>
+<p><strong>Credentials / hashes</strong></p>
+<ol>
+<li>You dumped an NTLM hash. Two things to try, in order? *(pass-the-hash with <code>nxc -H</code>/evil-winrm <code>-H</code> first; crack with hashcat <code>-m 1000</code> if PtH blocked.)*</li>
+</ol>
+<p><strong>Troubleshooting</strong></p>
+<ol>
+<li>Reverse shell won&#x27;t connect. Diagnostic order? *(listener up? right LHOST/LPORT? egress port allowed? payload encoding/quoting? firewall? try 80/443; test with a simpler payload.)*</li>
+</ol>
+<p><strong>Decision / stuck</strong></p>
+<ol>
+<li>Stuck 30 min on standalone #2. What exactly do you do? *(invoke <code class="tag">[STUCK-PROTOCOL]</code>: re-enum all ports/web, list untried surfaces, switch to another target, return fresh.)*</li>
+</ol>
+<hr>
+<h1 id="v2-part-35-[navigation-sim]-using-this-kb-with-ctrlf">PART 35 — [NAVIGATION-SIM] Using this KB with Ctrl+F<a class="anchor" href="#v2-part-35-[navigation-sim]-using-this-kb-with-ctrlf">#</a></h1>
+<p>Each: <strong>FINDING → search tag → technique → command → interpret → next.</strong></p>
+<ol>
+<li><strong>Unknown web server:</strong> <code>Ctrl+F [WEB-QUICK]</code> → fingerprint+content map → <code>whatweb</code>/feroxbuster → note CMS/version/params → <code class="tag">[SQLI]</code>/<code class="tag">[WEB-LFI]</code>/searchsploit.</li>
+<li><strong>Low-priv Linux shell:</strong> <code class="tag">[LINUX-PRIVESC-QUICK]</code> → <code>sudo -l</code>/SUID/linpeas → interpret hits vs false positives → <code class="tag">[GTFOBINS-WORKFLOW]</code>.</li>
+<li><strong>Low-priv Windows shell:</strong> <code class="tag">[WINDOWS-PRIVESC-QUICK]</code> → <code>whoami /priv</code>+winpeas → SeImpersonate? service? → <code class="tag">[WINDOWS-TOKENS]</code>/<code class="tag">[WINDOWS-SERVICES]</code>.</li>
+<li><strong>SMB server:</strong> <code class="tag">[SMB-QUICK]</code> → anon/shares/users → <code>nxc</code>/<code>smbclient</code>/<code>enum4linux-ng</code> → creds/files → <code class="tag">[FOUND-SMB]</code>.</li>
+<li><strong>Domain user:</strong> <code class="tag">[AD-QUICK]</code> → BloodHound+roast+spray → <code class="tag">[AD-KERBEROAST]</code>/<code class="tag">[AD-ASREP]</code>/<code class="tag">[AD-ACL]</code> → <code class="tag">[AD-ATTACK-PATH]</code>.</li>
+<li><strong>SQL injection:</strong> <code class="tag">[SQLI-DECISION-TREE]</code> → identify DB → union/blind → <code class="tag">[SQLI-MYSQL]</code> etc → creds/file/RCE.</li>
+<li><strong>LFI:</strong> <code class="tag">[WEB-LFI]</code> → confirm <code>/etc/passwd</code> → wrappers/log-poison → RCE → <code class="tag">[SHELL-QUICK]</code>.</li>
+<li><strong>Credentials:</strong> <code class="tag">[FOUND-CREDS]</code> → spray everywhere → <code class="tag">[CREDENTIALS-QUICK]</code>.</li>
+<li><strong>BloodHound edge:</strong> <code class="tag">[AD-BLOODHOUND]</code> → identify edge type → <code class="tag">[AD-ACL]</code> abuse recipe.</li>
+<li><strong>Pivot host:</strong> <code class="tag">[PIVOT-QUICK]</code> → Ligolo/Chisel → proxychains scan → enumerate new subnet.</li>
+</ol>
+<hr>
+<h1 id="v2-[current-offsec-rules-summary]-verify-on-the-live-exam-guide-before-your-exam">[CURRENT-OFFSEC-RULES-SUMMARY]  (verify on the live exam guide before your exam)<a class="anchor" href="#v2-[current-offsec-rules-summary]-verify-on-the-live-exam-guide-before-your-exam">#</a></h1>
+<ul>
+<li>23h45m hands-on + 24h reporting. 100 pts, <strong>70 to pass</strong>. No bonus points.</li>
+<li>40-pt AD set (3 chained hosts, effectively all-or-nothing) + 3×20-pt standalones (10 local + 10 proof).</li>
+<li><strong>Metasploit/Meterpreter: one target only; not for pivoting.</strong> Manual everything else.</li>
+<li>Restricted/forbidden: automated exploitation frameworks, one-click AD auto-pwn tools, automated vuln scanners as primary exploitation, AI that solves the box, spoofing/DoS. <strong>Check the current guide — rules change.</strong></li>
+<li>Proof = flag contents + <code>whoami</code>/<code>id</code> + <code>ip a</code>/<code>ipconfig</code> in one screenshot, plus flag entered in the panel. Report required, reproducible, on time.</li>
+<li>OSCP+ expires in 3 years (renewable); underlying OSCP is lifetime.</li>
+</ul>
+<hr>
+<p>*End Volume 0. Continue: Volume 1 (Enumeration &amp; Nmap).*</p></section></main>
+  </div>
+</div>
+<button id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Top">↑</button>
+<script>
+function toggleTheme(){var h=document.documentElement,t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);try{localStorage.setItem('oscpkb-theme',t)}catch(e){}}
+try{var s=localStorage.getItem('oscpkb-theme');if(s)document.documentElement.setAttribute('data-theme',s)}catch(e){}
+var content=document.getElementById('content'),searchBox=document.getElementById('search'),countEl=document.getElementById('count');
+var marks=[],cur=-1;
+function clearMarks(){marks.forEach(function(m){var p=m.parentNode;p.replaceChild(document.createTextNode(m.textContent),m);p.normalize();});marks=[];cur=-1;countEl.textContent='';}
+function clearSearch(){searchBox.value='';clearMarks();searchBox.focus();}
+function doSearch(){clearMarks();var q=searchBox.value.trim();if(q.length<2)return;var rx=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');var wk=document.createTreeWalker(content,NodeFilter.SHOW_TEXT,{acceptNode:function(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;var t=n.parentNode.tagName;if(t==='SCRIPT'||t==='STYLE')return NodeFilter.FILTER_REJECT;return rx.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});var tg=[],node;while(node=wk.nextNode())tg.push(node);tg.forEach(function(n){rx.lastIndex=0;var frag=document.createDocumentFragment(),last=0,s=n.nodeValue,m;while(m=rx.exec(s)){if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));var mk=document.createElement('mark');mk.textContent=m[0];frag.appendChild(mk);marks.push(mk);last=m.index+m[0].length;if(m.index===rx.lastIndex)rx.lastIndex++;}if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));n.parentNode.replaceChild(frag,n);});countEl.textContent=marks.length?('0/'+marks.length):'0 hits';if(marks.length){cur=-1;jump(1);}}
+function jump(d){if(!marks.length)return;if(cur>=0)marks[cur].classList.remove('current');cur=(cur+d+marks.length)%marks.length;var m=marks[cur];m.classList.add('current');m.scrollIntoView({behavior:'smooth',block:'center'});countEl.textContent=(cur+1)+'/'+marks.length;}
+var deb;searchBox.addEventListener('input',function(){clearTimeout(deb);deb=setTimeout(doSearch,180);});
+searchBox.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();jump(e.shiftKey?-1:1);}if(e.key==='Escape'){clearSearch();}});
+document.addEventListener('keydown',function(e){if(e.key==='/'&&document.activeElement!==searchBox&&(document.activeElement.id!=='navfilter')){e.preventDefault();searchBox.focus();}});
+content.addEventListener('click',function(e){if(e.target.classList.contains('tag')){searchBox.value=e.target.textContent;doSearch();}});
+var nf=document.getElementById('navfilter');nf.addEventListener('input',function(){var q=this.value.toLowerCase();document.querySelectorAll('#nav .navlink').forEach(function(a){a.style.display=(!q||a.textContent.toLowerCase().indexOf(q)>=0)?'':'none';});});
+var totop=document.getElementById('totop');window.addEventListener('scroll',function(){totop.style.display=window.scrollY>500?'block':'none';});
+document.getElementById('nav').addEventListener('click',function(e){if(e.target.classList.contains('navlink')&&window.innerWidth<=900)document.getElementById('sidebar').classList.remove('open');});
+</script>
+</body>
+</html>

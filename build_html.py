@@ -22,6 +22,20 @@ VOLS = [
     ("VOL-7_SYLLABUS-CLIENTSIDE-AV-MSF-CLOUD-EXAMFLOW.md","⑩ 📚 Syllabus Extras & Exam-Day Flow"),
 ]
 
+# landing-page metadata, aligned to VOLS order: (slug, emoji, name, one-line description)
+PAGE_META = [
+    ("war-room",         "⭐", "Exam War Room",            "Open first on exam day — scoreboard, rules, per-machine playbooks, CVE hits."),
+    ("foundations",      "👶", "Beginner Foundations",     "Kali setup, glossary, concepts, first-box walkthroughs."),
+    ("mindset",          "🧭", "Mindset & Methodology",    "Golden rules, community wisdom, the staged method, reporting."),
+    ("enumeration",      "🔎", "Enumeration & Nmap",       "Scanning + what to do behind every open port."),
+    ("web-sqli",         "🌐", "Web & SQL Injection",      "The web attack method, every web vuln, SQLi mini-course."),
+    ("access",           "💥", "Access · Shells · Creds",  "Foothold, reverse shells, file transfer, cracking, exploits."),
+    ("privesc",          "⬆️", "Privilege Escalation",     "Linux & Windows — get root / SYSTEM."),
+    ("active-directory", "🏰", "Active Directory & Pivot", "The 40-pt set: enum, roasting, ACLs, DCSync, pivoting."),
+    ("reference",        "🧰", "Reference & Troubleshoot", "Found-X, tech encyclopedia, toolbox, flag hunt, report."),
+    ("extras",           "📚", "Syllabus Extras",          "Client-side, AV, Metasploit, exam-day flow."),
+]
+
 _slug_seen = {}
 def slugify(text):
     s = re.sub(r'`', '', text)
@@ -227,6 +241,7 @@ def main():
     sections_html = []
     nav_html = []
     all_sections = []
+    pages_data = []
     for vi, (fname, label) in enumerate(VOLS):
         path = os.path.join(HERE, fname)
         if not os.path.exists(path):
@@ -249,6 +264,9 @@ def main():
             f'<div class="navgroup{collapsed}" data-vol="{vi}">'
             f'<button class="navvol" onclick="toggleVol({vi})"><span class="tw">▾</span><span class="navvol-t">{html.escape(label)}</span></button>'
             f'<div class="navitems" id="navitems-{vi}">{"".join(items)}</div></div>')
+        if vi < len(PAGE_META):
+            _slug, _em, _nm, _desc = PAGE_META[vi]
+            pages_data.append((_em, _nm, _slug, _desc, "".join(items), body))
 
     content = "\n".join(sections_html)
     nav = "\n".join(nav_html)
@@ -269,6 +287,33 @@ def main():
 
     # bake the whole KB into the Copilot so it can search real KB text offline
     inject_copilot(all_sections)
+
+    # multi-page build: a landing page + one page per section (each opens in its own tab)
+    build_multipage(pages_data)
+
+
+def build_multipage(pages):
+    style = re.search(r'<style>.*?</style>', TEMPLATE, re.S).group(0)
+    pdir = os.path.join(HERE, "pages")
+    os.makedirs(pdir, exist_ok=True)
+    for (emoji, name, slug, desc, navitems, body) in pages:
+        page = (PAGE_TPL.replace("%%STYLE%%", style)
+                .replace("%%TITLE%%", html.escape(name))
+                .replace("%%EMOJI%%", emoji)
+                .replace("%%NAME%%", html.escape(name))
+                .replace("%%NAVITEMS%%", navitems)
+                .replace("%%CONTENT%%", body))
+        open(os.path.join(pdir, slug + ".html"), "w", encoding="utf-8").write(page)
+    cards = []
+    for (emoji, name, slug, desc, navitems, body) in pages:
+        n = navitems.count('class="navlink')
+        cards.append(
+            f'<a class="vcard" href="{slug}.html" target="_blank" rel="noopener">'
+            f'<div class="em">{emoji}</div><div class="nm">{html.escape(name)}</div>'
+            f'<div class="ds">{html.escape(desc)}</div><div class="cnt">{n} sections →</div></a>')
+    idx = INDEX_TPL.replace("%%STYLE%%", style).replace("%%CARDS%%", "\n".join(cards))
+    open(os.path.join(pdir, "index.html"), "w", encoding="utf-8").write(idx)
+    print(f"Wrote pages/index.html + {len(pages)} section pages")
 
 
 TEMPLATE = r"""<!doctype html>
@@ -546,6 +591,97 @@ try{const s=localStorage.getItem('oscpkb-theme');if(s)document.documentElement.s
 document.getElementById('nav').addEventListener('click',e=>{
   if(e.target.classList.contains('navlink')&&window.innerWidth<=900)document.getElementById('sidebar').classList.remove('open');});
 </script>
+</body>
+</html>"""
+
+
+PAGE_TPL = r"""<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>%%TITLE%% · OSCP+ KB</title>
+%%STYLE%%
+</head>
+<body>
+<div id="layout">
+  <aside id="sidebar">
+    <div id="brand">
+      <a href="index.html" style="text-decoration:none"><div class="logo">%%EMOJI%% %%NAME%%</div></a>
+      <a href="index.html" class="tagline" style="display:inline-block;margin-top:4px">← all sections</a>
+    </div>
+    <div id="navfilterwrap"><input id="navfilter" placeholder="Filter this section…"></div>
+    <nav id="nav"><div class="navitems">%%NAVITEMS%%</div></nav>
+  </aside>
+  <div id="main">
+    <div id="topbar">
+      <button id="menuBtn" class="iconbtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <a class="iconbtn" href="index.html" title="All sections">≡</a>
+      <div id="searchwrap"><span class="ic">🔎</span><input id="search" placeholder="Search this section…   Enter ↵ next"></div>
+      <span id="count"></span>
+      <button class="iconbtn" onclick="clearSearch()" title="Clear">✕</button>
+      <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
+    </div>
+    <main id="content"><section class="vol">%%CONTENT%%</section></main>
+  </div>
+</div>
+<button id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Top">↑</button>
+<script>
+function toggleTheme(){var h=document.documentElement,t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);try{localStorage.setItem('oscpkb-theme',t)}catch(e){}}
+try{var s=localStorage.getItem('oscpkb-theme');if(s)document.documentElement.setAttribute('data-theme',s)}catch(e){}
+var content=document.getElementById('content'),searchBox=document.getElementById('search'),countEl=document.getElementById('count');
+var marks=[],cur=-1;
+function clearMarks(){marks.forEach(function(m){var p=m.parentNode;p.replaceChild(document.createTextNode(m.textContent),m);p.normalize();});marks=[];cur=-1;countEl.textContent='';}
+function clearSearch(){searchBox.value='';clearMarks();searchBox.focus();}
+function doSearch(){clearMarks();var q=searchBox.value.trim();if(q.length<2)return;var rx=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');var wk=document.createTreeWalker(content,NodeFilter.SHOW_TEXT,{acceptNode:function(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;var t=n.parentNode.tagName;if(t==='SCRIPT'||t==='STYLE')return NodeFilter.FILTER_REJECT;return rx.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});var tg=[],node;while(node=wk.nextNode())tg.push(node);tg.forEach(function(n){rx.lastIndex=0;var frag=document.createDocumentFragment(),last=0,s=n.nodeValue,m;while(m=rx.exec(s)){if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));var mk=document.createElement('mark');mk.textContent=m[0];frag.appendChild(mk);marks.push(mk);last=m.index+m[0].length;if(m.index===rx.lastIndex)rx.lastIndex++;}if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));n.parentNode.replaceChild(frag,n);});countEl.textContent=marks.length?('0/'+marks.length):'0 hits';if(marks.length){cur=-1;jump(1);}}
+function jump(d){if(!marks.length)return;if(cur>=0)marks[cur].classList.remove('current');cur=(cur+d+marks.length)%marks.length;var m=marks[cur];m.classList.add('current');m.scrollIntoView({behavior:'smooth',block:'center'});countEl.textContent=(cur+1)+'/'+marks.length;}
+var deb;searchBox.addEventListener('input',function(){clearTimeout(deb);deb=setTimeout(doSearch,180);});
+searchBox.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();jump(e.shiftKey?-1:1);}if(e.key==='Escape'){clearSearch();}});
+document.addEventListener('keydown',function(e){if(e.key==='/'&&document.activeElement!==searchBox&&(document.activeElement.id!=='navfilter')){e.preventDefault();searchBox.focus();}});
+content.addEventListener('click',function(e){if(e.target.classList.contains('tag')){searchBox.value=e.target.textContent;doSearch();}});
+var nf=document.getElementById('navfilter');nf.addEventListener('input',function(){var q=this.value.toLowerCase();document.querySelectorAll('#nav .navlink').forEach(function(a){a.style.display=(!q||a.textContent.toLowerCase().indexOf(q)>=0)?'':'none';});});
+var totop=document.getElementById('totop');window.addEventListener('scroll',function(){totop.style.display=window.scrollY>500?'block':'none';});
+document.getElementById('nav').addEventListener('click',function(e){if(e.target.classList.contains('navlink')&&window.innerWidth<=900)document.getElementById('sidebar').classList.remove('open');});
+</script>
+</body>
+</html>"""
+
+
+INDEX_TPL = r"""<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSCP+ KB — Sections</title>
+%%STYLE%%
+<style>
+#idx{max-width:1040px;margin:0 auto;padding:44px 24px 80px}
+.ihead h1{font-size:26px;color:var(--head);margin:0 0 6px}
+.ihead p{color:var(--muted);margin:0 0 22px}
+.toolrow{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 26px}
+.toolbtn{background:var(--panel2);border:1px solid var(--border2);color:var(--text);border-radius:9px;padding:9px 14px;font-size:13px;text-decoration:none}
+.toolbtn:hover{border-color:var(--accent);color:var(--accent)}
+.cardgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.vcard{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 18px 16px;text-decoration:none;transition:transform .12s ease,border-color .12s ease;box-shadow:var(--shadow)}
+.vcard:hover{border-color:var(--accent);transform:translateY(-2px)}
+.vcard .em{font-size:26px;line-height:1}
+.vcard .nm{font-weight:700;color:var(--head);font-size:15.5px;margin:9px 0 4px}
+.vcard .ds{color:var(--muted);font-size:12.5px;line-height:1.5}
+.vcard .cnt{color:var(--accent);font-size:11px;margin-top:10px;font-weight:600}
+</style>
+</head>
+<body>
+<div id="idx">
+  <div class="ihead"><h1>🎯 OSCP+ Knowledge Base</h1><p>Pick a section — each opens on its own page in a new tab. No more one giant scroll.</p></div>
+  <div class="toolrow">
+    <a class="toolbtn" href="../OSCP-Mindmap.html" target="_blank" rel="noopener">🗺️ Attack Mindmap</a>
+    <a class="toolbtn" href="../OSCP-Copilot.html" target="_blank" rel="noopener">🤖 Copilot (paste output)</a>
+    <a class="toolbtn" href="../OSCP-CommandGen.html" target="_blank" rel="noopener">⌨️ Command Generator</a>
+    <a class="toolbtn" href="../OSCP-KB.html" target="_blank" rel="noopener">📖 Single-page (search all)</a>
+  </div>
+  <div class="cardgrid">%%CARDS%%</div>
+</div>
+<script>try{var s=localStorage.getItem('oscpkb-theme');if(s)document.documentElement.setAttribute('data-theme',s)}catch(e){}</script>
 </body>
 </html>"""
 

