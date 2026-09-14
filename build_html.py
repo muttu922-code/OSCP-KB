@@ -99,6 +99,11 @@ def convert(md, vol_idx):
             level = len(hm.group(1))
             text = hm.group(2).strip()
             hid = slugify(f"v{vol_idx}-{text}")
+            # the repeated "OSCP+ KNOWLEDGE BASE — VOLUME N" H1 → small muted kicker (declutter), not a giant title, not in nav
+            if level == 1 and text.upper().startswith('OSCP+ KNOWLEDGE BASE'):
+                out.append(f'<div class="volkicker" id="{hid}">{inline(text)}</div>')
+                i += 1
+                continue
             if level <= 3:
                 toc.append((level, hid, text))
             out.append(f'<h{level} id="{hid}">{inline(text)}<a class="anchor" href="#{hid}">#</a></h{level}>')
@@ -231,10 +236,12 @@ def main():
         all_sections.extend(parse_sections(md, vlabel))
         body, toc = convert(md, vi)
         sections_html.append(f'<section class="vol" id="vol-{vi}" data-vol="{vi}">{body}</section>')
-        # nav: top item = volume, children = H1/H2 headings
+        # nav: top item = volume; show only jump-points = all H1 dividers + TAGGED H2s
+        # (drops prose sub-headings like "What the whole process looks like" that cluttered the nav)
+        _navtag = re.compile(r'\[[A-Z0-9][A-Z0-9\-\+\*/ ]*\]')
         items = []
         for level, hid, text in toc:
-            if level <= 2:
+            if level == 1 or (level == 2 and _navtag.search(text)):
                 cls = 'lvl1' if level == 1 else 'lvl2'
                 items.append(f'<a class="navlink {cls}" href="#{hid}">{html.escape(re.sub(r"`","",text))}</a>')
         collapsed = '' if vi == 0 else ' collapsed'
@@ -330,8 +337,10 @@ a:hover{text-decoration:underline}
 .navlink{color:var(--muted);font-size:12px;padding:4px 10px;border-radius:6px;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;border-left:2px solid transparent;margin-left:-1px}
 .navlink:hover{background:var(--hover);color:var(--text);text-decoration:none}
-.navlink.lvl1{color:var(--text);font-weight:600;margin-top:5px}
-.navlink.lvl2{padding-left:18px;font-size:11.5px}
+.navlink.lvl1{color:var(--head);font-weight:700;margin-top:11px;font-size:12.5px}
+.navlink.lvl1:first-child{margin-top:2px}
+.navlink.lvl2{padding-left:22px;font-size:11.5px;color:var(--muted);border-left:1px solid var(--border)}
+.navlink.lvl2:hover,.navlink.lvl2.active{border-left-color:var(--accent)}
 .navlink.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
 
 /* ---------- Main ---------- */
@@ -354,6 +363,9 @@ a:hover{text-decoration:underline}
 #content h1{font-size:23px;font-weight:700;color:var(--head);letter-spacing:-.2px;
   margin:8px 0 18px;padding-bottom:12px;border-bottom:1px solid var(--border);line-height:1.3}
 .vol + .vol h1, #content h1.volstart{margin-top:56px}
+.volkicker{font-size:10.5px;font-weight:700;letter-spacing:1.4px;color:var(--faint);text-transform:uppercase;
+  margin:58px 0 4px;padding-top:22px;border-top:1px solid var(--border)}
+.vol:first-child .volkicker{margin-top:4px;border-top:none;padding-top:0}
 #content h2{font-size:18px;font-weight:650;color:var(--head);margin:34px 0 10px;
   padding-left:11px;border-left:3px solid var(--accent);line-height:1.35}
 #content h3{font-size:15px;font-weight:650;color:var(--accent2);margin:24px 0 8px}
