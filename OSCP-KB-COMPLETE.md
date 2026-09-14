@@ -1675,6 +1675,38 @@ A hypothesis has: a **claim**, a **test**, and a **timebox**. No timebox = rabbi
 
 ---
 
+# [COMMUNITY-WISDOM]  🧠 pro habits from IppSec & the OSCP community
+
+> Distilled from IppSec's teaching and widely-shared community OSCP methodology (sources at the end). These are the **durable habits** — not box spoilers — that the top prep resources agree on. They *add to* the Golden Rules above; cross-links point to the KB's how-to. (Not transcribed from every video — curated from the methodology these creators are known for + the guides cited below.)
+
+## The mindset that passes
+- **OSCP is an ENUMERATION exam, not an exploit-dev exam.** 🔑 The sharpest heuristic in the game: *if you find yourself writing a complex exploit, fixing kernel-driver dependencies, or reading assembly — you are on the wrong path.* Stop, step back, re-enumerate. You missed a port, a service, a parameter, or a simpler public exploit. (~IppSec)
+- **"Always have a form of recon running in the background."** (~IppSec) While you work one service, keep a scan/fuzz running against another. An idle terminal is wasted exam time.
+- **Three attack vectors, cycled on every host** — when one's dry, rotate to the next: ① **vulnerable version** → public exploit · ② **misconfiguration** · ③ **leaked sensitive info** (creds in files/DB/history/.git).
+
+## Enumeration habits (where boxes are actually won)
+- **Four checks per service, then CROSS IT OFF.** Do the handful of things that matter for a service; if none land, mark it **dead** and don't return — *unless* something on another service points back to it. This kills the biggest time-sink: re-poking a service you already cleared.
+- **Leave HTTP for a committed block.** Web has the largest attack surface, so first sweep the *quick* services (FTP/SMB/NFS/SNMP anon + versions), **then** sit down and enumerate web properly. Don't half-do web early and tunnel-vision on it. (~IppSec)
+- **Dir-bust with ≥2 tools + *different* wordlists, on EVERY endpoint** (and every discovered subdomain/vhost). One tool/list misses things a second catches.
+- **Don't forget UDP SNMP (161)** — `snmpwalk -c public` is a low-effort credential jackpot people skip.
+- **Read ALL the source and EVERY parameter** — HTML comments, JS files, hidden fields, each `?param=`. The thing everyone scrolled past is usually the way in.
+
+## Exploit research  → `[EXPLOIT-RESEARCH]`
+- **Prefer GitHub PoCs over raw Exploit-DB** — usually better-maintained. Search `<product/CVE> github poc`.
+- **Pre-stage your common weapons BEFORE the exam** in `~/tools`: PrintSpoofer/GodPotato, reverse-shell one-liners, linpeas/winpeas, chisel/ligolo, nc.exe. Never download these on the clock. (Also pre-compile anything that needs it.)
+
+## Credentials & spraying  → `[PASSWORD-ATTACKS]`
+- **rockyou has a ~10–20 minute window.** If a hash hasn't fallen in that time, **move on** — it's likely not the path (or needs a *targeted/mutated* list from the box, not brute force).
+- **Try the obvious passwords first:** the username itself, the **service name**, the **box/company name**, `<Season><Year>!`, product defaults.
+- **AD spraying discipline:** check `--pass-pol` **first**; hitting an **account lockout means this isn't the intended path.** And always run a **second spray round with `--local-auth`** (local accounts, not just domain).
+
+## Practice that builds the reflex
+- **Drill TJ_Null's HTB "OSCP-like" list**, and use the matching **IppSec video as the answer key** only when you're truly stuck — study the *why*, don't copy the steps. This is how you build the "4 checks per service" muscle memory that makes the exam feel routine.
+
+**Sources:** IppSec (YouTube, methodology as summarised across community OSCP guides) · community OSCP methodology writeups (hackwithmike OSCP methodology; various OSCP-prep guides). Curated + cross-checked against this KB — verify commands against your installed tools.
+
+---
+
 # PART 2/3 — [MASTER-METHODOLOGY] ATTACKING AN UNKNOWN MACHINE
 
 > Each stage: **OBJECTIVE / ASK / FIRST CMDS / DEEPER / OUTPUT THAT MATTERS / NEXT / MISTAKES / RABBIT HOLES / STOP / RETURN / EVIDENCE.** Commands are examples — service-specific detail lives in Volumes 1–5. `$IP` = target.
