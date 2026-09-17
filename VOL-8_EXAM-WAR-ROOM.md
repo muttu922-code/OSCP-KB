@@ -139,6 +139,12 @@ cd ~/tools/linux && python3 -m http.server 80 &
 export IP=10.10.14.x            # <-- your tun0 address from step 1 (LHOST)
 #    for each box you work:  T=<target-ip> ; cd ~/oscp/<box>    (then paste nmap etc. using $T)
 # 5) read the control-panel brief: starting creds? hostnames? domain? which IPs are AD vs standalone?
+# 6) ⚡ PRO MOVE (a passer's time-saver): fire AutoRecon at the 3 standalones, then go straight to AD while it runs:
+sudo autorecon -o ~/oscp/autorecon <ST-A-ip> <ST-B-ip> <ST-C-ip> --exclude-tags "dirbuster"
+#    sudo   = UDP scans get done (skip sudo and you lose UDP)
+#    --exclude-tags "dirbuster" = skip the slow dir-busting so it finishes fast (verify the tag for your version)
+#    then START the AD set immediately. When you circle back, browse ALL the enum output in a browser (comfier than grep):
+#    cd ~/oscp/autorecon && python3 -m http.server 8000   → open http://localhost:8000 and click through the results
 ```
 > After this, the folders (`scans/ loot/ …`) exist, so `nmap -oN scans/all-tcp.txt $T` won't error, `$IP`/`$T` are set so commands paste cleanly, and every command is logged for your report. Then go to **§1 / §2** below.
 

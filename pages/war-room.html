@@ -286,7 +286,13 @@ cd ~/tools/linux &amp;&amp; python3 -m http.server 80 &amp;
 # 4) set your Kali IP + per-target IP as shell vars so all KB commands paste-and-run:
 export IP=10.10.14.x            # &lt;-- your tun0 address from step 1 (LHOST)
 #    for each box you work:  T=&lt;target-ip&gt; ; cd ~/oscp/&lt;box&gt;    (then paste nmap etc. using $T)
-# 5) read the control-panel brief: starting creds? hostnames? domain? which IPs are AD vs standalone?</code></pre>
+# 5) read the control-panel brief: starting creds? hostnames? domain? which IPs are AD vs standalone?
+# 6) ⚡ PRO MOVE (a passer&#x27;s time-saver): fire AutoRecon at the 3 standalones, then go straight to AD while it runs:
+sudo autorecon -o ~/oscp/autorecon &lt;ST-A-ip&gt; &lt;ST-B-ip&gt; &lt;ST-C-ip&gt; --exclude-tags &quot;dirbuster&quot;
+#    sudo   = UDP scans get done (skip sudo and you lose UDP)
+#    --exclude-tags &quot;dirbuster&quot; = skip the slow dir-busting so it finishes fast (verify the tag for your version)
+#    then START the AD set immediately. When you circle back, browse ALL the enum output in a browser (comfier than grep):
+#    cd ~/oscp/autorecon &amp;&amp; python3 -m http.server 8000   → open http://localhost:8000 and click through the results</code></pre>
 <blockquote>After this, the folders (<code>scans/ loot/ …</code>) exist, so <code>nmap -oN scans/all-tcp.txt $T</code> won&#x27;t error, <code>$IP</code>/<code>$T</code> are set so commands paste cleanly, and every command is logged for your report. Then go to <strong>§1 / §2</strong> below.</blockquote>
 <h2 id="v0-1-pre-flight-day-before-first-10-min-[exam-day-flow]-phase-0">1) PRE-FLIGHT (day before + first 10 min)  → <code class="tag">[EXAM-DAY-FLOW]</code> Phase 0<a class="anchor" href="#v0-1-pre-flight-day-before-first-10-min-[exam-day-flow]-phase-0">#</a></h2>
 <pre><code>[ ] VPN, VM, screenshot tool, notes app all tested

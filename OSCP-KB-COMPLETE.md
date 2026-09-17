@@ -139,6 +139,12 @@ cd ~/tools/linux && python3 -m http.server 80 &
 export IP=10.10.14.x            # <-- your tun0 address from step 1 (LHOST)
 #    for each box you work:  T=<target-ip> ; cd ~/oscp/<box>    (then paste nmap etc. using $T)
 # 5) read the control-panel brief: starting creds? hostnames? domain? which IPs are AD vs standalone?
+# 6) ⚡ PRO MOVE (a passer's time-saver): fire AutoRecon at the 3 standalones, then go straight to AD while it runs:
+sudo autorecon -o ~/oscp/autorecon <ST-A-ip> <ST-B-ip> <ST-C-ip> --exclude-tags "dirbuster"
+#    sudo   = UDP scans get done (skip sudo and you lose UDP)
+#    --exclude-tags "dirbuster" = skip the slow dir-busting so it finishes fast (verify the tag for your version)
+#    then START the AD set immediately. When you circle back, browse ALL the enum output in a browser (comfier than grep):
+#    cd ~/oscp/autorecon && python3 -m http.server 8000   → open http://localhost:8000 and click through the results
 ```
 > After this, the folders (`scans/ loot/ …`) exist, so `nmap -oN scans/all-tcp.txt $T` won't error, `$IP`/`$T` are set so commands paste cleanly, and every command is logged for your report. Then go to **§1 / §2** below.
 
@@ -1723,7 +1729,13 @@ A hypothesis has: a **claim**, a **test**, and a **timebox**. No timebox = rabbi
 3. Only when truly stuck, use **IppSec (video)** or **0xdf (written)** as the answer key — study the *why*, don't copy the steps.
 4. **After every box, compare your path to 0xdf/IppSec** — note what you missed and where you over-complicated. That comparison is where the methodology actually forms (and builds the "4 checks per service" reflex that makes the exam feel routine).
 
-**Sources:** [awesome-oscp resource list](https://github.com/0x4d31/awesome-oscp) · [Tib3rius — 59 Hosts to Glory / AutoRecon](https://medium.com/@Tib3rius/59-hosts-to-glory-passing-the-oscp-acf0fd384371) · [0xdf — OffSec / HTB lists](https://0xdf.gitlab.io/cheatsheets/offsec) · [hackwithmike OSCP methodology](https://hackwithmike.gitbook.io/oscp/methodology/oscp-methodology) · community OSCP-prep guides. Curated + cross-checked against this KB — not transcribed per-video; verify commands against your installed tools.
+## From fresh passers (r/oscp) — battle-tested moves
+- **Build your OWN running checklist.** Every time a practice box (Proving Grounds / HTB / TJ_Null's or Lain's list) teaches you a *new* technique, categorise it and add it to a personal list. This habit is what lets you **stop relying on writeups and solve boxes yourself** — the list grows into your methodology.
+- **⚡ Exam-morning time-saver:** split your terminal into 3 and fire **AutoRecon at the three standalones** (`sudo` for UDP; **exclude dir-busting** or it drags), then **go straight to the AD set** while they run. Stuck later? Open AutoRecon's results folder, `python3 -m http.server`, and **browse the nmap/enum output in your browser** — far comfier than grepping the terminal. (Recipe in `[PRE-EXAM-SETUP]`.)
+- **The AD set can fall to `nxc` + `ligolo` almost alone.** NetExec harvests creds and enumerates across every protocol; Ligolo handles the pivot. You rarely need more for the 40 points — lean on them and don't over-tool.
+- **⚠️ Bigger checklist = bigger rabbit-hole risk.** (Straight from a passer.) The more techniques you *could* try, the more tempting it is to grind them all until something works. **Enumerate to decide the *right* one** — don't blindly walk the whole list.
+
+**Sources:** [awesome-oscp resource list](https://github.com/0x4d31/awesome-oscp) · [Tib3rius — 59 Hosts to Glory / AutoRecon](https://medium.com/@Tib3rius/59-hosts-to-glory-passing-the-oscp-acf0fd384371) · [0xdf — OffSec / HTB lists](https://0xdf.gitlab.io/cheatsheets/offsec) · [hackwithmike OSCP methodology](https://hackwithmike.gitbook.io/oscp/methodology/oscp-methodology) · [Emmanuel Solis OSCP notes (very complete + well organised)](https://www.emmanuelsolis.com/oscp.html) · [muqaram0 cheatsheet](https://muqaram0.github.io/cheatsheet/oscp-cheatsheet/) + [tools list](https://muqaram0.github.io/tools/) (shared on r/oscp) · community OSCP-prep guides. Curated + cross-checked against this KB — not transcribed per-video; verify commands against your installed tools.
 
 ---
 
