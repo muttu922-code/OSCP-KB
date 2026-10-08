@@ -268,6 +268,42 @@ def main():
             _slug, _em, _nm, _desc = PAGE_META[vi]
             pages_data.append((_em, _nm, _slug, _desc, "".join(items), body))
 
+    # --- Challenge Labs / Box Journal: aggregate OSCP-Challenge-Labs/*.md into one section ---
+    cl_dir = os.path.join(HERE, "OSCP-Challenge-Labs")
+    if os.path.isdir(cl_dir):
+        box_files = sorted(f for f in os.listdir(cl_dir)
+                           if f.endswith(".md") and f.lower() != "readme.md")
+        if box_files:
+            vi = len(VOLS)
+            navtag = re.compile(r'\[[A-Z0-9][A-Z0-9\-\+\*/ ]*\]')
+            parts = [
+                "# OSCP+ KNOWLEDGE BASE — BOX JOURNAL",
+                "## 🗂️ CHALLENGE LABS & BOXES — my per-box writeups",
+                "> Every machine I've rooted: the attack chain, exact commands, learnings, and rabbit holes to not repeat. Source files live in `OSCP-Challenge-Labs/`; add a box there and rebuild.",
+                "---",
+            ]
+            for bf in box_files:
+                parts.append(open(os.path.join(cl_dir, bf), encoding="utf-8").read())
+                parts.append("\n---\n")
+            md = "\n\n".join(parts)
+            all_sections.extend(parse_sections(md, "Box Journal"))
+            body, toc = convert(md, vi)
+            sections_html.append(f'<section class="vol" id="vol-{vi}" data-vol="{vi}">{body}</section>')
+            items = []
+            for level, hid, text in toc:
+                if level == 1 or (level == 2 and navtag.search(text)):
+                    cls = 'lvl1' if level == 1 else 'lvl2'
+                    items.append(f'<a class="navlink {cls}" href="#{hid}">{html.escape(re.sub(r"`","",text))}</a>')
+            nav_html.append(
+                f'<div class="navgroup collapsed" data-vol="{vi}">'
+                f'<button class="navvol" onclick="toggleVol({vi})"><span class="tw">▾</span>'
+                f'<span class="navvol-t">⑪ 🗂️ Challenge Labs — box journal</span></button>'
+                f'<div class="navitems" id="navitems-{vi}">{"".join(items)}</div></div>')
+            pages_data.append(("🗂️", "Challenge Labs", "challenge-labs",
+                               "Per-box writeups: chain, commands, learnings, rabbit holes.",
+                               "".join(items), body))
+            print(f"Added Challenge Labs section ({len(box_files)} box writeups)")
+
     content = "\n".join(sections_html)
     nav = "\n".join(nav_html)
 
