@@ -167,6 +167,19 @@ Alternatives: `script -qc /bin/bash /dev/null`; or full `socat` TTY if socat is 
 ```
 Most common, in order: **wrong LHOST (used eth0 instead of tun0)**, listener not running, blocked port, quoting/encoding, AV.
 
+## [SHELL-FORWARD]  web RCE but outbound is BLOCKED → a "forward shell" (IppSec)
+**The problem:** you have a **web RCE** (a webshell / `?cmd=` / blind command exec) but a reverse shell never connects back — the target's **outbound is firewalled** (and bind shells are blocked inbound too). You can run one-off commands, but you have no interactive shell.
+**The trick (IppSec's forward-shell):** you don't need a socket at all. On the target you set up a **named pipe (FIFO)**: a background shell *reads commands from the FIFO* and *writes their output to a file*. You then drive it entirely **over the same web RCE** — send each command by writing to the FIFO, read the result by fetching the output file. Result: a fully interactive, PTY-ish shell carried over nothing but your existing HTTP RCE — **zero outbound/inbound connection.**
+```bash
+# the core idea (run these THROUGH your web RCE, e.g. ?cmd=...):
+mkfifo /tmp/in; tail -f /tmp/in | /bin/bash 2>&1 > /tmp/out &
+#   send a command:   echo "id" > /tmp/in        (via ?cmd=)
+#   read the output:  cat /tmp/out               (via ?cmd=, or fetch the file)
+# IppSec's ready-made driver (automates the send/read loop over your RCE):
+#   https://github.com/ippsec/forward-shell   ← EDIT it for your target (it's hardcoded for Shellshock)
+```
+**When to reach for it:** an egress-filtered box where `[REVERSE-SHELL-NOT-CONNECTING]` step 8 ("all outbound blocked") applies and you only have a web RCE. **Note:** the script must be edited to match *how* your RCE delivers commands — understand the FIFO mechanism, don't run it blind.
+
 ---
 
 # [FILETRANSFER-QUICK]  MOVING FILES BETWEEN KALI AND THE TARGET

@@ -277,7 +277,7 @@ A hypothesis has: a **claim**, a **test**, and a **timebox**. No timebox = rabbi
 ## Who to learn from — and their distinct edge
 | Creator | Go to them for |
 |---|---|
-| **IppSec** | video walkthrough of (almost) every retired HTB box — enum-first methodology; the TJ_Null answer key |
+| **IppSec** | video walkthrough of nearly every retired HTB box; **search by technique at `ippsec.rocks`** → jumps to the exact video + timestamp. Also `github.com/ippsec` (see `[SHELL-FORWARD]`) |
 | **0xdf** | *written* HTB walkthroughs — great for **unintended paths** and comparing your approach |
 | **Tib3rius** | **the** Linux & Windows **privilege-escalation** courses; AutoRecon; privesc-checker scripts |
 | **TCM / Heath Adams** | **AD & internal** methodology (Practical Ethical Hacking), pivoting — the parts OSCP historically skipped |
@@ -298,7 +298,7 @@ A hypothesis has: a **claim**, a **test**, and a **timebox**. No timebox = rabbi
 - **The AD set can fall to `nxc` + `ligolo` almost alone.** NetExec harvests creds and enumerates across every protocol; Ligolo handles the pivot. You rarely need more for the 40 points — lean on them and don't over-tool.
 - **⚠️ Bigger checklist = bigger rabbit-hole risk.** (Straight from a passer.) The more techniques you *could* try, the more tempting it is to grind them all until something works. **Enumerate to decide the *right* one** — don't blindly walk the whole list.
 
-**Sources:** [awesome-oscp resource list](https://github.com/0x4d31/awesome-oscp) · [Tib3rius — 59 Hosts to Glory / AutoRecon](https://medium.com/@Tib3rius/59-hosts-to-glory-passing-the-oscp-acf0fd384371) · [0xdf — OffSec / HTB lists](https://0xdf.gitlab.io/cheatsheets/offsec) · [hackwithmike OSCP methodology](https://hackwithmike.gitbook.io/oscp/methodology/oscp-methodology) · [Emmanuel Solis OSCP notes (very complete + well organised)](https://www.emmanuelsolis.com/oscp.html) · [muqaram0 cheatsheet](https://muqaram0.github.io/cheatsheet/oscp-cheatsheet/) + [tools list](https://muqaram0.github.io/tools/) (shared on r/oscp) · community OSCP-prep guides. Curated + cross-checked against this KB — not transcribed per-video; verify commands against your installed tools.
+**Sources:** [awesome-oscp resource list](https://github.com/0x4d31/awesome-oscp) · [IppSec video search — ippsec.rocks](https://ippsec.rocks) · [IppSec GitHub (forward-shell, etc.)](https://github.com/ippsec) · [Tib3rius — 59 Hosts to Glory / AutoRecon](https://medium.com/@Tib3rius/59-hosts-to-glory-passing-the-oscp-acf0fd384371) · [0xdf — OffSec / HTB lists](https://0xdf.gitlab.io/cheatsheets/offsec) · [hackwithmike OSCP methodology](https://hackwithmike.gitbook.io/oscp/methodology/oscp-methodology) · [Emmanuel Solis OSCP notes (very complete + well organised)](https://www.emmanuelsolis.com/oscp.html) · [muqaram0 cheatsheet](https://muqaram0.github.io/cheatsheet/oscp-cheatsheet/) + [tools list](https://muqaram0.github.io/tools/) (shared on r/oscp) · community OSCP-prep guides. Curated + cross-checked against this KB — not transcribed per-video; verify commands against your installed tools.
 
 ---
 

