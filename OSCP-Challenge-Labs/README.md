@@ -9,6 +9,7 @@ A per-box log of every machine worked — the attack chain, exact commands, lear
 | Box | Platform | OS | Key technique | Difficulty | Date |
 |---|---|---|---|---|---|
 | [Twiggy](Twiggy.md) | Proving Grounds | Linux | SaltStack CVE-2020-11651 (unauth RCE as root) | Easy | 2026-10-08 |
+| [Pelican](Pelican.md) | Proving Grounds | Linux | Netflix Exhibitor `java.env` RCE → `sudo gcore` memory dump → root pw | Intermediate | 2026-10-12 |
 
 *(Also fully owned earlier, pre-journal: **Secura** — full AD domain compromise; **MedTech / WEB02** — SQLi→xp_cmdshell→PrintSpoofer→SYSTEM.)*
 

