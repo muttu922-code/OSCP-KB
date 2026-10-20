@@ -227,45 +227,173 @@ Known OSCP-relevant FTP bugs:
 
 **Leads to:** webshell → `[WEB-UPLOAD]`; creds/keys → `[CREDENTIALS-QUICK]`; version backdoor → shell → `[LINUX-PRIVESC]`.
 
-## [ENUM-SSH]  Port 22 — SSH (remote login shell)
-**Big idea:** SSH is almost never the way *in* — it's the **reward**. You rarely break SSH directly; instead you find a password or a private key *somewhere else* (a file, a share, a database) and then log in with it. Don't waste time attacking SSH head-on.
-```bash
-nmap -p22 -sCV $IP                         # read the version banner (hints at the OS/distro)
-ssh $U@$IP                                 # log in with a username + a password you found
-chmod 600 id_rsa ; ssh -i id_rsa $U@$IP    # log in with a private KEY file (chmod 600 first, or SSH refuses it)
-ssh2john id_rsa > h ; john --wordlist=rockyou.txt h   # key wants a passphrase? crack it (see Volume 3)
-hydra -l $U -P rockyou.txt ssh://$IP       # password-guess as a LAST resort — slow and noisy, needs a known user
+## [ENUM-SSH]  Port 22 — SSH (remote login shell) — FULL CHAIN
+**Big idea:** SSH is almost never the way *in* — it's the **reward**. You find a password or a private key *elsewhere* (a file, share, DB, web app) and then log in. Don't brute SSH head-on except as a true last resort.
+
+### 🗺️ Decision tree
 ```
-- A **private key** (often a file named `id_rsa`) is like a password-less door key. If you find one, `chmod 600` it (SSH rejects keys that others could read) then log in with `-i`.
-- Read `~/.ssh/authorized_keys` and `known_hosts` on any box you get onto — they leak **other usernames and other target machines**.
-
-**Troubleshoot:**
-- `Permission denied (publickey)` → wrong key, or wrong username.
-- `no matching key exchange/cipher` (very old server) → `ssh -oKexAlgorithms=+diffie-hellman-group1-sha1 -oHostKeyAlgorithms=+ssh-rsa $U@$IP`
-
-**Where it leads:** a foothold (your first shell) → `[LINUX-PRIVESC-QUICK]` · tunneling through it → `[PIVOT-SSH]`.
-
-## [ENUM-SMTP]  Ports 25/465/587 — Mail (SMTP)
-**What it is:** the mail-sending service. For OSCP its main use is **finding valid usernames** — you ask the mail server "does user X exist?" and it tells you. Those usernames feed Active Directory attacks later.
-```bash
-nmap -p25 -sCV --script "smtp-commands,smtp-enum-users" $IP   # server capabilities + user-guessing
-smtp-user-enum -M RCPT -U users.txt -t $IP    # check a list of names against the server [LOOK-UP]
-nc $IP 25                                      # talk to it by hand: type  VRFY root  or  RCPT TO:<user>
+do you have creds/a key (from another service)?
+   YES key → chmod 600 → ssh -i (passphrase? → crack with ssh2john)
+   YES pass → ssh user@ip  (and reuse that pass on every other service)
+   NO → note the VERSION (public exploit? user-enum?) ; try default/found creds ; brute ONLY with a known user
+also: old key algos → add -o flags ; username leaks → build a user list
 ```
-**What to check:** the banner may leak the mail software and an internal hostname. Valid users → feed them into AD spraying/roasting (`[AD-QUICK]`).
 
-## [ENUM-DNS]  Port 53 — DNS (name lookups)  → also `[TECH-DNS]`
-**What it is:** the phone book that turns names (`server.corp.local`) into IPs. The jackpot here is a **zone transfer** — if misconfigured, the server hands you a full list of every internal hostname at once. On Active Directory, DNS also reveals the Domain Controllers.
+### Step 1 — Identify
 ```bash
-dig axfr @$IP <domain>                     # ZONE TRANSFER — dumps ALL records at once (the big win)
-dig any @$IP <domain>                       # ask for any records it'll share
-dig -x $IP @$IP                             # reverse lookup (IP → name)
-dnsrecon -d internal.lan -a -n $IP          # automated enumeration (includes the zone-transfer attempt)
-dnsrecon -d <domain> -D wordlist.txt -t brute   # guess subdomain names from a wordlist
-nslookup -type=SRV _ldap._tcp.<domain> $IP  # AD trick: locate Domain Controllers via SRV records
+nmap -p22 -sCV $IP                                  # banner → OpenSSH version + OS/distro hint
+nc -nv $IP 22                                        # raw banner
+ssh-audit $IP                                        # (if installed) weak algos / version issues
 ```
-**What to check / do:** **every hostname you discover, add it to your `/etc/hosts`** file (`sudo nano /etc/hosts`, add a line `<IP>  server.corp.local`) so your tools can reach it by name.
-**Where it leads:** new website names to fuzz (`[WEB-CONTENT]`) · identifying the DC (`[AD-ENUM]`).
+- Note the exact **OpenSSH version** → Step 4 (some have user-enum / rare RCE).
+
+### Step 2 — Log in with a KEY you found (the common path)
+```bash
+chmod 600 id_rsa                                     # SSH refuses world-readable keys
+ssh -i id_rsa <user>@$IP                             # try likely users: root, admin, the box name, names you looted
+# passphrase-protected key? crack it:
+ssh2john id_rsa > key.hash ; john --wordlist=/usr/share/wordlists/rockyou.txt key.hash
+```
+> Which user? the key's `authorized_keys` comment, `/etc/passwd` names, web app users, or the key's filename/path.
+
+### Step 3 — Log in with a PASSWORD you found
+```bash
+ssh <user>@$IP                                       # paste the found password
+sshpass -p '<pass>' ssh <user>@$IP                   # non-interactive
+# EVERY password you find → also try on SMB/web/FTP/other users (reuse!) → [CREDENTIALS-QUICK]
+```
+
+### Step 4 — No creds yet → version angles + (last-resort) brute
+```bash
+searchsploit openssh <version>                       # user-enum (OpenSSH < 7.7: CVE-2018-15473), rare RCEs
+# username enumeration (OpenSSH < 7.7):
+# python3 ssh-user-enum.py --port 22 --userList users.txt $IP   [LOOK-UP]
+# default creds: root/root, root/toor, admin/admin, <product> defaults
+# brute (LAST resort — slow/noisy, needs a KNOWN user, DON'T use full rockyou on all users):
+hydra -l <known-user> -P /usr/share/wordlists/rockyou.txt ssh://$IP -t 4 -V
+```
+
+### Step 5 — Once in: pivot + loot
+```bash
+ssh -D 1080 <user>@$IP                               # dynamic SOCKS → proxychains (pivot) → [PIVOT-SSH]
+cat ~/.ssh/authorized_keys ~/.ssh/known_hosts        # leaks OTHER users + OTHER hosts to attack
+cat ~/.bash_history                                   # creds/commands
+```
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| `Permission denied (publickey)` | wrong key or wrong username — try other users |
+| key `UNPROTECTED PRIVATE KEY FILE` | `chmod 600 id_rsa` |
+| `no matching key exchange/host key type` (old server) | `ssh -oKexAlgorithms=+diffie-hellman-group1-sha1 -oHostKeyAlgorithms=+ssh-rsa -oPubkeyAcceptedKeyTypes=+ssh-rsa <user>@$IP` |
+| `no matching cipher` | add `-c aes256-cbc` (or the cipher the server lists) |
+| password login refused, only key | `PasswordAuthentication no` → you need a key; find one elsewhere |
+
+**Leads to:** a foothold → `[LINUX-PRIVESC-QUICK]` · tunneling → `[PIVOT-SSH]`.
+
+## [ENUM-SMTP]  Ports 25/465/587 — Mail (SMTP) — FULL CHAIN
+**What it is:** the mail-sending service. Main OSCP value: **enumerate valid usernames** (the server confirms which users exist) → feed them into spraying/AD roasting. Occasionally: open relay, version exploit, or creds to read mail.
+
+### 🗺️ Decision tree
+```
+grab banner (software+version) → try user-enum (VRFY / EXPN / RCPT):
+   got usernames? → save users.txt → spray / AD roast / SSH-user guess
+   version has a CVE? → searchsploit (e.g. old Exim/Sendmail RCEs)
+   open relay? → note it (rarely the path on OSCP)
+   have creds? → log in (POP/IMAP) → read mail for more creds/hints
+```
+
+### Step 1 — Banner + capabilities
+```bash
+nmap -p25,465,587 -sCV --script "smtp-commands,smtp-open-relay,smtp-enum-users" $IP
+nc -nv $IP 25                  # then type:  EHLO x    (lists VRFY/EXPN support + internal hostname)
+```
+- Note the **software + version** (Postfix/Exim/Sendmail/Microsoft) → Step 4 if it's old.
+
+### Step 2 — Enumerate users (the main win)
+```bash
+smtp-user-enum -M RCPT -U /usr/share/seclists/Usernames/Names/names.txt -t $IP   # RCPT method (most reliable)
+smtp-user-enum -M VRFY -U users.txt -t $IP                                       # VRFY method
+# by hand (nc $IP 25):
+#   VRFY root            → 252/250 = exists, 550 = no
+#   RCPT TO:<bob@domain> → (after MAIL FROM:<x@x>)  250 = exists
+```
+Save confirmed users → `users.txt` → **spray / AD roast** (`[AD-QUICK]`) / try as SSH usernames.
+
+### Step 3 — Have creds? Read the mailbox (POP3/IMAP)
+```bash
+# mail usually also on 110(POP3)/143(IMAP) — see [ENUM-POP-IMAP]
+```
+
+### Step 4 — Version exploit / relay
+```bash
+searchsploit exim ; searchsploit sendmail          # old MTAs have RCEs (e.g. Exim CVE-2019-10149)
+# open relay (noted by nmap smtp-open-relay) — rarely useful on OSCP; note it and move on
+```
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| VRFY returns 252 for everything | server can't verify (always-accept) → use the **RCPT** method instead |
+| connection drops after a few probes | rate-limited/greylisted → slow down (`-M RCPT` with delays), fewer names |
+| 503 bad sequence | send `MAIL FROM:<a@a>` before `RCPT TO:` |
+
+**Leads to:** usernames → `[AD-QUICK]` / spray `[CREDENTIALS-QUICK]`; version → `[EXPLOIT-RESEARCH]`.
+
+## [ENUM-POP-IMAP]  Ports 110/143 (+995/993 TLS) — POP3 / IMAP (mailboxes)
+**What it is:** read mail *with creds*. Mailboxes often contain **passwords, password-reset links, internal info** → reuse.
+```bash
+nmap -p110,143,993,995 -sCV $IP                    # version + capabilities
+# connect + read (plaintext):
+nc -nv $IP 110                                       # POP3:  USER <u>  /  PASS <p>  /  LIST  /  RETR 1
+openssl s_client -connect $IP:995 -quiet            # POP3S (TLS)
+curl -k "imaps://$IP" --user '<u>:<p>'               # IMAP over TLS
+# in IMAP (143):  a LOGIN <u> <p>  /  a LIST "" "*"  /  a SELECT INBOX  /  a FETCH 1 BODY[]
+```
+- **Brute (last resort, known user):** `hydra -l <u> -P rockyou.txt pop3://$IP` / `imap://$IP`.
+- **Leads to:** creds/hints inside emails → reuse `[CREDENTIALS-QUICK]`.
+
+## [ENUM-DNS]  Port 53 — DNS (name lookups) — FULL CHAIN  → also `[TECH-DNS]`
+**What it is:** the phone book (names ↔ IPs). Jackpot = a **zone transfer** (dumps every internal hostname at once). On AD, DNS reveals the Domain Controllers.
+
+### 🗺️ Decision tree
+```
+find the domain name (from nmap -sCV, SMB/LDAP, a web cert, /etc/hosts redirect) →
+   try ZONE TRANSFER (axfr) →  success? → dump ALL records → add every host to /etc/hosts → attack them
+                               fail?    → brute subdomains ; reverse-lookup the subnet ; AD SRV records
+```
+
+### Step 1 — Find the domain, then try a zone transfer
+```bash
+nmap -p53 -sCV --script "dns-nsid,dns-recursion" $IP
+# get the domain from: nmap -sCV, `nxc smb $IP` (domain field), a TLS cert CN/SAN, or a web redirect
+dig axfr @$IP <domain>                      # ⭐ ZONE TRANSFER — the big win (dumps all records)
+dig axfr @$IP                                # try with no domain too
+host -l <domain> $IP                         # alternative axfr
+dnsrecon -d <domain> -a -n $IP               # automated (includes axfr)
+```
+
+### Step 2 — If AXFR fails
+```bash
+dnsrecon -d <domain> -D /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt -t brute
+dnsenum <domain>
+dig -x $IP @$IP                              # reverse lookup (IP → hostname)
+nslookup -type=SRV _ldap._tcp.<domain> $IP   # AD: find Domain Controllers
+nslookup -type=any <domain> $IP
+```
+
+### Step 3 — Act
+- **Every hostname you discover → `/etc/hosts`:** `echo "$IP  host.domain.local" | sudo tee -a /etc/hosts`.
+- New hostnames → fuzz each as a **vhost/website** (`[WEB-CONTENT]`); a `*.corp.local` set → you're in **AD** (`[AD-ENUM]`).
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| `Transfer failed` / `connection refused` | AXFR not allowed → brute subdomains instead |
+| don't know the domain | get it from SMB (`nxc smb $IP`), a TLS cert, or an HTTP redirect to a hostname |
+| TCP vs UDP | AXFR uses **TCP/53**; make sure 53/tcp is reachable |
+
+**Leads to:** vhosts → `[WEB-CONTENT]`; DC discovery → `[AD-ENUM]`.
 
 ## [ENUM-HTTP] / HTTPS  Ports 80/443/8080/8000/8443/… — Web
 **What it is:** a website. This is the **#1 way into most boxes.** Enumerate **every** HTTP port thoroughly — the full method is Volume 2 (`[WEB-*]`). Quick first look:
