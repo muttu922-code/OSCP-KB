@@ -88,4 +88,4 @@ cat /root/proof.txt
 - 💡 Binary also uses `gets()` → a real buffer-overflow bug (a second path in). Pager escape is cleaner, so took it.
 
 ## 6. KB tags used
-- `[ENUM-REDIS]` + `[VERSION-VULN-MAP]` (Redis ≥4.0 module RCE, `redis-rogue-server`) · `[SHELL-STABILIZE]` · `[FLAG-HUNT]` · `[LINUX-SUDO]` (sudo custom binary) · `[GTFOBINS-WORKFLOW]` (`systemctl`/pager `!sh`) · `[LINUX-ENUM]` (notes.txt breadcrumb, SUID sweep)
+- `[ENUM-REDIS]` + `[VERSION-VULN-MAP]` (Redis ≥4.0 module RCE, `redis-rogue-server`) · `[SHELL-STABILIZE]` · `[FLAG-HUNT]` · `[LINUX-SUDO]` (sudo custom binary) · `[GTFOBINS-WORKFLOW]` (`systemctl`/pager `!sh`) · `[LINUX-LOCAL-ENUM]` (notes.txt breadcrumb, SUID sweep)
