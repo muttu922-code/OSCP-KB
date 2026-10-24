@@ -77,7 +77,7 @@ A tag like `[ENUM-SMB]` is a **bookmark**. When a line says "→ `[SHELL-QUICK]`
 ```
 100 pts total · need 70 · NO bonus points · 23h45m + 24h report
 ┌─────────────────────────────┬───────┬──────────────────────────────┐
-│ AD SET (3 chained hosts)    │  40   │ all-or-nothing → DO FIRST     │
+│ AD SET (3 chained hosts)    │  40   │ 10/10/20 partial → DO FIRST   │
 │ Standalone A                │  20   │ 10 local.txt + 10 proof.txt   │
 │ Standalone B                │  20   │ 10 local.txt + 10 proof.txt   │
 │ Standalone C                │  20   │ 10 local.txt + 10 proof.txt   │
@@ -175,7 +175,7 @@ As results land, route each port with `[ENUM-DECISION]` (Vol 1). **Golden rule: 
 
 ## 2.5) [EXAM-ORDER-DEBATE] which target first? (two valid schools — pick yours)
 ```
-SCHOOL A "AD first":     do the AD set while your brain is freshest — it's the 40-pt all-or-nothing
+SCHOOL A "AD first":     do the AD set while your brain is freshest — it's the 40-pt (10/10/20)
                          block and the hardest to grind tired. (This KB's default.)
 SCHOOL B "bank first":   root 1–2 standalones first (cap ~4–5h) to lock guaranteed points + build
                          momentum/confidence, THEN hit AD with a lead on the board.

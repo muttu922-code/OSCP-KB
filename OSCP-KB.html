@@ -253,7 +253,7 @@ mkdir -p scans            # make the folder that scan commands save into</code><
 <h2 id="v0-0-the-scoreboard-know-exactly-what-wins">0) THE SCOREBOARD (know exactly what wins)<a class="anchor" href="#v0-0-the-scoreboard-know-exactly-what-wins">#</a></h2>
 <pre><code>100 pts total · need 70 · NO bonus points · 23h45m + 24h report
 ┌─────────────────────────────┬───────┬──────────────────────────────┐
-│ AD SET (3 chained hosts)    │  40   │ all-or-nothing → DO FIRST     │
+│ AD SET (3 chained hosts)    │  40   │ 10/10/20 partial → DO FIRST   │
 │ Standalone A                │  20   │ 10 local.txt + 10 proof.txt   │
 │ Standalone B                │  20   │ 10 local.txt + 10 proof.txt   │
 │ Standalone C                │  20   │ 10 local.txt + 10 proof.txt   │
@@ -331,7 +331,7 @@ nmap -sU --top-ports 100 --min-rate 1000 -Pn -oN scans/udp.txt $T</code></pre>
 <p>As results land, route each port with <code class="tag">[ENUM-DECISION]</code> (Vol 1). <strong>Golden rule: map everything before exploiting anything.</strong></p>
 <hr>
 <h2 id="v0-25-[exam-order-debate]-which-target-first-two-valid-schools-pick-yours">2.5) [EXAM-ORDER-DEBATE] which target first? (two valid schools — pick yours)<a class="anchor" href="#v0-25-[exam-order-debate]-which-target-first-two-valid-schools-pick-yours">#</a></h2>
-<pre><code>SCHOOL A &quot;AD first&quot;:     do the AD set while your brain is freshest — it&#x27;s the 40-pt all-or-nothing
+<pre><code>SCHOOL A &quot;AD first&quot;:     do the AD set while your brain is freshest — it&#x27;s the 40-pt (10/10/20)
                          block and the hardest to grind tired. (This KB&#x27;s default.)
 SCHOOL B &quot;bank first&quot;:   root 1–2 standalones first (cap ~4–5h) to lock guaranteed points + build
                          momentum/confidence, THEN hit AD with a lead on the board.
