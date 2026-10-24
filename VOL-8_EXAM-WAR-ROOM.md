@@ -75,7 +75,7 @@ A tag like `[ENUM-SMB]` is a **bookmark**. When a line says "→ `[SHELL-QUICK]`
 
 ## 0) THE SCOREBOARD (know exactly what wins)
 ```
-100 pts total · need 70 · NO bonus points · 23h45m + 24h report
+100 pts total · need 70 (exams through 30 Nov 2026) · SCALED scoring on/after 1 Dec 2026 — no fixed pass mark, so submit EVERY flag + the report · NO bonus points · 23h45m + 24h report
 ┌─────────────────────────────┬───────┬──────────────────────────────┐
 │ AD SET (3 chained hosts)    │  40   │ 10/10/20 partial → DO FIRST   │
 │ Standalone A                │  20   │ 10 local.txt + 10 proof.txt   │
@@ -106,7 +106,12 @@ BANNED  : ⛔ AI / LLM chatbots during BOTH the exam AND the report phase (ChatG
 METASPLOIT: modules (exploit/post) + Meterpreter = ONE target only; once used on a box you're locked to it;
             NOT for pivoting. (msfvenom + multi/handler are exempt and usable everywhere.)
 REVERTS  : 24 available; the limit can be reset ONCE if you run out.
+SCORING  : through 30 Nov 2026 → 70/100 to pass. On/after 1 Dec 2026 → SCALED scoring (no fixed pass mark;
+           reschedule across the date takes the new date's method). Point values/objectives UNCHANGED.
+           → So: attempt EVERY objective, submit EVERY flag, and ALWAYS submit the report — never stop early
+             "counting to 70". (offsec.com/blog/oscp-grading-update)
 NOTE     : This KB is STATIC personal notes = allowed. Asking a live AI during the exam = banned. Comply.
+           (That's why OSCP-Copilot.html is pure pattern-matching with ZERO AI — keep it that way.)
 ```
 
 ## [PRE-EXAM-SETUP]  📋 copy-paste this (one block, run top-to-bottom)

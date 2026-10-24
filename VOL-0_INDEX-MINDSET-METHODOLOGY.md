@@ -141,9 +141,18 @@ Example: `nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $T`
 - **OSCP+** is what you earn by passing the current PEN-200 exam (structure in place since **Nov 1, 2024**). Passing grants **both** the lifetime **OSCP** and the **OSCP+** designation.
 - **OSCP+ expires 3 years** after issuance. The underlying **OSCP never expires**. If you let the "+" lapse you keep OSCP for life. Renew the "+" by: passing a recert exam within 6 months of expiry, passing another qualifying OffSec cert (OSEP/OSWA/OSED/OSEE), or completing OffSec's CPE/PEN-200 continuing-education program.
 
+### [OFFICIAL OFFSEC] ⚠️ SCORING CHANGE — scaled scoring from 1 Dec 2026
+> **Source:** OffSec, *OSCP+ Scoring Update* (offsec.com/blog/oscp-grading-update). **Your exam START DATE decides which applies:**
+> - **Exam starts THROUGH 30 Nov 2026** → the familiar **70 / 100 raw-point pass** applies (everything below).
+> - **Exam starts ON/AFTER 1 Dec 2026, 08:00 GMT** → **SCALED scoring.** There is **no single raw-point pass mark** anymore; your result is equated across exam sets. *Rescheduling across the date = your NEW date's method.*
+>
+> **What this does NOT change (OffSec, verbatim intent):** the skills/competency to pass, exam **content, objectives, point values, proof requirements, documentation standards, format, duration, proctoring** — all identical. **You prepare exactly the same.**
+>
+> **The new exam-day mantra (post-1-Dec):** *don't chase "70."* **Attempt every machine and objective · submit EVERY flag you get · document everything · complete and submit the report no matter how many points you think you have.** You can no longer self-judge pass/fail mid-exam by counting to 70 — so never stop early thinking "I have enough"; keep grinding every objective and always submit the report. (Pre-1-Dec, the 70 target still guides you.)
+
 ### [OFFICIAL OFFSEC] Exam format
 - **Duration:** 23 hours 45 minutes hands-on, then **24 hours** to write and upload the report.
-- **Total 100 points. Pass = 70.**
+- **Total 100 points. Pass = 70** *(exams through 30 Nov 2026; on/after 1 Dec 2026 → scaled, see the box above — the point values below are unchanged, only how the final result is computed).*
 - **1 Active Directory set = 40 points, scored per host: 10 / 10 / 20.** Three chained Windows hosts modelling a small enterprise (typically a domain-joined workstation → member server → domain controller). **Partial credit applies** — each member host is 10, the DC is 20 — so a chain that stalls halfway still scores (this replaced the old all-or-nothing rule; verify on the live exam guide). The 20-point DC is the prize. **Still treat AD as the exam — it's the single biggest, richest block.**
 - **3 standalone machines = 20 points each (60 total).** Each machine: **10 points for the low-priv flag (`local.txt`)** and **10 points for root/SYSTEM (`proof.txt`)**.
 - **Bonus points are GONE.** [OFFICIAL OFFSEC] There is no longer a lab/exercise bonus safety net. **You need a clean 70 on the day.** Practically: AD (40) + two full standalones (40) = 80 → pass. Or AD (40) + one full standalone (20) + two low-priv (20) = 80. Because AD now gives **partial credit (10/10/20)**, even a partial AD chain feeds your 70 — but it's still 40 points in one place, so **prioritize AD** and push for the 20-point DC.

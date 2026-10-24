@@ -75,7 +75,7 @@ A tag like `[ENUM-SMB]` is a **bookmark**. When a line says "→ `[SHELL-QUICK]`
 
 ## 0) THE SCOREBOARD (know exactly what wins)
 ```
-100 pts total · need 70 · NO bonus points · 23h45m + 24h report
+100 pts total · need 70 (exams through 30 Nov 2026) · SCALED scoring on/after 1 Dec 2026 — no fixed pass mark, so submit EVERY flag + the report · NO bonus points · 23h45m + 24h report
 ┌─────────────────────────────┬───────┬──────────────────────────────┐
 │ AD SET (3 chained hosts)    │  40   │ 10/10/20 partial → DO FIRST   │
 │ Standalone A                │  20   │ 10 local.txt + 10 proof.txt   │
@@ -106,7 +106,12 @@ BANNED  : ⛔ AI / LLM chatbots during BOTH the exam AND the report phase (ChatG
 METASPLOIT: modules (exploit/post) + Meterpreter = ONE target only; once used on a box you're locked to it;
             NOT for pivoting. (msfvenom + multi/handler are exempt and usable everywhere.)
 REVERTS  : 24 available; the limit can be reset ONCE if you run out.
+SCORING  : through 30 Nov 2026 → 70/100 to pass. On/after 1 Dec 2026 → SCALED scoring (no fixed pass mark;
+           reschedule across the date takes the new date's method). Point values/objectives UNCHANGED.
+           → So: attempt EVERY objective, submit EVERY flag, and ALWAYS submit the report — never stop early
+             "counting to 70". (offsec.com/blog/oscp-grading-update)
 NOTE     : This KB is STATIC personal notes = allowed. Asking a live AI during the exam = banned. Comply.
+           (That's why OSCP-Copilot.html is pure pattern-matching with ZERO AI — keep it that way.)
 ```
 
 ## [PRE-EXAM-SETUP]  📋 copy-paste this (one block, run top-to-bottom)
@@ -1578,9 +1583,18 @@ Example: `nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $T`
 - **OSCP+** is what you earn by passing the current PEN-200 exam (structure in place since **Nov 1, 2024**). Passing grants **both** the lifetime **OSCP** and the **OSCP+** designation.
 - **OSCP+ expires 3 years** after issuance. The underlying **OSCP never expires**. If you let the "+" lapse you keep OSCP for life. Renew the "+" by: passing a recert exam within 6 months of expiry, passing another qualifying OffSec cert (OSEP/OSWA/OSED/OSEE), or completing OffSec's CPE/PEN-200 continuing-education program.
 
+### [OFFICIAL OFFSEC] ⚠️ SCORING CHANGE — scaled scoring from 1 Dec 2026
+> **Source:** OffSec, *OSCP+ Scoring Update* (offsec.com/blog/oscp-grading-update). **Your exam START DATE decides which applies:**
+> - **Exam starts THROUGH 30 Nov 2026** → the familiar **70 / 100 raw-point pass** applies (everything below).
+> - **Exam starts ON/AFTER 1 Dec 2026, 08:00 GMT** → **SCALED scoring.** There is **no single raw-point pass mark** anymore; your result is equated across exam sets. *Rescheduling across the date = your NEW date's method.*
+>
+> **What this does NOT change (OffSec, verbatim intent):** the skills/competency to pass, exam **content, objectives, point values, proof requirements, documentation standards, format, duration, proctoring** — all identical. **You prepare exactly the same.**
+>
+> **The new exam-day mantra (post-1-Dec):** *don't chase "70."* **Attempt every machine and objective · submit EVERY flag you get · document everything · complete and submit the report no matter how many points you think you have.** You can no longer self-judge pass/fail mid-exam by counting to 70 — so never stop early thinking "I have enough"; keep grinding every objective and always submit the report. (Pre-1-Dec, the 70 target still guides you.)
+
 ### [OFFICIAL OFFSEC] Exam format
 - **Duration:** 23 hours 45 minutes hands-on, then **24 hours** to write and upload the report.
-- **Total 100 points. Pass = 70.**
+- **Total 100 points. Pass = 70** *(exams through 30 Nov 2026; on/after 1 Dec 2026 → scaled, see the box above — the point values below are unchanged, only how the final result is computed).*
 - **1 Active Directory set = 40 points, scored per host: 10 / 10 / 20.** Three chained Windows hosts modelling a small enterprise (typically a domain-joined workstation → member server → domain controller). **Partial credit applies** — each member host is 10, the DC is 20 — so a chain that stalls halfway still scores (this replaced the old all-or-nothing rule; verify on the live exam guide). The 20-point DC is the prize. **Still treat AD as the exam — it's the single biggest, richest block.**
 - **3 standalone machines = 20 points each (60 total).** Each machine: **10 points for the low-priv flag (`local.txt`)** and **10 points for root/SYSTEM (`proof.txt`)**.
 - **Bonus points are GONE.** [OFFICIAL OFFSEC] There is no longer a lab/exercise bonus safety net. **You need a clean 70 on the day.** Practically: AD (40) + two full standalones (40) = 80 → pass. Or AD (40) + one full standalone (20) + two low-priv (20) = 80. Because AD now gives **partial credit (10/10/20)**, even a partial AD chain feeds your 70 — but it's still 40 points in one place, so **prioritize AD** and push for the 20-point DC.
@@ -5739,7 +5753,7 @@ LESSON LEARNED: ____________________
 ## A. [MASTER-INDEX] → see Volume 0 (full tag list + volume map).
 
 ## B. [TOP-100-THINGS] (condensed to the highest-value ~50 principles; expand via tags)
-1 Enumerate all ports+web before exploiting. 2 AD = 40 pts, do it first/most. 3 No bonus points — need clean 70. 4 Metasploit one target only. 5 Spray every cred everywhere. 6 Cheapest test first. 7 Screenshot proof immediately (flag+id+ip). 8 Notes continuously, one file/target. 9 Re-enumerate after every privilege change. 10 Read tool output literally. 11 `-p-` always. 12 Quick UDP top-100. 13 Manual > MSF for muscle memory. 14 Password reuse beats exploits. 15 Stabilize shells before working. 16 Kerberoast + AS-REP every AD. 17 BloodHound early, mark Owned. 18 Verify scanners manually (false positives). 19 One box's loot unlocks others. 20 Rotate targets to break tunnel vision. 21 Understand exploits before running. 22 Save all artifacts. 23 `sudo -l`/`whoami /priv` first on any shell. 24 Loot configs/history/backups/git/DB. 25 Reverts are free. 26 Report is graded — repro steps required. 27 No one-click AD auto-pwn on exam. 28 Eat/sleep/break. 29 Fix Kerberos clock skew. 30 LFI value is often file-read not RCE. 31 SUID/sudo → GTFOBins. 32 SeImpersonate → Potato → SYSTEM. 33 Unquoted path needs a writable segment. 34 NTLM hash → PtH before cracking. 35 MSSQL → xp_cmdshell; Postgres → COPY PROGRAM; MySQL → FILE. 36 Add hostnames to /etc/hosts. 37 vhost fuzz with `-fs` baseline. 38 SNMP/UDP hides creds in process args. 39 SMB null/guest → shares/users. 40 WriteDACL/WriteOwner/GenericAll → own the object. 41 DCSync = game over. 42 Ligolo > proxychains where possible; `-sT` over SOCKS. 43 15-min re-read / 30-min switch. 44 If it needs a 0-day, you missed enum. 45 Timebox every hypothesis. 46 Try anonymous/default first. 47 Common egress ports 443/80/8080 for shells. 48 LHOST = tun0, not eth0. 49 Kernel exploits last. 50 Enter flags in the panel AND show in report.
+1 Enumerate all ports+web before exploiting. 2 AD = 40 pts, do it first/most. 3 No bonus points — need clean 70 (through 30 Nov 2026; on/after 1 Dec 2026 = scaled scoring, no fixed mark → submit every flag + report, don't self-judge). 4 Metasploit one target only. 5 Spray every cred everywhere. 6 Cheapest test first. 7 Screenshot proof immediately (flag+id+ip). 8 Notes continuously, one file/target. 9 Re-enumerate after every privilege change. 10 Read tool output literally. 11 `-p-` always. 12 Quick UDP top-100. 13 Manual > MSF for muscle memory. 14 Password reuse beats exploits. 15 Stabilize shells before working. 16 Kerberoast + AS-REP every AD. 17 BloodHound early, mark Owned. 18 Verify scanners manually (false positives). 19 One box's loot unlocks others. 20 Rotate targets to break tunnel vision. 21 Understand exploits before running. 22 Save all artifacts. 23 `sudo -l`/`whoami /priv` first on any shell. 24 Loot configs/history/backups/git/DB. 25 Reverts are free. 26 Report is graded — repro steps required. 27 No one-click AD auto-pwn on exam. 28 Eat/sleep/break. 29 Fix Kerberos clock skew. 30 LFI value is often file-read not RCE. 31 SUID/sudo → GTFOBins. 32 SeImpersonate → Potato → SYSTEM. 33 Unquoted path needs a writable segment. 34 NTLM hash → PtH before cracking. 35 MSSQL → xp_cmdshell; Postgres → COPY PROGRAM; MySQL → FILE. 36 Add hostnames to /etc/hosts. 37 vhost fuzz with `-fs` baseline. 38 SNMP/UDP hides creds in process args. 39 SMB null/guest → shares/users. 40 WriteDACL/WriteOwner/GenericAll → own the object. 41 DCSync = game over. 42 Ligolo > proxychains where possible; `-sT` over SOCKS. 43 15-min re-read / 30-min switch. 44 If it needs a 0-day, you missed enum. 45 Timebox every hypothesis. 46 Try anonymous/default first. 47 Common egress ports 443/80/8080 for shells. 48 LHOST = tun0, not eth0. 49 Kernel exploits last. 50 Enter flags in the panel AND show in report.
 
 ## C. [TOP-100-COMMANDS] (the ones you actually type)
 ```
@@ -5827,7 +5841,7 @@ BREAKS: eat, hydrate, sleep 4-6h. Fatigue = tunnel vision.
 
 ## L. [7-DAY-PLAN] → Volume 0 Part 32.
 
-## M. [CURRENT-OFFSEC-RULES] → Volume 0 (23h45m+24h, 100/70, 40 AD + 3×20, no bonus, MSF one target, proof = flag+whoami+ip, report required, OSCP+ 3-yr).
+## M. [CURRENT-OFFSEC-RULES] → Volume 0 (23h45m+24h, 100/70 through 30 Nov 2026 / SCALED on-or-after 1 Dec 2026, 40 AD [10/10/20 partial] + 3×20, no bonus, MSF one target, AI chatbots BANNED, proof = flag+whoami+ip, report required, OSCP+ 3-yr).
 
 ## [RESOURCES]  🔗 external tools & references (bookmark — and cache OFFLINE)
 > On the OSCP exam you **may** use public internet references (docs, GTFOBins, public exploits) — you may **not** use AI chatbots (`[EXAM-RULES-2026]`). Still, **save offline copies** of the starred ★ ones in case of connectivity issues on the day.
