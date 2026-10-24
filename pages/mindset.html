@@ -267,9 +267,9 @@ program   rarely change     with real IP   or a file you made</code></pre>
 <ul>
 <li><strong>Duration:</strong> 23 hours 45 minutes hands-on, then <strong>24 hours</strong> to write and upload the report.</li>
 <li><strong>Total 100 points. Pass = 70.</strong></li>
-<li><strong>1 Active Directory set = 40 points.</strong> Three chained Windows hosts modelling a small enterprise (typically a domain-joined workstation → member server → domain controller). <strong>You must fully compromise the chain to get the 40</strong> — it is effectively all-or-nothing; a partial AD compromise does not net partial exam-passing value in practice. <strong>Treat AD as the exam.</strong></li>
+<li><strong>1 Active Directory set = 40 points, scored per host: 10 / 10 / 20.</strong> Three chained Windows hosts modelling a small enterprise (typically a domain-joined workstation → member server → domain controller). <strong>Partial credit applies</strong> — each member host is 10, the DC is 20 — so a chain that stalls halfway still scores (this replaced the old all-or-nothing rule; verify on the live exam guide). The 20-point DC is the prize. <strong>Still treat AD as the exam — it&#x27;s the single biggest, richest block.</strong></li>
 <li><strong>3 standalone machines = 20 points each (60 total).</strong> Each machine: **10 points for the low-priv flag (<code>local.txt</code>)<strong> and </strong>10 points for root/SYSTEM (<code>proof.txt</code>)**.</li>
-<li><strong>Bonus points are GONE.</strong> [OFFICIAL OFFSEC] There is no longer a lab/exercise bonus safety net. <strong>You need a clean 70 on the day.</strong> Practically: AD (40) + two full standalones (40) = 80 → pass. Or AD (40) + one full standalone (20) + two low-priv (20) = 80. <strong>Losing the AD set means you must root all three standalones AND get extra — very hard. Prioritize AD.</strong></li>
+<li><strong>Bonus points are GONE.</strong> [OFFICIAL OFFSEC] There is no longer a lab/exercise bonus safety net. <strong>You need a clean 70 on the day.</strong> Practically: AD (40) + two full standalones (40) = 80 → pass. Or AD (40) + one full standalone (20) + two low-priv (20) = 80. Because AD now gives <strong>partial credit (10/10/20)</strong>, even a partial AD chain feeds your 70 — but it&#x27;s still 40 points in one place, so <strong>prioritize AD</strong> and push for the 20-point DC.</li>
 </ul>
 <h3 id="v2-[official-offsec]-tool-rules-the-ones-people-fail-on">[OFFICIAL OFFSEC] Tool rules (the ones people fail on)<a class="anchor" href="#v2-[official-offsec]-tool-rules-the-ones-people-fail-on">#</a></h3>
 <ul>
@@ -751,7 +751,7 @@ Content  : if you modified a public exploit, include your changes + why</code></
 <h1 id="v2-[current-offsec-rules-summary]-verify-on-the-live-exam-guide-before-your-exam">[CURRENT-OFFSEC-RULES-SUMMARY]  (verify on the live exam guide before your exam)<a class="anchor" href="#v2-[current-offsec-rules-summary]-verify-on-the-live-exam-guide-before-your-exam">#</a></h1>
 <ul>
 <li>23h45m hands-on + 24h reporting. 100 pts, <strong>70 to pass</strong>. No bonus points.</li>
-<li>40-pt AD set (3 chained hosts, effectively all-or-nothing) + 3×20-pt standalones (10 local + 10 proof).</li>
+<li>40-pt AD set (3 chained hosts, scored 10/10/20 — partial credit) + 3×20-pt standalones (10 local + 10 proof).</li>
 <li><strong>Metasploit/Meterpreter: one target only; not for pivoting.</strong> Manual everything else.</li>
 <li>Restricted/forbidden: automated exploitation frameworks, one-click AD auto-pwn tools, automated vuln scanners as primary exploitation, AI that solves the box, spoofing/DoS. <strong>Check the current guide — rules change.</strong></li>
 <li>Proof = flag contents + <code>whoami</code>/<code>id</code> + <code>ip a</code>/<code>ipconfig</code> in one screenshot, plus flag entered in the panel. Report required, reproducible, on time.</li>

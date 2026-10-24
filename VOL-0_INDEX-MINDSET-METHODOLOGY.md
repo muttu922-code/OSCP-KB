@@ -144,9 +144,9 @@ Example: `nmap -p- --min-rate 2000 -Pn -oN scans/all-tcp.txt $T`
 ### [OFFICIAL OFFSEC] Exam format
 - **Duration:** 23 hours 45 minutes hands-on, then **24 hours** to write and upload the report.
 - **Total 100 points. Pass = 70.**
-- **1 Active Directory set = 40 points.** Three chained Windows hosts modelling a small enterprise (typically a domain-joined workstation → member server → domain controller). **You must fully compromise the chain to get the 40** — it is effectively all-or-nothing; a partial AD compromise does not net partial exam-passing value in practice. **Treat AD as the exam.**
+- **1 Active Directory set = 40 points, scored per host: 10 / 10 / 20.** Three chained Windows hosts modelling a small enterprise (typically a domain-joined workstation → member server → domain controller). **Partial credit applies** — each member host is 10, the DC is 20 — so a chain that stalls halfway still scores (this replaced the old all-or-nothing rule; verify on the live exam guide). The 20-point DC is the prize. **Still treat AD as the exam — it's the single biggest, richest block.**
 - **3 standalone machines = 20 points each (60 total).** Each machine: **10 points for the low-priv flag (`local.txt`)** and **10 points for root/SYSTEM (`proof.txt`)**.
-- **Bonus points are GONE.** [OFFICIAL OFFSEC] There is no longer a lab/exercise bonus safety net. **You need a clean 70 on the day.** Practically: AD (40) + two full standalones (40) = 80 → pass. Or AD (40) + one full standalone (20) + two low-priv (20) = 80. **Losing the AD set means you must root all three standalones AND get extra — very hard. Prioritize AD.**
+- **Bonus points are GONE.** [OFFICIAL OFFSEC] There is no longer a lab/exercise bonus safety net. **You need a clean 70 on the day.** Practically: AD (40) + two full standalones (40) = 80 → pass. Or AD (40) + one full standalone (20) + two low-priv (20) = 80. Because AD now gives **partial credit (10/10/20)**, even a partial AD chain feeds your 70 — but it's still 40 points in one place, so **prioritize AD** and push for the 20-point DC.
 
 ### [OFFICIAL OFFSEC] Tool rules (the ones people fail on)
 - **Metasploit / Meterpreter: ONE target only.** You may use MSF exploit/post modules or a Meterpreter payload against a **single machine of your choice** for the whole exam. **Not** on the AD set for pivoting. Auxiliary modules (scanners) are treated more leniently but **don't gamble** — assume MSF = one box, use manual methods everywhere else.
@@ -634,7 +634,7 @@ Each: **FINDING → search tag → technique → command → interpret → next.
 
 # [CURRENT-OFFSEC-RULES-SUMMARY]  (verify on the live exam guide before your exam)
 - 23h45m hands-on + 24h reporting. 100 pts, **70 to pass**. No bonus points.
-- 40-pt AD set (3 chained hosts, effectively all-or-nothing) + 3×20-pt standalones (10 local + 10 proof).
+- 40-pt AD set (3 chained hosts, scored 10/10/20 — partial credit) + 3×20-pt standalones (10 local + 10 proof).
 - **Metasploit/Meterpreter: one target only; not for pivoting.** Manual everything else.
 - Restricted/forbidden: automated exploitation frameworks, one-click AD auto-pwn tools, automated vuln scanners as primary exploitation, AI that solves the box, spoofing/DoS. **Check the current guide — rules change.**
 - Proof = flag contents + `whoami`/`id` + `ip a`/`ipconfig` in one screenshot, plus flag entered in the panel. Report required, reproducible, on time.

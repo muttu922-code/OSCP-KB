@@ -29,7 +29,7 @@
 
 **One-line model:** *Scan everything → AD set first (BloodHound + roasts + spray → path to DC) → standalones on the 30-min rotation → spray every cred everywhere → screenshot proof the instant you get it → stop early to lock down proofs → write the report.*
 
-> ⚠️ **No Buffer Overflow box exists in OSCP+.** Old guides say "start with the 25-pt BOF" — ignore that. Center of gravity = the **AD set (40 pts, all-or-nothing)**.
+> ⚠️ **No Buffer Overflow box exists in OSCP+.** Old guides say "start with the 25-pt BOF" — ignore that. Center of gravity = the **AD set (40 pts, scored 10/10/20 — partial credit)**.
 
 ### PHASE 0 — Setup (day before + first 10 min)
 - Day before: test VPN/VM/screenshots/notes; pin `OSCP-KB.html`; pre-make folders:

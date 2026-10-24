@@ -3,7 +3,7 @@
 
 > **Read this box first — it's the most important 40 points on the exam.**
 >
-> **What is Active Directory (AD)?** In companies, Windows computers and users aren't managed one-by-one — they're joined into a **domain** run by a central server called the **Domain Controller (DC)**. The DC holds every user, password, group, and computer. **Own the DC and you own everything.** The exam's AD set is 3 chained machines worth 40 points, all-or-nothing.
+> **What is Active Directory (AD)?** In companies, Windows computers and users aren't managed one-by-one — they're joined into a **domain** run by a central server called the **Domain Controller (DC)**. The DC holds every user, password, group, and computer. **Own the DC and you own everything.** The exam's AD set is 3 chained machines worth **40 points, awarded per host — 10 / 10 / 20** (the two member hosts 10 each, the DC 20). So **partial credit counts**: even a half-finished chain scores, but the big 20 is the DC — push for it. (This replaced the old "all-or-nothing" rule; verify on the live OffSec exam guide.)
 >
 > **"Assumed breach":** the exam hands you one low-privilege domain username+password to start (you don't have to find the first foothold). Your job: use that to enumerate the domain, steal more credentials, hop from machine to machine, and eventually take over the DC.
 >
